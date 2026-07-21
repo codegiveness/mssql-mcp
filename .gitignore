@@ -1,0 +1,69 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+
+# .NET SDK
+*.user
+*.suo
+*.userprefs
+*.cache
+*.pidb
+*.swp
+
+# IDE - VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# IDE - Visual Studio
+.vs/
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# IDE - JetBrains (Rider, IntelliJ)
+.idea/
+
+# IDE - others
+*.DS_Store
+*.swp
+*~
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+
+# npm
+npm/node_modules/
+npm/bin/mssql-mcp
+npm/bin/mssql-mcp.exe
+npm/*.tgz
+
+# Publish output
+publish/
+artifacts/
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Local env files
+.env
+.env.local
+
+# Azure SQL Edge (integration test data)
+azure-sql-edge-data/

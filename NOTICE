@@ -1,0 +1,9 @@
+mssql-mcp is not affiliated with, endorsed by, or sponsored by Microsoft
+Corporation. Microsoft SQL Server is a trademark of Microsoft Corporation.
+"mssql" is used as a common abbreviation and refers to the database product,
+not to a Microsoft brand.
+
+This tool connects to SQL Server as a client. Server-side licensing (CAL or
+Per Core) is the end user's responsibility. Multiplexing through an MCP server
+does not reduce CAL requirements for Server+CAL licensed instances. SQL Server
+Express edition is free and has no CAL requirement.
