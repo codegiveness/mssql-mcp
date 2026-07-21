@@ -96,6 +96,8 @@ azure-sql-edge-data/
 .opencode/
 .opencode.json
 .opencode.jsonc
+opencode.json
+opencode.jsonc
 
 # Other AI coding assistants (defensive — none are used in this repo today,
 # but if a contributor opens it with one, their private state stays private).
