@@ -40,7 +40,7 @@ public sealed class DatabaseTools
 
     private const string GetObjectDetailsLookupSqlTemplate =
         """
-        SELECT type FROM {0}sys.objects
+        SELECT type, object_id FROM {0}sys.objects
         WHERE schema_id=SCHEMA_ID(@schema) AND name=@name{1}
         """;
 
@@ -48,7 +48,7 @@ public sealed class DatabaseTools
         """
         SELECT name, system_type_name, max_length, precision, scale, is_nullable, is_identity, ordinal_position
         FROM {0}sys.columns
-        WHERE object_id = OBJECT_ID(@qualifiedName)
+        WHERE object_id = @objectId
         ORDER BY ordinal_position
         """;
 
@@ -56,7 +56,7 @@ public sealed class DatabaseTools
         """
         SELECT name, system_type_name, max_length, precision, scale, is_output, parameter_id, default_value
         FROM {0}sys.parameters
-        WHERE object_id = OBJECT_ID(@qualifiedName)
+        WHERE object_id = @objectId
         ORDER BY parameter_id
         """;
 
@@ -64,7 +64,7 @@ public sealed class DatabaseTools
         """
         SELECT name, type_desc, is_unique, is_primary_key
         FROM {0}sys.indexes
-        WHERE object_id = OBJECT_ID(@qualifiedName)
+        WHERE object_id = @objectId
         ORDER BY index_id
         """;
 
@@ -72,7 +72,7 @@ public sealed class DatabaseTools
         """
         SELECT name, type_desc
         FROM {0}sys.triggers
-        WHERE parent_id = OBJECT_ID(@qualifiedName)
+        WHERE parent_id = @objectId
         ORDER BY name
         """;
 
@@ -331,14 +331,14 @@ public sealed class DatabaseTools
             }
 
             string typeChar = lookupRows[0].TryGetValue("type", out object? t) && t is string tv ? tv : string.Empty;
-            string qualifiedName = $"{schema}.{name}";
+            long objectId = lookupRows[0].TryGetValue("object_id", out object? oid) && oid is long l ? l : 0L;
 
             string columnsSql = string.Format(ColumnsSqlTemplate, dbPrefix);
             string parametersSql = string.Format(ParametersSqlTemplate, dbPrefix);
             string indexesSql = string.Format(IndexesSqlTemplate, dbPrefix);
             string triggersSql = string.Format(TriggersSqlTemplate, dbPrefix);
 
-            Dictionary<string, object> detailParams = new() { ["qualifiedName"] = qualifiedName };
+            Dictionary<string, object> detailParams = new() { ["objectId"] = objectId };
 
             if (typeChar == "U" || typeChar == "V")
             {

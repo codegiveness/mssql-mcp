@@ -44,7 +44,7 @@ public class GetObjectDetailsTests
 
     private static List<Dictionary<string, object?>> ObjectRow(string typeChar) =>
     [
-        new() { ["type"] = typeChar },
+        new() { ["type"] = typeChar, ["object_id"] = 12345L },
     ];
 
     private static List<Dictionary<string, object?>> Columns() =>
@@ -311,5 +311,52 @@ public class GetObjectDetailsTests
         Assert.NotEmpty(capturedSqls);
         string lookupSql = capturedSqls[0];
         Assert.Contains("type='U'", lookupSql, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetObjectDetails_DetailQueries_UseObjectIdParameter_NotObject_IdFunction()
+    {
+        // Regression test for Oracle review finding: OBJECT_ID(@qualifiedName) resolves in
+        // the current DB context, not the target DB. Fix: pass object_id from the lookup
+        // query as @objectId parameter to detail queries.
+        List<string> capturedSqls = new();
+        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
+        executor.ExecuteQueryAsync(
+                Arg.Do<string>(s => capturedSqls.Add(s)),
+                Arg.Any<IReadOnlyDictionary<string, object>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValidDbRow(), ObjectRow("U"), Columns(), Indexes(), Triggers());
+
+        DatabaseTools tools = CreateTools(executor);
+        await tools.GetObjectDetails("AppDb", "dbo", "Orders", null, CancellationToken.None);
+
+        // Verify detail queries use @objectId, not OBJECT_ID(...)
+        Assert.True(capturedSqls.Count >= 4, $"Expected at least 4 SQL calls, got {capturedSqls.Count}");
+        foreach (string sql in capturedSqls.Skip(2)) // skip validation + lookup
+        {
+            Assert.DoesNotContain("OBJECT_ID", sql, StringComparison.Ordinal);
+            Assert.Contains("@objectId", sql, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public async Task GetObjectDetails_LookupQuery_ReturnsObjectId()
+    {
+        // Verify the lookup query SELECTs object_id alongside type.
+        List<string> capturedSqls = new();
+        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
+        executor.ExecuteQueryAsync(
+                Arg.Do<string>(s => capturedSqls.Add(s)),
+                Arg.Any<IReadOnlyDictionary<string, object>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValidDbRow(), ObjectRow("U"), Columns(), Indexes(), Triggers());
+
+        DatabaseTools tools = CreateTools(executor);
+        await tools.GetObjectDetails("AppDb", "dbo", "Orders", null, CancellationToken.None);
+
+        // The lookup query (2nd call after validation) should select object_id.
+        Assert.True(capturedSqls.Count >= 2);
+        string lookupSql = capturedSqls[1];
+        Assert.Contains("object_id", lookupSql, StringComparison.Ordinal);
     }
 }
