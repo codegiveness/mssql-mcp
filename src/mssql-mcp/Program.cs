@@ -59,6 +59,7 @@ builder.Services.AddOptions<MssqlMcpOptions>()
 
 builder.Services.AddSingleton<ISqlExecutor>(sp =>
     new SqlExecutor(options.ConnectionString, options.QueryTimeout,
+        options.RetryCount, options.RetryIntervalMin, options.RetryIntervalMax,
         sp.GetRequiredService<ILogger<SqlExecutor>>()));
 
 builder.Services.AddSingleton<IGuard>(sp =>

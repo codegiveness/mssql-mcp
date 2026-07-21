@@ -16,4 +16,8 @@
     <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="180.37.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="mssql-mcp.Core.Tests" />
+  </ItemGroup>
+
 </Project>

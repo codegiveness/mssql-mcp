@@ -18,6 +18,12 @@ public sealed class MssqlMcpOptions
     public const string EnvRetryCount = "MSSQL_RETRY_COUNT";
     public const string EnvRetryIntervalMin = "MSSQL_RETRY_INTERVAL";
 
+    // Defaults per ADR-0004 and ADR-0015. Exposed as constants so tests and SqlExecutor
+    // can reference the same source of truth instead of hardcoding literals.
+    public const int DefaultRetryCount = 3;
+    public const int DefaultRetryIntervalMin = 2;
+    public const int DefaultRetryIntervalMax = 10;
+
     public const string CliConnectionString = "--connection-string";
     public const string CliAccessMode = "--access-mode";
     public const string CliQueryTimeout = "--query-timeout";
@@ -29,9 +35,9 @@ public sealed class MssqlMcpOptions
     public string LogLevel { get; set; } = "info";
     public string? LogFile { get; set; }
     public long MaxResultBytes { get; set; } = 10 * 1024 * 1024; // 10 MB per ADR-0003
-    public int RetryCount { get; set; } = 3;
-    public int RetryIntervalMin { get; set; } = 2;
-    public int RetryIntervalMax { get; set; } = 10;
+    public int RetryCount { get; set; } = DefaultRetryCount;
+    public int RetryIntervalMin { get; set; } = DefaultRetryIntervalMin;
+    public int RetryIntervalMax { get; set; } = DefaultRetryIntervalMax;
 
     /// <summary>
     /// Parses args + env into a validated <see cref="MssqlMcpOptions"/>.
@@ -135,7 +141,44 @@ public sealed class MssqlMcpOptions
             options.RetryIntervalMin = parsedMin;
         }
 
+        ValidateRetryBounds(options);
         return options;
+    }
+
+    /// <summary>
+    /// Cross-field validation for retry config that Microsoft.Data.SqlClient's
+    /// <c>SqlRetryLogicOption</c> enforces at provider construction time. Failing fast
+    /// at startup (ADR-0015) gives a clearer <c>[startup]</c> message than the runtime
+    /// <see cref="ArgumentOutOfRangeException"/> SqlClient would throw later.
+    /// </summary>
+    private static void ValidateRetryBounds(MssqlMcpOptions options)
+    {
+        // SqlRetryLogicOption.NumberOfTries must be 1-60. RetryCount is retries-after-first,
+        // so RetryCount+1 = NumberOfTries. RetryCount=60 → NumberOfTries=61 (invalid).
+        const int MaxRetryCount = 59;
+        if (options.RetryCount > MaxRetryCount)
+        {
+            throw new InvalidOperationException(
+                $"[startup] Invalid retry count '{options.RetryCount}'. Must be 0-{MaxRetryCount} (Microsoft.Data.SqlClient allows 1-60 total attempts).");
+        }
+
+        // SqlRetryLogicOption enforces MaxTimeInterval ≤ 120s and MinTimeInterval < MaxTimeInterval (strict).
+        const int MaxIntervalSeconds = 120;
+        if (options.RetryIntervalMin > MaxIntervalSeconds)
+        {
+            throw new InvalidOperationException(
+                $"[startup] Invalid retry interval min '{options.RetryIntervalMin}'. Must be 0-{MaxIntervalSeconds} seconds.");
+        }
+        if (options.RetryIntervalMax > MaxIntervalSeconds)
+        {
+            throw new InvalidOperationException(
+                $"[startup] Invalid retry interval max '{options.RetryIntervalMax}'. Must be 0-{MaxIntervalSeconds} seconds.");
+        }
+        if (options.RetryIntervalMin >= options.RetryIntervalMax)
+        {
+            throw new InvalidOperationException(
+                $"[startup] Retry interval min ({options.RetryIntervalMin}s) must be strictly less than max ({options.RetryIntervalMax}s).");
+        }
     }
 
     /// <summary>
