@@ -129,9 +129,16 @@ public sealed class PlanTools
             .ToList();
 
         List<string> warnings = doc.Descendants(Ns + "Warnings")
-            .SelectMany(w => w.Attributes())
-            .Where(a => string.Equals(a.Value, "true", StringComparison.OrdinalIgnoreCase))
-            .Select(a => ToWarningName(a.Name.LocalName))
+            .SelectMany(w =>
+            {
+                var attrNames = w.Attributes()
+                    .Where(a => string.Equals(a.Value, "true", StringComparison.OrdinalIgnoreCase))
+                    .Select(a => a.Name.LocalName);
+                var elementNames = w.Elements()
+                    .Select(e => e.Name.LocalName);
+                return attrNames.Concat(elementNames);
+            })
+            .Select(ToWarningName)
             .ToList();
 
         // Each RelOp carries EstimateCPU + EstimateIO. Cost = CPU + IO. Descending, take top 5.
@@ -170,11 +177,13 @@ public sealed class PlanTools
         // Column groups: EQUALITY / INEQUALITY / INCLUDE — collect column names per group.
         List<string> eqCols = new();
         List<string> ineqCols = new();
+        List<string> inclCols = new();
         foreach (XElement cg in mi.Elements(Ns + "ColumnGroup"))
         {
             string? usage = cg.Attribute("Usage")?.Value;
             List<string> target = string.Equals(usage, "EQUALITY", StringComparison.OrdinalIgnoreCase) ? eqCols
                 : string.Equals(usage, "INEQUALITY", StringComparison.OrdinalIgnoreCase) ? ineqCols
+                : string.Equals(usage, "INCLUDE", StringComparison.OrdinalIgnoreCase) ? inclCols
                 : new List<string>();
             foreach (XElement col in cg.Elements(Ns + "Column"))
             {
@@ -194,6 +203,7 @@ public sealed class PlanTools
             table = StripBrackets(mi.Attribute("Table")?.Value),
             equality_columns = eqCols.Count > 0 ? string.Join(", ", eqCols) : null,
             inequality_columns = ineqCols.Count > 0 ? string.Join(", ", ineqCols) : null,
+            included_columns = inclCols.Count > 0 ? string.Join(", ", inclCols) : null,
         };
     }
 

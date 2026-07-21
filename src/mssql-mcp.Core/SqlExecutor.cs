@@ -113,8 +113,18 @@ public sealed class SqlExecutor : ISqlExecutor
         {
             // Always reset SHOWPLAN_XML off — leaving it ON corrupts every subsequent query on
             // the pooled connection (they would return plan XML instead of rows).
-            using SqlCommand offCommand = new(SetShowPlanOff, connection) { CommandTimeout = _commandTimeout };
-            await offCommand.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            // Swallow exceptions here so we don't mask the original exception from the try block;
+            // Connection Reset=true (Microsoft.Data.SqlClient default) clears session state when
+            // the connection returns to the pool, so SHOWPLAN_XML is cleared even if this fails.
+            try
+            {
+                using SqlCommand offCommand = new(SetShowPlanOff, connection) { CommandTimeout = _commandTimeout };
+                await offCommand.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                _logger.LogWarning(ex, "[showplan] SET SHOWPLAN_XML OFF failed; relying on Connection Reset=true backstop");
+            }
         }
     }
 }
