@@ -94,6 +94,15 @@ public class PasswordObfuscationTests
     }
 
     [Fact]
+    public void Obfuscate_PwdAlias_Obfuscated()
+    {
+        // Microsoft.Data.SqlClient accepts both Password= and PWD= as the password key.
+        // Both must be obfuscated to prevent cleartext leakage.
+        Assert.Equal("Password=***;", PasswordObfuscator.Obfuscate("PWD=secret;"));
+        Assert.Equal("Password=***;", PasswordObfuscator.Obfuscate("pwd=secret;"));
+    }
+
+    [Fact]
     public void Obfuscate_EmptyMessage_ReturnsEmpty()
     {
         Assert.Equal(string.Empty, PasswordObfuscator.Obfuscate(string.Empty));

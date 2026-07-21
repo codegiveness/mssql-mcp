@@ -78,6 +78,16 @@ jobs:
             sha256sum "$f" > "$f.sha256"
           done
 
+      # GitHub Release FIRST so install.js can fetch archives before npm publish lands.
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          files: |
+            artifacts/mssql-mcp-*.tar.gz
+            artifacts/mssql-mcp-*.zip
+            artifacts/mssql-mcp-*.sha256
+
       # NuGet pack + push (sequential before npm so a NuGet failure aborts the release).
       - name: Pack NuGet
         run: dotnet pack src/mssql-mcp -c Release -o artifacts
@@ -91,13 +101,3 @@ jobs:
         run: cd npm && npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      # GitHub Release with archives + checksums attached.
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.tag.outputs.name }}
-          files: |
-            artifacts/mssql-mcp-*.tar.gz
-            artifacts/mssql-mcp-*.zip
-            artifacts/mssql-mcp-*.sha256

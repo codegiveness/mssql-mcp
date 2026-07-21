@@ -211,7 +211,7 @@ dotnet build
 dotnet test --filter Category!=Integration
 ```
 
-This is what CI runs. ~290 tests, completes in seconds.
+This is what CI runs. ~300 tests, completes in seconds.
 
 ### Integration tests (requires live SQL Server)
 

@@ -48,13 +48,21 @@ function die(message) {
   process.exit(1);
 }
 
-function fetchUrl(url) {
+// Follow up to 3 HTTP redirects (GitHub releases redirect to S3/CDN).
+// Hard depth limit prevents redirect loops from hanging or stack-overflowing.
+const MAX_REDIRECTS = 3;
+
+function fetchUrl(url, depth) {
+  if (depth === undefined) depth = 0;
   return new Promise((resolve, reject) => {
+    if (depth > MAX_REDIRECTS) {
+      reject(new Error('too many redirects (>' + MAX_REDIRECTS + ') starting from ' + url));
+      return;
+    }
     const req = https.get(url, (res) => {
-      // Follow up to 3 redirects (GitHub releases redirect to S3).
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         res.resume();
-        fetchUrl(res.headers.location).then(resolve, reject);
+        fetchUrl(res.headers.location, depth + 1).then(resolve, reject);
         return;
       }
       if (res.statusCode !== 200) {
