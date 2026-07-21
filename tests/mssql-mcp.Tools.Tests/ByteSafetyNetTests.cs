@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -124,8 +125,8 @@ public class ByteSafetyNetTests
         // Notice format: [truncated] Result exceeded {maxBytes} bytes. {returned} rows returned, more exist. Narrow with WHERE, TOP, or OFFSET/FETCH.
         Match m = Regex.Match(notice, @"^\[truncated\] Result exceeded (\d+) bytes\. (\d+) rows returned, more exist\. Narrow with WHERE, TOP, or OFFSET/FETCH\.$");
         Assert.True(m.Success, $"Notice did not match expected format: {notice}");
-        Assert.Equal(Default10Mb.ToString(), m.Groups[1].Value);
-        int returned = int.Parse(m.Groups[2].Value);
+        Assert.Equal(Default10Mb.ToString(CultureInfo.InvariantCulture), m.Groups[1].Value);
+        int returned = int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
         Assert.True(returned > 0, "Truncated row count should be positive");
     }
 
@@ -150,7 +151,7 @@ public class ByteSafetyNetTests
         Assert.IsType<TextContentBlock>(result.Content[1]);
         string second = GetText(result, 1);
         Assert.StartsWith("[truncated]", second);
-        Assert.False(second.StartsWith("[{"), $"Second content looks like row data, not notice: {second.Substring(0, Math.Min(40, second.Length))}");
+        Assert.False(second.StartsWith("[{", StringComparison.Ordinal), $"Second content looks like row data, not notice: {second.Substring(0, Math.Min(40, second.Length))}");
     }
 
     [Fact]

@@ -1,10 +1,13 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Server;
 using mssql_mcp.Core;
 using mssql_mcp.Core.Configuration;
 using mssql_mcp.Core.Guard;
 using mssql_mcp.Core.Logging;
+using mssql_mcp.Tools;
 
 // CRITICAL: stdout is the MCP JSON-RPC transport — all logging MUST go to stderr.
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
@@ -76,12 +79,53 @@ builder.Services.AddSingleton<ISqlExecutor>(sp =>
 builder.Services.AddSingleton<IGuard>(sp =>
     new SqlGuard(options, sp.GetRequiredService<ILogger<SqlGuard>>()));
 
+// Programmatic tool registration (ADR-0017). Replaces WithToolsFromAssembly so the
+// execute_sql annotations can vary by AccessMode at runtime: ReadOnly=false/Destructive=true
+// in Unrestricted mode, ReadOnly=true/Destructive=false in Restricted mode. The [McpServerTool]
+// attributes on the tool classes stay as documentation of intent but are overridden here by
+// McpServerToolCreateOptions (DeriveOptions uses ??=, so passed-in options win over attributes).
+// Each tool is registered as a factory (Func<IServiceProvider, McpServerTool>) so the runtime
+// app provider is passed to McpServerToolCreateOptions.Services, matching the SDK's internal
+// WithToolsFromAssembly behavior. The createTargetFunc resolves the tool class from that same
+// provider per invocation via ActivatorUtilities.CreateInstance.
+bool unrestricted = options.AccessMode == AccessMode.Unrestricted;
+
+static void AddTool<TTool>(IServiceCollection services, string methodName, bool? readOnly, bool? destructive)
+    where TTool : class
+{
+    MethodInfo method = typeof(TTool).GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance)
+        ?? throw new InvalidOperationException($"Tool method '{methodName}' not found on {typeof(TTool).Name}.");
+    services.AddSingleton(sp => McpServerTool.Create(
+        method,
+        static r => ActivatorUtilities.CreateInstance(r.Services!, typeof(TTool)),
+        new McpServerToolCreateOptions
+        {
+            Services = sp,
+            ReadOnly = readOnly,
+            Destructive = destructive,
+            Idempotent = false,
+            OpenWorld = false,
+        }));
+}
+
+// Discovery (4) — read-only in both modes.
+AddTool<DatabaseTools>(builder.Services, nameof(DatabaseTools.ListDatabases), readOnly: true, destructive: false);
+AddTool<DatabaseTools>(builder.Services, nameof(DatabaseTools.ListSchemas), readOnly: true, destructive: false);
+AddTool<DatabaseTools>(builder.Services, nameof(DatabaseTools.ListObjects), readOnly: true, destructive: false);
+AddTool<DatabaseTools>(builder.Services, nameof(DatabaseTools.GetObjectDetails), readOnly: true, destructive: false);
+// SQL (2) — execute_sql varies by mode; explain_query is always read-only.
+AddTool<SqlTools>(builder.Services, nameof(SqlTools.ExecuteSql),
+    readOnly: !unrestricted,
+    destructive: unrestricted);
+AddTool<PlanTools>(builder.Services, nameof(PlanTools.ExplainQuery), readOnly: true, destructive: false);
+// Ops (3) — read-only in both modes.
+AddTool<OpsTools>(builder.Services, nameof(OpsTools.AnalyzeIndexes), readOnly: true, destructive: false);
+AddTool<OpsTools>(builder.Services, nameof(OpsTools.GetTopQueries), readOnly: true, destructive: false);
+AddTool<OpsTools>(builder.Services, nameof(OpsTools.AnalyzeDbHealth), readOnly: true, destructive: false);
+
 builder.Services
     .AddMcpServer()
-    .WithStdioServerTransport()
-    // Explicitly specify the Tools assembly — WithToolsFromAssembly() with no args
-    // uses Assembly.GetCallingAssembly() which returns the App assembly, not Tools.
-    .WithToolsFromAssembly(typeof(mssql_mcp.Tools.DatabaseTools).Assembly);
+    .WithStdioServerTransport();
 
 await builder.Build().RunAsync();
 return 0;

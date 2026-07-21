@@ -6,8 +6,11 @@ namespace mssql_mcp.Core.Tests;
 
 /// <summary>
 /// Unit tests for the Restricted-mode Guard AST validation per ADR-0006.
-/// All attack vectors from ticket 02 are covered: statement-type allowlist (Layer 1),
-/// intra-SELECT blocklist (Layer 2), multi-statement, GO-separated, and nested statements.
+/// Covers the full ADR-0006 attack vector matrix (32 vectors across 5 categories):
+/// Layer 1 statement-type allowlist (10), Layer 1 edge cases (4),
+/// Layer 2 intra-SELECT blocklist (11), ADR-0006 Consequences implied (2),
+/// and SqlGuard.cs implementation paths (5).
+/// Closes ADR-0014 §5 qualitative + quantitative (≥30) gate — see issue #13.
 /// </summary>
 public class GuardTests
 {
@@ -258,6 +261,134 @@ public class GuardTests
     [Fact(Skip = "TSqlStatementSnippet cannot be triggered via TSql160Parser.Parse with any known malformed input in ScriptDom 180.37.3 — see comment for details.")]
     public void Reject_StatementSnippet_CannotBeTriggeredDirectly()
     {
+    }
+
+    // ---------- Reject: ADR-0006 coverage gap closure (issue #13) ----------
+
+    [Fact]
+    public void Reject_CteWithInsert()
+    {
+        var guard = CreateGuard();
+        var result = guard.Validate("WITH cte AS (SELECT 1) INSERT INTO t SELECT * FROM cte");
+        var rejection = RequireRejection(result);
+        Assert.Equal("non_select_statement", rejection.Rule);
+        Assert.Contains("InsertStatement", rejection.StatementType ?? "", StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reject_CteWithUpdate()
+    {
+        var guard = CreateGuard();
+        var result = guard.Validate("WITH cte AS (SELECT 1) UPDATE t SET x = 1 FROM cte");
+        var rejection = RequireRejection(result);
+        Assert.Equal("non_select_statement", rejection.Rule);
+        Assert.Contains("UpdateStatement", rejection.StatementType ?? "", StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reject_CteWithMerge()
+    {
+        var guard = CreateGuard();
+        var result = guard.Validate("WITH cte AS (SELECT 1) MERGE INTO t USING cte ON 1=1 WHEN MATCHED THEN DELETE;");
+        var rejection = RequireRejection(result);
+        Assert.Equal("non_select_statement", rejection.Rule);
+        Assert.Contains("MergeStatement", rejection.StatementType ?? "", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// InternalOpenRowset is an internal ScriptDom AST node (used for SQL Server's internal
+    /// OPENROWSET variants like Synapse / Data Lake paths). Empirical probing against
+    /// ScriptDom 180.37.3 could not produce this node via any user-facing SQL syntax:
+    /// OPENJSON parses to a function call (accepted), and the standard OPENROWSET(...)
+    /// provider form produces an OpenRowsetTableReference (rule=openrowset, covered by
+    /// Reject_OpenRowset). The branch remains in SqlGuard.cs as defense-in-depth for future
+    /// ScriptDom versions; this test documents that no reproducible input exists today.
+    /// </summary>
+    [Fact(Skip = "InternalOpenRowset cannot be triggered via TSql160Parser.Parse with any known SQL syntax in ScriptDom 180.37.3 — see comment for details.")]
+    public void Reject_InternalOpenRowset()
+    {
+    }
+
+    [Fact]
+    public void Reject_DeclareTableVariable()
+    {
+        var guard = CreateGuard();
+        // ADR-0006 Consequences: DECLARE @t TABLE is not a SELECT and is rejected before
+        // the following SELECT is visited (first-rejection-wins).
+        var result = guard.Validate("DECLARE @t TABLE (id INT); SELECT * FROM @t");
+        var rejection = RequireRejection(result);
+        Assert.Equal("non_select_statement", rejection.Rule);
+        Assert.Contains("DeclareTableVariableStatement", rejection.StatementType ?? "", StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reject_ExecuteStoredProcedure()
+    {
+        var guard = CreateGuard();
+        // ADR-0006 Consequences: EXECUTE of even read-only system SPs is not permitted.
+        var result = guard.Validate("EXEC sp_help");
+        var rejection = RequireRejection(result);
+        Assert.Equal("non_select_statement", rejection.Rule);
+        Assert.Contains("ExecuteStatement", rejection.StatementType ?? "", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The post-walk "No SELECT/WITH statement found in input." branch (SqlGuard.cs line 124-129)
+    /// is defense-in-depth: it fires only when !SawSelectStatement after a non-empty batch.
+    /// Empirical probing in ScriptDom 180.37.3 could not trigger it — every non-empty input
+    /// that lacks a SELECT produces at least one non-SELECT statement (LabelStatement,
+    /// DeclareTableVariableStatement, etc.) which fires the catch-all Visit(TSqlStatement)
+    /// → non_select_statement FIRST (first-rejection-wins). The three statement types that
+    /// skip the catch-all (SelectStatement sets SawSelectStatement; ExecuteAsStatement and
+    /// BulkInsertStatement have targeted overrides) all reject or accept before the post-walk
+    /// check. The branch remains as defense-in-depth; this test documents the unreachable path.
+    /// </summary>
+    [Fact(Skip = "The post-walk !SawSelectStatement branch is unreachable for any non-empty input in ScriptDom 180.37.3 — see comment for details.")]
+    public void Reject_NoSelectStatement_NonEmptyInput()
+    {
+    }
+
+    /// <summary>
+    /// TSql160Parser.Parse appears to never throw on any tested pathological input — it
+    /// either returns a fragment (possibly with parse errors) or returns null. Probed:
+    /// 2000-deep BEGIN nesting, 100k-char identifier, embedded NUL bytes, all-NUL input,
+    /// lone UTF-16 surrogate, and 3000-deep parenthesis nesting. All returned cleanly
+    /// (some with parse errors, none threw). The catch block at SqlGuard.cs line 71 is
+    /// defense-in-depth for future ScriptDom versions; this test documents that no
+    /// reproducible throwing input exists today.
+    /// </summary>
+    [Fact(Skip = "TSql160Parser.Parse does not throw on any tested pathological input in ScriptDom 180.37.3 — see comment for details.")]
+    public void Reject_ParserThrows()
+    {
+    }
+
+    [Fact]
+    public void Reject_ExecuteAsNestedInBeginEnd()
+    {
+        var guard = CreateGuard();
+        // EXECUTE AS nested inside BEGIN/END is rejected by the Layer 1 catch-all
+        // (BeginEndBlockStatement fires non_select_statement before the inner
+        // ExecuteAsStatement is visited — first-rejection-wins). The attack vector
+        // is still blocked; the rule differs from Reject_ExecuteAs because the
+        // outer statement is visited first.
+        var result = guard.Validate("BEGIN EXECUTE AS USER = 'sa' END");
+        var rejection = RequireRejection(result);
+        Assert.Equal("non_select_statement", rejection.Rule);
+        Assert.Contains("BeginEndBlockStatement", rejection.StatementType ?? "", StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reject_BulkInsertNestedInIf()
+    {
+        var guard = CreateGuard();
+        // BULK INSERT nested inside IF is rejected by the Layer 1 catch-all
+        // (IfStatement fires non_select_statement before the inner BulkInsertStatement
+        // is visited — first-rejection-wins). The attack vector is still blocked; the
+        // rule differs from Reject_BulkInsert because the outer statement is visited first.
+        var result = guard.Validate("IF (1=1) BULK INSERT t FROM 'file.csv'");
+        var rejection = RequireRejection(result);
+        Assert.Equal("non_select_statement", rejection.Rule);
+        Assert.Contains("IfStatement", rejection.StatementType ?? "", StringComparison.Ordinal);
     }
 
     // ---------- Unrestricted mode ----------

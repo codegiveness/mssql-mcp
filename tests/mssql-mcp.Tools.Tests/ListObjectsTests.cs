@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -192,7 +193,7 @@ public class ListObjectsTests
         Assert.Contains("TOP (@limit)", capturedSql, StringComparison.Ordinal);
         await executor.Received(1).ExecuteQueryAsync(
             Arg.Any<string>(),
-            Arg.Is<IReadOnlyDictionary<string, object>?>(p => p != null && Convert.ToInt32(p["limit"]) == 5000),
+            Arg.Is<IReadOnlyDictionary<string, object>?>(p => p != null && Convert.ToInt32(p["limit"], CultureInfo.InvariantCulture) == 5000),
             Arg.Any<CancellationToken>());
     }
 
@@ -211,7 +212,7 @@ public class ListObjectsTests
 
         await executor.Received(1).ExecuteQueryAsync(
             Arg.Any<string>(),
-            Arg.Is<IReadOnlyDictionary<string, object>?>(p => p != null && Convert.ToInt32(p["limit"]) == 1),
+            Arg.Is<IReadOnlyDictionary<string, object>?>(p => p != null && Convert.ToInt32(p["limit"], CultureInfo.InvariantCulture) == 1),
             Arg.Any<CancellationToken>());
     }
 
@@ -230,7 +231,7 @@ public class ListObjectsTests
 
         await executor.Received(1).ExecuteQueryAsync(
             Arg.Any<string>(),
-            Arg.Is<IReadOnlyDictionary<string, object>?>(p => p != null && Convert.ToInt32(p["limit"]) == 1000),
+            Arg.Is<IReadOnlyDictionary<string, object>?>(p => p != null && Convert.ToInt32(p["limit"], CultureInfo.InvariantCulture) == 1000),
             Arg.Any<CancellationToken>());
     }
 

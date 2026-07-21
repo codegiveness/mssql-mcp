@@ -199,12 +199,12 @@ public sealed class OpsTools
         Dictionary<string, object> parameters = new();
         if (!string.IsNullOrWhiteSpace(query))
         {
-            sql = string.Format(MissingIndexPerQuerySqlTemplate, dbPrefix);
+            sql = string.Format(CultureInfo.InvariantCulture, MissingIndexPerQuerySqlTemplate, dbPrefix);
             parameters["query"] = query;
         }
         else
         {
-            sql = string.Format(MissingIndexWorkloadSqlTemplate, dbPrefix);
+            sql = string.Format(CultureInfo.InvariantCulture, MissingIndexWorkloadSqlTemplate, dbPrefix);
         }
 
         List<Dictionary<string, object?>> rows;
@@ -277,7 +277,7 @@ public sealed class OpsTools
         string orderByClause = MapOrderBy(order_by);
         string dbIdExpr = database is null ? "DB_ID()" : "DB_ID(@database)";
 
-        string sql = string.Format(TopQueriesSqlTemplate, dbIdExpr, orderByClause);
+        string sql = string.Format(CultureInfo.InvariantCulture, TopQueriesSqlTemplate, dbIdExpr, orderByClause);
 
         Dictionary<string, object> parameters = new() { ["limit"] = clampedLimit };
         if (database is not null)
@@ -363,12 +363,12 @@ public sealed class OpsTools
         try
         {
             // 1. Database size + log size.
-            string sizeSql = string.Format(DatabaseSizeSqlTemplate, dbPrefix);
+            string sizeSql = string.Format(CultureInfo.InvariantCulture, DatabaseSizeSqlTemplate, dbPrefix);
             List<Dictionary<string, object?>> sizeRows = await _executor.ExecuteQueryAsync(sizeSql, null, ct).ConfigureAwait(false);
             summaries.Add(BuildSizeSummary(sizeRows));
 
             // 2. VLF count.
-            string vlfSql = string.Format(VlfCountSqlTemplate, dbPrefix, dbIdExpr);
+            string vlfSql = string.Format(CultureInfo.InvariantCulture, VlfCountSqlTemplate, dbPrefix, dbIdExpr);
             Dictionary<string, object> vlfParams = new();
             if (database is not null)
             {
@@ -378,7 +378,7 @@ public sealed class OpsTools
             summaries.Add(BuildVlfSummary(vlfRows));
 
             // 3. Index fragmentation (SAMPLED mode).
-            string fragSql = string.Format(IndexFragmentationSqlTemplate, dbPrefix, dbIdExpr);
+            string fragSql = string.Format(CultureInfo.InvariantCulture, IndexFragmentationSqlTemplate, dbPrefix, dbIdExpr);
             Dictionary<string, object> fragParams = new();
             if (database is not null)
             {
@@ -388,7 +388,7 @@ public sealed class OpsTools
             summaries.Add(BuildFragmentationSummary(fragRows));
 
             // 4. Statistics staleness.
-            string statsSql = string.Format(StatsStalenessSqlTemplate, dbPrefix);
+            string statsSql = string.Format(CultureInfo.InvariantCulture, StatsStalenessSqlTemplate, dbPrefix);
             List<Dictionary<string, object?>> statsRows = await _executor.ExecuteQueryAsync(statsSql, null, ct).ConfigureAwait(false);
             summaries.Add(BuildStatsSummary(statsRows));
 

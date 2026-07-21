@@ -1,0 +1,16 @@
+# CODEOWNERS — https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Default owner for everything in the repo.
+* @codegiveness/mssql-mcp-maintainers
+
+# Security-critical: Guard enforces AST allowlist + read-only transactions.
+src/mssql-mcp.Core/Guard/ @codegiveness/mssql-mcp-maintainers
+
+# Architectural Decision Records — require maintainer review.
+docs/adr/ @codegiveness/mssql-mcp-maintainers
+
+# CI/CD pipelines — supply-chain sensitive.
+.github/workflows/ @codegiveness/mssql-mcp-maintainers
+
+# Distribution channel (npm postinstall downloads native binaries).
+npm/ @codegiveness/mssql-mcp-maintainers

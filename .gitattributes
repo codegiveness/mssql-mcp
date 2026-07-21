@@ -1,0 +1,6 @@
+* text=auto eol=lf
+
+# Export-ignore tool/scratch dirs from GitHub release archives
+.codegraph/   export-ignore
+.omo/         export-ignore
+.scratch/     export-ignore

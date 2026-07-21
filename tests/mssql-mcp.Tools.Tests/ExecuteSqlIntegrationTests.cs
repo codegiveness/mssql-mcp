@@ -162,7 +162,7 @@ public class ExecuteSqlIntegrationTests
             catch
             {
                 // Swallow — cleanup is best-effort.
+            }
         }
     }
 }
-    }

@@ -21,6 +21,10 @@ These issues are **out of scope** — report them upstream:
 - MCP protocol spec vulnerabilities → [MCP spec repository](https://github.com/modelcontextprotocol/modelcontextprotocol)
 - Dependency CVEs → open a normal issue or PR with the bumped version
 
+## Supply Chain
+
+NuGet packages are repository-signed by NuGet.org and published via Trusted Publishing (OIDC from GitHub Actions — no long-lived API keys). GitHub Release artifacts (tarballs, zips, checksums) and npm packages are provenance-attested via `actions/attest@v4`. NuGet packages are NOT provenance-attested because NuGet.org re-signs packages on ingestion, breaking the SHA (see [NuGetGallery#10026](https://github.com/NuGet/NuGetGallery/issues/10026)); tracking native NuGet provenance via [NuGet/Home#13581](https://github.com/NuGet/Home/issues/13581). All GitHub Actions are pinned to commit SHAs. Dependabot keeps github-actions and nuget dependencies current.
+
 ## Response SLA
 
 | Step | Target |

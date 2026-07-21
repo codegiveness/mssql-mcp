@@ -1,0 +1,25 @@
+# EditorConfig is awesome: https://editorconfig.org
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.{md,markdown}]
+trim_trailing_whitespace = false
+
+[*.{json,xml,csproj,props,targets,config}]
+indent_size = 2
+
+[*.cs]
+# C# — match existing code style. Do not introduce rules that would force
+# changes to existing code (verified clean via `dotnet format --verify-no-changes`).
+dotnet_style_namespace_import_grouping = true:warning
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_new_line_before_open_brace = all
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true

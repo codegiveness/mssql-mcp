@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -233,7 +234,7 @@ public sealed class DatabaseTools
         string typeFilter = BuildTypeFilter(type);
         string schemaFilter = schema is null ? string.Empty : " AND schema_id=SCHEMA_ID(@schema)";
 
-        string sql = string.Format(ListObjectsSqlTemplate, dbPrefix, schemaFilter, typeFilter);
+        string sql = string.Format(CultureInfo.InvariantCulture, ListObjectsSqlTemplate, dbPrefix, schemaFilter, typeFilter);
 
         Dictionary<string, object> parameters = new() { ["limit"] = clampedLimit };
         if (schema is not null)
@@ -323,7 +324,7 @@ public sealed class DatabaseTools
         }
 
         string typeFilter = type is null ? string.Empty : BuildTypeFilter(type);
-        string lookupSql = string.Format(GetObjectDetailsLookupSqlTemplate, dbPrefix, typeFilter);
+        string lookupSql = string.Format(CultureInfo.InvariantCulture, GetObjectDetailsLookupSqlTemplate, dbPrefix, typeFilter);
 
         Dictionary<string, object> lookupParams = new() { ["schema"] = schema, ["name"] = name };
 
@@ -341,10 +342,10 @@ public sealed class DatabaseTools
             string typeChar = lookupRows[0].TryGetValue("type", out object? t) && t is string tv ? tv : string.Empty;
             long objectId = lookupRows[0].TryGetValue("object_id", out object? oid) && oid is long l ? l : 0L;
 
-            string columnsSql = string.Format(ColumnsSqlTemplate, dbPrefix);
-            string parametersSql = string.Format(ParametersSqlTemplate, dbPrefix);
-            string indexesSql = string.Format(IndexesSqlTemplate, dbPrefix);
-            string triggersSql = string.Format(TriggersSqlTemplate, dbPrefix);
+            string columnsSql = string.Format(CultureInfo.InvariantCulture, ColumnsSqlTemplate, dbPrefix);
+            string parametersSql = string.Format(CultureInfo.InvariantCulture, ParametersSqlTemplate, dbPrefix);
+            string indexesSql = string.Format(CultureInfo.InvariantCulture, IndexesSqlTemplate, dbPrefix);
+            string triggersSql = string.Format(CultureInfo.InvariantCulture, TriggersSqlTemplate, dbPrefix);
 
             Dictionary<string, object> detailParams = new() { ["objectId"] = objectId };
 

@@ -11,19 +11,23 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '10.0.x'
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
@@ -79,25 +83,35 @@ jobs:
           done
 
       # GitHub Release FIRST so install.js can fetch archives before npm publish lands.
+      # Conventional Commits auto-notes (titles enforced by semantic.yml from #16).
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        run: gh release create ${{ steps.tag.outputs.name }} --generate-notes --title ${{ steps.tag.outputs.name }} artifacts/mssql-mcp-*.tar.gz artifacts/mssql-mcp-*.zip artifacts/mssql-mcp-*.sha256
+
+      # Attest GitHub Release archives + checksums BEFORE registry pushes so attestation
+      # failure aborts the release. NOT the .nupkg — NuGet.org re-signs packages on
+      # ingestion, breaking the SHA (NuGetGallery#10026, see ADR-0019).
+      - name: Attest GitHub Release artifacts
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
         with:
-          tag_name: ${{ steps.tag.outputs.name }}
-          files: |
+          subject-path: |
             artifacts/mssql-mcp-*.tar.gz
             artifacts/mssql-mcp-*.zip
             artifacts/mssql-mcp-*.sha256
 
-      # NuGet pack + push (sequential before npm so a NuGet failure aborts the release).
+      # NuGet pack + Trusted Publishing push (OIDC, no long-lived API key; see ADR-0019).
       - name: Pack NuGet
         run: dotnet pack src/mssql-mcp -c Release -o artifacts
+      - name: NuGet Trusted Publishing login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          nuget-host: https://api.nuget.org/v3/index.json
       - name: Push NuGet
-        run: dotnet nuget push "artifacts/mssql-mcp.*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+        run: dotnet nuget push "artifacts/mssql-mcp.*.nupkg" --source https://api.nuget.org/v3/index.json
 
-      # Sync npm version to the tag, then publish.
+      # Sync npm version to the tag, then publish with provenance (requires id-token: write).
       - name: Sync npm version
         run: node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('npm/package.json')); p.version='${{ steps.ver.outputs.version }}'; fs.writeFileSync('npm/package.json', JSON.stringify(p,null,2)+'\n')"
       - name: npm publish
-        run: cd npm && npm publish
+        run: cd npm && npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
