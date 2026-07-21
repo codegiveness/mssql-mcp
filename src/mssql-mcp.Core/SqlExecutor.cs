@@ -74,6 +74,21 @@ public sealed class SqlExecutor : ISqlExecutor
         return rows;
     }
 
+    public async Task<int> ExecuteNonQueryAsync(string sql, CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sql);
+
+        using SqlConnection connection = new(_connectionString);
+        await connection.OpenAsync(ct).ConfigureAwait(false);
+
+        using SqlCommand command = new(sql, connection)
+        {
+            CommandTimeout = _commandTimeout,
+        };
+
+        return await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Executes <c>SET SHOWPLAN_XML ON</c>, runs <paramref name="sql"/>, and returns the
     /// SHOWPLAN_XML string. The query is not actually executed — SQL Server returns the

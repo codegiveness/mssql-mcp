@@ -205,7 +205,7 @@ public class ExecuteSqlTests
     // ---------- Unrestricted mode ----------
 
     [Fact]
-    public async Task ExecuteSql_UnrestrictedMode_SkipsGuard_ExecutesRawSql()
+    public async Task ExecuteSql_UnrestrictedMode_Select_SkipsGuard_ExecutesRawSql()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
@@ -220,7 +220,7 @@ public class ExecuteSqlTests
 
         MssqlMcpOptions opts = UnrestrictedOptions();
         SqlTools tools = CreateTools(executor, opts, guard);
-        CallToolResult result = await tools.ExecuteSql("UPDATE dbo.Users SET active = 0", CancellationToken.None);
+        CallToolResult result = await tools.ExecuteSql("SELECT 42 AS x", CancellationToken.None);
 
         Assert.False(result.IsError ?? false);
         string json = GetText(result);
@@ -230,7 +230,7 @@ public class ExecuteSqlTests
 
         // Unrestricted mode executes SQL as-is (no BEGIN TRAN / ROLLBACK wrapper).
         await executor.Received(1).ExecuteQueryAsync(
-            Arg.Is<string>(s => s == "UPDATE dbo.Users SET active = 0"),
+            Arg.Is<string>(s => s == "SELECT 42 AS x"),
             Arg.Any<CancellationToken>());
 
         guard.DidNotReceive().Validate(Arg.Any<string>());

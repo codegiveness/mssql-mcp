@@ -31,6 +31,15 @@ public interface ISqlExecutor
         CancellationToken ct);
 
     /// <summary>
+    /// Executes a non-query SQL batch (DML/DDL) and returns the cumulative rows-affected count.
+    /// Used by <c>execute_sql</c> in Unrestricted mode per ADR-0009 (non-rowset return shape).
+    /// </summary>
+    /// <param name="sql">SQL text to execute. Caller is responsible for classification and (in Restricted mode) Guard validation.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The rows-affected count returned by <c>SqlCommand.ExecuteNonQueryAsync</c>. Returns <c>-1</c> for statements that don't affect rows (most DDL).</returns>
+    Task<int> ExecuteNonQueryAsync(string sql, CancellationToken ct);
+
+    /// <summary>
     /// Executes <c>SET SHOWPLAN_XML ON</c>, runs the supplied SQL, and returns the
     /// SHOWPLAN_XML string that SQL Server emits as a single-row, single-column result
     /// set (the query is not actually executed — SQL Server returns the estimated plan).

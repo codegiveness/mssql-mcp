@@ -98,4 +98,71 @@ public class ExecuteSqlIntegrationTests
         using JsonDocument checkDoc = JsonDocument.Parse(GetJson(checkResult));
         Assert.Equal(0, checkDoc.RootElement.GetArrayLength());
     }
+
+    // ---------- Unrestricted mode (integration) ----------
+
+    private static SqlTools CreateUnrestrictedTools()
+    {
+        MssqlMcpOptions options = new()
+        {
+            ConnectionString = ConnectionString!,
+            AccessMode = AccessMode.Unrestricted,
+            QueryTimeout = 0,
+            LogLevel = "info",
+            MaxResultBytes = 10 * 1024 * 1024,
+            RetryCount = 3,
+            RetryIntervalMin = 2,
+            RetryIntervalMax = 10,
+        };
+        ISqlExecutor executor = new SqlExecutor(options.ConnectionString, options.QueryTimeout,
+            NullLogger<SqlExecutor>.Instance);
+        IGuard guard = new SqlGuard(options, NullLogger<SqlGuard>.Instance);
+        return new SqlTools(executor, guard, Options.Create(options), NullLogger<SqlTools>.Instance);
+    }
+
+    [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
+    public async Task Unrestricted_CreateAndDropTable_RealDb_ReturnsStatusObjects()
+    {
+        if (string.IsNullOrWhiteSpace(ConnectionString))
+        {
+            return;
+        }
+
+        SqlTools tools = CreateUnrestrictedTools();
+
+        CallToolResult createResult = await tools.ExecuteSql(
+            "CREATE TABLE dbo.McpTest (id int)", CancellationToken.None);
+        Assert.False(createResult.IsError ?? false);
+        string createJson = GetJson(createResult);
+        using JsonDocument createDoc = JsonDocument.Parse(createJson);
+        Assert.Equal(1, createDoc.RootElement.GetArrayLength());
+        Assert.Equal("success", createDoc.RootElement[0].GetProperty("result").GetString());
+        Assert.Equal("CREATE_TABLE", createDoc.RootElement[0].GetProperty("statement_type").GetString());
+        Assert.True(createDoc.RootElement[0].TryGetProperty("object", out _));
+
+        try
+        {
+            CallToolResult dropResult = await tools.ExecuteSql(
+                "DROP TABLE dbo.McpTest", CancellationToken.None);
+            Assert.False(dropResult.IsError ?? false);
+            string dropJson = GetJson(dropResult);
+            using JsonDocument dropDoc = JsonDocument.Parse(dropJson);
+            Assert.Equal(1, dropDoc.RootElement.GetArrayLength());
+            Assert.Equal("success", dropDoc.RootElement[0].GetProperty("result").GetString());
+            Assert.Equal("DROP_TABLE", dropDoc.RootElement[0].GetProperty("statement_type").GetString());
+        }
+        finally
+        {
+            // Cleanup if the DROP above failed — best-effort, ignore errors.
+            try
+            {
+                await tools.ExecuteSql("IF OBJECT_ID('dbo.McpTest') IS NOT NULL DROP TABLE dbo.McpTest",
+                    CancellationToken.None);
+            }
+            catch
+            {
+                // Swallow — cleanup is best-effort.
+        }
+    }
 }
+    }
