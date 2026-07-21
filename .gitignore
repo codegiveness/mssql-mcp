@@ -84,5 +84,37 @@ Desktop.ini
 # Azure SQL Edge (integration test data)
 azure-sql-edge-data/
 
-# OpenCode session state
+# Agent / AI tooling — local-only scratch, caches, and session state.
+# These are per-developer working artifacts (issue drafts, ticket specs,
+# knowledge-graph DBs, run continuations, skill caches) and must never be
+# committed. .codegraph/ ships its own .gitignore that ignores everything
+# except itself; the line here is a belt-and-suspenders fallback in case
+# that file is ever removed.
+.scratch/
+.codegraph/
 .omo/
+.opencode/
+.opencode.json
+.opencode.jsonc
+
+# Other AI coding assistants (defensive — none are used in this repo today,
+# but if a contributor opens it with one, their private state stays private).
+# Per-assistant instruction files (AGENTS.md, CLAUDE.md, .cursorrules) are
+# treated as personal config, not project source.
+AGENTS.md
+.claude/
+CLAUDE.md
+.cursor/
+.cursorrules
+.aider*
+.codex*
+.continue/
+.windsurf/
+codeium*
+.tabnine*
+
+# Local SQLite databases (AI tooling artifacts, never commit)
+umans-gate*
+*.db
+*.db-shm
+*.db-wal
