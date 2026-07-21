@@ -5,6 +5,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using mssql_mcp.Core.Guard;
+using mssql_mcp.Core.Logging;
 
 namespace mssql_mcp.Tools;
 
@@ -238,7 +239,7 @@ internal static class ToolErrors
         {
             error = "SQL",
             code = $"SQL{number}",
-            message = first?.Message ?? ex.Message,
+            message = PasswordObfuscator.Obfuscate(first?.Message ?? ex.Message),
             severity = severity,
             line = line,
             procedure = procedure,

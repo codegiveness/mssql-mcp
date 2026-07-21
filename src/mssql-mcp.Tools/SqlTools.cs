@@ -81,25 +81,22 @@ public sealed class SqlTools
 
         IReadOnlyList<StatementInfo> statements = StatementClassifier.Classify(sql);
 
-        // SELECT-only batches return rows. When the classifier returns no statements (parse
-        // failure or version skew), route to ExecuteNonQueryAsync as the conservative default —
-        // unclassifiable input might be DML/DDL, and non-query execution is the safer choice
-        // (it won't silently return [] for a write statement that ExecuteReaderAsync would
-        // execute without surfacing a status object).
-        bool hasNonSelect = false;
+        // Security: refuse to execute unclassifiable SQL — parser failure means we cannot
+        // determine the statement type, and executing unknown SQL is unsafe.
         if (statements.Count == 0)
         {
-            hasNonSelect = true;
+            return ToolErrors.GuardRejection(new GuardRejection(
+                rule: "parse_error",
+                detail: "[guard] Statement classifier could not parse the input. Refusing to execute unclassifiable SQL."));
         }
-        else
+
+        bool hasNonSelect = false;
+        foreach (StatementInfo s in statements)
         {
-            foreach (StatementInfo s in statements)
+            if (s.StatementType != "SELECT")
             {
-                if (s.StatementType != "SELECT")
-                {
-                    hasNonSelect = true;
-                    break;
-                }
+                hasNonSelect = true;
+                break;
             }
         }
 

@@ -106,7 +106,23 @@ function extractTarGz(archivePath, outDir) {
 }
 
 function extractZip(archivePath, outDir) {
-  // Prefer system unzip; Node has no built-in zip extractor before v22.
+  // Validate entry names before extraction to prevent path traversal (Zip Slip).
+  // `unzip -o` alone does not reject entries with ../ or absolute paths.
+  const list = spawnSync('unzip', ['-l', archivePath], { encoding: 'utf8' });
+  if (list.status !== 0) {
+    throw new Error('unzip -l failed with status ' + list.status);
+  }
+  const resolvedOut = path.resolve(outDir);
+  for (const line of list.stdout.split('\n')) {
+    const m = line.match(/^\s+\d+\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+(.+)$/);
+    if (!m) continue;
+    const entryPath = m[1].trim();
+    const resolvedEntry = path.resolve(outDir, entryPath);
+    if (!resolvedEntry.startsWith(resolvedOut + path.sep) && resolvedEntry !== resolvedOut) {
+      throw new Error('Refusing to extract zip entry outside target directory: ' + entryPath);
+    }
+  }
+
   const r = spawnSync('unzip', ['-o', archivePath, '-d', outDir], { stdio: 'inherit' });
   if (r.status !== 0) {
     throw new Error('unzip exited with status ' + r.status + ' (is unzip installed?)');

@@ -25,7 +25,7 @@ The npm package wraps a prebuilt self-contained .NET binary (the sqz pattern). `
       "command": "npx",
       "args": ["-y", "mssql-mcp"],
       "env": {
-        "MSSQL_CONNECTION_STRING": "Server=localhost;Database=WideWorldImporters;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;"
+        "MSSQL_CONNECTION_STRING": "Server=localhost;Database=WideWorldImporters;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;"
       }
     }
   }
@@ -50,7 +50,7 @@ Then point your MCP client at the installed binary. With Claude Desktop:
     "mssql-mcp": {
       "command": "mssql-mcp",
       "env": {
-        "MSSQL_CONNECTION_STRING": "Server=localhost;Database=WideWorldImporters;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;"
+        "MSSQL_CONNECTION_STRING": "Server=localhost;Database=WideWorldImporters;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;"
       }
     }
   }
@@ -101,7 +101,7 @@ Server=tcp:myserver.database.windows.net,1433;Database=mydb;User Id=sqladmin;Pas
 On Windows with .NET 10, `Integrated Security=True` uses the running process's Windows credentials:
 
 ```text
-Server=myserver;Database=mydb;Integrated Security=True;TrustServerCertificate=True;
+Server=myserver;Database=mydb;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;
 ```
 
 This does not work from the self-contained Linux/macOS npm binary (no SSPI). For cross-platform, use SQL auth or Microsoft Entra ID.
@@ -221,7 +221,7 @@ docker run -e "ACCEPT_EULA=1" -e "MSSQL_SA_PASSWORD=YourStrong!Passw0rd" \
   -p 1433:1433 --name mssql-edge -d mcr.microsoft.com/azure-sql-edge:latest
 
 # Run integration tests
-INTEGRATION=true MSSQL_CONNECTION_STRING="Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;" dotnet test
+INTEGRATION=true MSSQL_CONNECTION_STRING="Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;" dotnet test
 ```
 
 Integration tests are tagged `[Trait("Category", "Integration")]` and skipped by default.

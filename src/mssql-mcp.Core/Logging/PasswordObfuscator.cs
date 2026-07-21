@@ -9,15 +9,14 @@ namespace mssql_mcp.Core.Logging;
 /// </summary>
 public static partial class PasswordObfuscator
 {
-    // Match <c>Password=</c> or <c>PWD=</c> (case-insensitive) followed by one of three value forms:
-    //   1. Quoted:   <c>Password="...";</c> — value may contain <c>;</c>, <c>""</c> is escaped quote
-    //   2. Braced:   <c>Password={...};</c> — value may contain <c>;</c>, no <c>}</c> allowed inside
-    //   3. Plain:    <c>Password=...;</c> or <c>Password=...</c> (unterminated at end of string)
-    // The trailing <c>;</c> is optional so unterminated fragments (e.g. truncated log lines) are
-    // still obfuscated per ADR-0005's "in all log output" contract.
-    // <c>PWD=</c> is accepted as an alias — Microsoft.Data.SqlClient treats both as the password key.
+    // Match connection-string secrets: Password/PWD, AccessToken, or Token (case-insensitive)
+    // followed by one of three value forms:
+    //   1. Quoted:   Password="...";  — value may contain ;, "" is escaped quote
+    //   2. Braced:   Password={...};  — value may contain ;, no } allowed inside
+    //   3. Plain:    Password=...;  or Password=...  (unterminated at end of string)
+    // AccessToken and Token carry Azure AD credentials and must be obfuscated too.
     [GeneratedRegex(
-        @"(?:Password|PWD)=(""(?:[^""]|"""")*""|\{[^}]*\}|[^;{}]*);?",
+        @"(?:Password|PWD|AccessToken|Token)=(""(?:[^""]|"""")*""|\{[^}]*\}|[^;{}]*);?",
         RegexOptions.IgnoreCase,
         matchTimeoutMilliseconds: 200)]
     private static partial Regex PasswordPattern { get; }
