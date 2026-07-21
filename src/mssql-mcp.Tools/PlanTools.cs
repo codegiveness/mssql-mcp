@@ -66,7 +66,7 @@ public sealed class PlanTools
         {
             GuardRejection rejection = guardResult.Rejection
                 ?? new GuardRejection("non_select_statement", "[guard] Rejected with no reason.");
-            return GuardRejectionError(rejection);
+            return ToolErrors.GuardRejection(rejection);
         }
         if (guardResult.WrappedSql is null)
         {
@@ -90,7 +90,7 @@ public sealed class PlanTools
         catch (SqlException ex)
         {
             _logger.LogError("[sql] explain_query failed: {Message} (code {Number}, severity {Severity})", ex.Message, ex.Number, ex.Class);
-            return ToolErrors.SqlError(ex);
+            return ToolErrors.SqlErrorOrConnection(ex);
         }
         catch (Exception ex)
         {
@@ -271,26 +271,6 @@ public sealed class PlanTools
             sb.Append(char.ToUpperInvariant(c));
         }
         return sb.ToString();
-    }
-
-    private static CallToolResult GuardRejectionError(GuardRejection rejection)
-    {
-        object payload = new
-        {
-            error = "GUARD_REJECTION",
-            rule = rejection.Rule,
-            detail = rejection.Detail,
-            statement_type = rejection.StatementType,
-            position = rejection.Line is null && rejection.Column is null
-                ? null
-                : new { line = rejection.Line, column = rejection.Column },
-        };
-        string json = JsonSerializer.Serialize(payload, ToolErrors.JsonOptions);
-        return new CallToolResult
-        {
-            Content = new List<ContentBlock> { new TextContentBlock { Text = json } },
-            IsError = true,
-        };
     }
 
     private sealed record RelOpSummary

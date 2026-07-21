@@ -119,7 +119,7 @@ public sealed class DatabaseTools
         catch (SqlException ex)
         {
             _logger.LogError("[sql] list_databases failed: {Message} (code {Number}, severity {Severity})", ex.Message, ex.Number, ex.Class);
-            return ToolErrors.SqlError(ex);
+            return ToolErrors.SqlErrorOrConnection(ex);
         }
         catch (Exception ex)
         {
@@ -184,7 +184,7 @@ public sealed class DatabaseTools
         catch (SqlException ex)
         {
             _logger.LogError("[sql] list_schemas failed: {Message} (code {Number})", ex.Message, ex.Number);
-            return ToolErrors.SqlError(ex);
+            return ToolErrors.SqlErrorOrConnection(ex);
         }
         catch (Exception ex)
         {
@@ -261,7 +261,7 @@ public sealed class DatabaseTools
         catch (SqlException ex)
         {
             _logger.LogError("[sql] list_objects failed: {Message} (code {Number})", ex.Message, ex.Number);
-            return ToolErrors.SqlError(ex);
+            return ToolErrors.SqlErrorOrConnection(ex);
         }
         catch (Exception ex)
         {
@@ -339,7 +339,7 @@ public sealed class DatabaseTools
 
             if (lookupRows.Count == 0)
             {
-                return ObjectNotFoundError(database, schema, name, type);
+                return ToolErrors.ObjectNotFoundError(database, schema, name, type);
             }
 
             string typeChar = lookupRows[0].TryGetValue("type", out object? t) && t is string tv ? tv : string.Empty;
@@ -385,7 +385,7 @@ public sealed class DatabaseTools
         catch (SqlException ex)
         {
             _logger.LogError("[sql] get_object_details failed: {Message} (code {Number})", ex.Message, ex.Number);
-            return ToolErrors.SqlError(ex);
+            return ToolErrors.SqlErrorOrConnection(ex);
         }
         catch (Exception ex)
         {
@@ -440,24 +440,6 @@ public sealed class DatabaseTools
             "PROCEDURE" => " AND type IN ('P','PC')",
             "FUNCTION" => " AND type IN ('FN','IF','TF','FS','FT')",
             _ => string.Empty,
-        };
-    }
-
-    private static CallToolResult ObjectNotFoundError(string? database, string schema, string name, string? type)
-    {
-        object payload = new
-        {
-            error = "OBJECT_NOT_FOUND",
-            schema,
-            name,
-            type = type ?? "UNKNOWN",
-            database = database ?? string.Empty,
-        };
-        string json = JsonSerializer.Serialize(payload, ToolErrors.JsonOptions);
-        return new CallToolResult
-        {
-            Content = new List<ContentBlock> { new TextContentBlock { Text = json } },
-            IsError = true,
         };
     }
 }

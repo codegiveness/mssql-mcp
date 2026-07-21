@@ -60,7 +60,7 @@ public sealed class SqlTools
             {
                 GuardRejection rejection = guardResult.Rejection
                     ?? new GuardRejection("non_select_statement", "[guard] Rejected with no reason.");
-                return GuardRejectionError(rejection);
+                return ToolErrors.GuardRejection(rejection);
             }
             if (guardResult.WrappedSql is null)
             {
@@ -74,7 +74,7 @@ public sealed class SqlTools
         // queries commit immediately. Empty input is still rejected for consistency.
         if (string.IsNullOrWhiteSpace(sql))
         {
-            return GuardRejectionError(new GuardRejection(
+            return ToolErrors.GuardRejection(new GuardRejection(
                 rule: "empty_batch",
                 detail: "[guard] No executable statement found."));
         }
@@ -130,7 +130,7 @@ public sealed class SqlTools
         catch (SqlException ex)
         {
             _logger.LogError("[sql] execute_sql failed: {Message} (code {Number}, severity {Severity})", ex.Message, ex.Number, ex.Class);
-            return ToolErrors.SqlError(ex);
+            return ToolErrors.SqlErrorOrConnection(ex);
         }
         catch (Exception ex)
         {
@@ -165,7 +165,7 @@ public sealed class SqlTools
         catch (SqlException ex)
         {
             _logger.LogError("[sql] execute_sql failed: {Message} (code {Number}, severity {Severity})", ex.Message, ex.Number, ex.Class);
-            return ToolErrors.SqlError(ex);
+            return ToolErrors.SqlErrorOrConnection(ex);
         }
         catch (Exception ex)
         {
@@ -222,27 +222,6 @@ public sealed class SqlTools
             result = "success",
             statement_type = info.StatementType,
             rows_affected = rowsAffected,
-        };
-    }
-
-    private static CallToolResult GuardRejectionError(GuardRejection rejection)
-    {
-        // ADR-0010 GUARD_REJECTION shape.
-        object payload = new
-        {
-            error = "GUARD_REJECTION",
-            rule = rejection.Rule,
-            detail = rejection.Detail,
-            statement_type = rejection.StatementType,
-            position = rejection.Line is null && rejection.Column is null
-                ? null
-                : new { line = rejection.Line, column = rejection.Column },
-        };
-        string json = JsonSerializer.Serialize(payload, ToolErrors.JsonOptions);
-        return new CallToolResult
-        {
-            Content = new List<ContentBlock> { new TextContentBlock { Text = json } },
-            IsError = true,
         };
     }
 }

@@ -225,7 +225,7 @@ public sealed class OpsTools
         catch (SqlException ex)
         {
             _logger.LogError("[sql] analyze_indexes failed: {Message} (code {Number})", ex.Message, ex.Number);
-            return ToolErrors.SqlError(ex);
+            return ToolErrors.SqlErrorOrConnection(ex);
         }
         catch (Exception ex)
         {
@@ -304,7 +304,7 @@ public sealed class OpsTools
         catch (SqlException ex)
         {
             _logger.LogError("[sql] get_top_queries failed: {Message} (code {Number})", ex.Message, ex.Number);
-            return ToolErrors.SqlError(ex);
+            return ToolErrors.SqlErrorOrConnection(ex);
         }
         catch (Exception ex)
         {
@@ -411,7 +411,7 @@ public sealed class OpsTools
         catch (SqlException ex)
         {
             _logger.LogError("[sql] analyze_db_health failed: {Message} (code {Number})", ex.Message, ex.Number);
-            return ToolErrors.SqlError(ex);
+            return ToolErrors.SqlErrorOrConnection(ex);
         }
         catch (Exception ex)
         {
