@@ -17,6 +17,7 @@ public sealed class MssqlMcpOptions
     public const string EnvMaxResultBytes = "MSSQL_MAX_RESULT_BYTES";
     public const string EnvRetryCount = "MSSQL_RETRY_COUNT";
     public const string EnvRetryIntervalMin = "MSSQL_RETRY_INTERVAL";
+    public const string EnvRetryIntervalMax = "MSSQL_RETRY_INTERVAL_MAX";
 
     // Defaults per ADR-0004 and ADR-0015. Exposed as constants so tests and SqlExecutor
     // can reference the same source of truth instead of hardcoding literals.
@@ -128,8 +129,7 @@ public sealed class MssqlMcpOptions
             options.RetryCount = parsedRetry;
         }
 
-        // Retry interval min/max: env only. MSSQL_RETRY_INTERVAL sets the min backoff.
-        // The max stays at the default (10s) — ADR-0015 only defines MSSQL_RETRY_INTERVAL for min.
+        // Retry interval min/max: env only. MSSQL_RETRY_INTERVAL sets min, MSSQL_RETRY_INTERVAL_MAX sets max.
         string? retryMinRaw = GetEnv(env, EnvRetryIntervalMin);
         if (!string.IsNullOrWhiteSpace(retryMinRaw))
         {
@@ -139,6 +139,17 @@ public sealed class MssqlMcpOptions
                     $"[startup] Invalid retry interval min '{retryMinRaw}'. Must be a non-negative integer.");
             }
             options.RetryIntervalMin = parsedMin;
+        }
+
+        string? retryMaxRaw = GetEnv(env, EnvRetryIntervalMax);
+        if (!string.IsNullOrWhiteSpace(retryMaxRaw))
+        {
+            if (!int.TryParse(retryMaxRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedMax) || parsedMax < 0)
+            {
+                throw new InvalidOperationException(
+                    $"[startup] Invalid retry interval max '{retryMaxRaw}'. Must be a non-negative integer.");
+            }
+            options.RetryIntervalMax = parsedMax;
         }
 
         ValidateRetryBounds(options);

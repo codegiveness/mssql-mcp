@@ -67,16 +67,35 @@ public class PasswordObfuscationTests
     }
 
     [Fact]
-    public void Obfuscate_EmptyMessage_ReturnsEmpty()
+    public void Obfuscate_QuotedPasswordWithSemicolon()
     {
-        Assert.Equal(string.Empty, PasswordObfuscator.Obfuscate(string.Empty));
+        // SQL Server allows Password="my;pass"; where the value contains a semicolon.
+        // The regex must consume the entire quoted value, not stop at the first ;.
+        string input = "Server=localhost;Password=\"my;pass\";Database=master;";
+        string expected = "Server=localhost;Password=***;Database=master;";
+        Assert.Equal(expected, PasswordObfuscator.Obfuscate(input));
     }
 
     [Fact]
-    public void Obfuscate_MessageWithoutSemicolonTerminator_LeavesMessageUnchanged()
+    public void Obfuscate_BracedPasswordWithSemicolon()
     {
-        // A password without a terminating semicolon is not a complete key/value pair and
-        // is left alone rather than partially replaced.
-        Assert.Equal("Password=unterminated", PasswordObfuscator.Obfuscate("Password=unterminated"));
+        // SQL Server allows Password={my;pass}; where the value contains a semicolon.
+        string input = "Server=localhost;Password={my;pass};Database=master;";
+        string expected = "Server=localhost;Password=***;Database=master;";
+        Assert.Equal(expected, PasswordObfuscator.Obfuscate(input));
+    }
+
+    [Fact]
+    public void Obfuscate_NoTrailingSemicolon()
+    {
+        // Truncated log lines may end without a semicolon. ADR-0005 requires obfuscation
+        // in ALL log output, including unterminated fragments.
+        Assert.Equal("Password=***;", PasswordObfuscator.Obfuscate("Password=secret"));
+    }
+
+    [Fact]
+    public void Obfuscate_EmptyMessage_ReturnsEmpty()
+    {
+        Assert.Equal(string.Empty, PasswordObfuscator.Obfuscate(string.Empty));
     }
 }

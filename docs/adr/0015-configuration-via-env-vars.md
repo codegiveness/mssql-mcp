@@ -15,7 +15,8 @@ Every runtime-tunable parameter in mssql-mcp is overridable via an environment v
 | `MSSQL_LOG_FILE` | (stderr only) | (none) | Optional file path for log output (ADR-0011) |
 | `MSSQL_MAX_RESULT_BYTES` | `10485760` (10 MB) | (none) | Result byte-size safety net; `0` disables (ADR-0003) |
 | `MSSQL_RETRY_COUNT` | `3` | (none) | Transient-failure retry count passed to `SqlRetryLogicOption` (ADR-0004) |
-| `MSSQL_RETRY_INTERVAL` | `2` (min), `10` (max) seconds | (none) | Backoff range for transient retries (ADR-0004) |
+| `MSSQL_RETRY_INTERVAL` | `2` seconds | (none) | Min backoff for transient retries (ADR-0004) |
+| `MSSQL_RETRY_INTERVAL_MAX` | `10` seconds | (none) | Max backoff for transient retries (ADR-0004) |
 
 **Rules**:
 - **No magic defaults without env escape hatches.** If a value is tunable at runtime, it gets an env var. Hardcoded constants are reserved for things that *cannot* be different at runtime (e.g., the `/* mssql-mcp */` sentinel comment, the AST allowlist, the version string).

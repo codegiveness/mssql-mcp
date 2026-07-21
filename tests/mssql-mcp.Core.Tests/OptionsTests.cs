@@ -209,6 +209,28 @@ public class OptionsTests
     }
 
     [Fact]
+    public void Parse_EnvRetryIntervalMax_Applied()
+    {
+        var env = Env(("MSSQL_RETRY_INTERVAL", "3"), ("MSSQL_RETRY_INTERVAL_MAX", "20"));
+        var options = MssqlMcpOptions.Parse(
+            new[] { "--connection-string", "Server=x;" },
+            env);
+        Assert.Equal(3, options.RetryIntervalMin);
+        Assert.Equal(20, options.RetryIntervalMax);
+    }
+
+    [Fact]
+    public void Parse_EnvRetryIntervalMax_InvalidValue_Throws()
+    {
+        var env = Env(("MSSQL_RETRY_INTERVAL_MAX", "abc"));
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            MssqlMcpOptions.Parse(
+                new[] { "--connection-string", "Server=x;" },
+                env));
+        Assert.Contains("retry interval max", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Parse_EnvVarNames_CaseInsensitive()
     {
         var env = Env(("mssql_connection_string", "Server=lower;"));

@@ -9,12 +9,16 @@ namespace mssql_mcp.Core.Logging;
 /// </summary>
 public static partial class PasswordObfuscator
 {
-    // Match <c>Password=</c> (case-insensitive) followed by any non-semicolon characters up to
-    // the next semicolon. <c>[^;]*</c> also matches the empty case (<c>Password=;</c>).
-    // Special characters like @ and ; (encoded as `;` inside the value) are handled: only the
-    // first terminating semicolon ends the match, so <c>Password=p@ss;w0rd;</c> correctly
-    // collapses to <c>Password=***;</c>.
-    [GeneratedRegex(@"Password=[^;]*;", RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 200)]
+    // Match <c>Password=</c> (case-insensitive) followed by one of three value forms:
+    //   1. Quoted:   <c>Password="...";</c> — value may contain <c>;</c>, <c>""</c> is escaped quote
+    //   2. Braced:   <c>Password={...};</c> — value may contain <c>;</c>, no <c>}</c> allowed inside
+    //   3. Plain:    <c>Password=...;</c> or <c>Password=...</c> (unterminated at end of string)
+    // The trailing <c>;</c> is optional so unterminated fragments (e.g. truncated log lines) are
+    // still obfuscated per ADR-0005's "in all log output" contract.
+    [GeneratedRegex(
+        @"Password=(""(?:[^""]|"""")*""|\{[^}]*\}|[^;{}]*);?",
+        RegexOptions.IgnoreCase,
+        matchTimeoutMilliseconds: 200)]
     private static partial Regex PasswordPattern { get; }
 
     public const string Replacement = "Password=***;";
