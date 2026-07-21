@@ -81,16 +81,25 @@ public sealed class SqlTools
 
         IReadOnlyList<StatementInfo> statements = StatementClassifier.Classify(sql);
 
-        // SELECT-only batches return rows. A batch with no classifiable statements (parse failure)
-        // also falls through to ExecuteQueryAsync — Unrestricted mode lets the agent send raw SQL,
-        // and SQL Server will reject malformed input with a SqlException surfaced as a SQL error.
+        // SELECT-only batches return rows. When the classifier returns no statements (parse
+        // failure or version skew), route to ExecuteNonQueryAsync as the conservative default —
+        // unclassifiable input might be DML/DDL, and non-query execution is the safer choice
+        // (it won't silently return [] for a write statement that ExecuteReaderAsync would
+        // execute without surfacing a status object).
         bool hasNonSelect = false;
-        foreach (StatementInfo s in statements)
+        if (statements.Count == 0)
         {
-            if (s.StatementType != "SELECT")
+            hasNonSelect = true;
+        }
+        else
+        {
+            foreach (StatementInfo s in statements)
             {
-                hasNonSelect = true;
-                break;
+                if (s.StatementType != "SELECT")
+                {
+                    hasNonSelect = true;
+                    break;
+                }
             }
         }
 

@@ -38,4 +38,5 @@ This stays a JSON array of objects (does not violate the lean-array contract). `
 - Single-row results still return an array (consistent shape; agent indexes `[0]`).
 - Discovery tools (`list_databases`, `list_objects`, etc.) follow the same shape — array of objects with column names as keys.
 - Unrestricted-mode DDL/DML returns status objects (not `[]`) to disambiguate success from no-rows.
+- Multi-statement batches in Unrestricted mode return one status object per parsed statement. `rows_affected` is `-1` for each when more than one statement ran (SqlClient's `ExecuteNonQueryAsync` returns cumulative count, which cannot be attributed per-statement). Single-statement batches report the actual `rows_affected`.
 - `get_object_details` is an exception: on zero rows, it returns a structured error object (not `[]`) per ADR-0010 — empty arrays are ambiguous for object lookup.
