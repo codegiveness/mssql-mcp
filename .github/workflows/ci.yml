@@ -17,3 +17,10 @@ jobs:
       - run: dotnet restore
       - run: dotnet build --no-restore
       - run: dotnet test --no-build --filter Category!=Integration
+      - name: Pack
+        run: dotnet pack src/mssql-mcp/mssql-mcp.csproj -c Release -o artifacts
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: artifacts/*.nupkg

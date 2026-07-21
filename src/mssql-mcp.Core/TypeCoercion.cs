@@ -64,10 +64,16 @@ public static class TypeCoercion
                 return sqlDouble.Value;
 
             // date/datetime/datetime2/smalldatetime/datetimeoffset/time → ISO 8601 string.
-            // SqlDateTime covers datetime/smalldatetime. date/time/datetime2/datetimeoffset
-            // come back as SqlDateTime or SqlString depending on TDS; handle both.
+            // SqlDateTime covers datetime/smalldatetime. date/datetime2 come back as DateTime,
+            // datetimeoffset as DateTimeOffset, time as TimeSpan — handle all explicitly.
             case SqlDateTime sqlDateTime:
                 return sqlDateTime.Value.ToString("o", CultureInfo.InvariantCulture);
+            case DateTime dateTime:
+                return dateTime.ToString("o", CultureInfo.InvariantCulture);
+            case DateTimeOffset dateTimeOffset:
+                return dateTimeOffset.ToString("o", CultureInfo.InvariantCulture);
+            case TimeSpan timeSpan:
+                return timeSpan.ToString("c", CultureInfo.InvariantCulture);
 
             // uniqueidentifier → canonical string.
             case SqlGuid sqlGuid:

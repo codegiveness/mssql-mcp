@@ -22,8 +22,23 @@ catch (InvalidOperationException ex)
     return 1;
 }
 
+// Register options both as concrete type (for direct injection) and via IOptions<T> (for
+// tools that depend on IOptions<MssqlMcpOptions>). AddSingleton<T> alone does NOT populate
+// IOptions<T> — the hosting framework's AddOptions() would create a default empty instance.
 builder.Services.AddSingleton(options);
-builder.Services.AddSingleton<MssqlMcpOptions>(options);
+builder.Services.AddOptions<MssqlMcpOptions>()
+    .Configure(o =>
+    {
+        o.ConnectionString = options.ConnectionString;
+        o.AccessMode = options.AccessMode;
+        o.QueryTimeout = options.QueryTimeout;
+        o.LogLevel = options.LogLevel;
+        o.LogFile = options.LogFile;
+        o.MaxResultBytes = options.MaxResultBytes;
+        o.RetryCount = options.RetryCount;
+        o.RetryIntervalMin = options.RetryIntervalMin;
+        o.RetryIntervalMax = options.RetryIntervalMax;
+    });
 
 builder.Services.AddSingleton<ISqlExecutor>(sp =>
     new SqlExecutor(options.ConnectionString, options.QueryTimeout,
@@ -32,7 +47,9 @@ builder.Services.AddSingleton<ISqlExecutor>(sp =>
 builder.Services
     .AddMcpServer()
     .WithStdioServerTransport()
-    .WithToolsFromAssembly();
+    // Explicitly specify the Tools assembly — WithToolsFromAssembly() with no args
+    // uses Assembly.GetCallingAssembly() which returns the App assembly, not Tools.
+    .WithToolsFromAssembly(typeof(mssql_mcp.Tools.DatabaseTools).Assembly);
 
 await builder.Build().RunAsync();
 return 0;
