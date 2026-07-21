@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/mssql-mcp.Core/mssql-mcp.Core.csproj" />
+    <Project Path="src/mssql-mcp.Tools/mssql-mcp.Tools.csproj" />
+    <Project Path="src/mssql-mcp/mssql-mcp.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/mssql-mcp.Core.Tests/mssql-mcp.Core.Tests.csproj" />
+    <Project Path="tests/mssql-mcp.Tools.Tests/mssql-mcp.Tools.Tests.csproj" />
+  </Folder>
+</Solution>
