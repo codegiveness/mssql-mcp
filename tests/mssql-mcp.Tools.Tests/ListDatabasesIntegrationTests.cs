@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using ModelContextProtocol.Protocol;
 using mssql_mcp.Core;
 using mssql_mcp.Core.Configuration;
 
@@ -34,6 +35,13 @@ public class ListDatabasesIntegrationTests
         return new DatabaseTools(executor, Options.Create(options), NullLogger<DatabaseTools>.Instance);
     }
 
+    private static string GetJson(CallToolResult result)
+    {
+        Assert.NotNull(result.Content);
+        Assert.True(result.Content.Count >= 1);
+        return Assert.IsType<TextContentBlock>(result.Content[0]).Text;
+    }
+
     [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
     public async Task ListDatabases_RealServer_ExcludesSystemDatabases()
     {
@@ -43,8 +51,8 @@ public class ListDatabasesIntegrationTests
         }
 
         DatabaseTools tools = CreateTools();
-        string json = await tools.ListDatabases(CancellationToken.None);
-        using JsonDocument doc = JsonDocument.Parse(json);
+        CallToolResult result = await tools.ListDatabases(CancellationToken.None);
+        using JsonDocument doc = JsonDocument.Parse(GetJson(result));
 
         Assert.Equal(JsonValueKind.Array, doc.RootElement.ValueKind);
         Assert.True(doc.RootElement.GetArrayLength() > 0, "Expected at least one database.");
@@ -67,8 +75,8 @@ public class ListDatabasesIntegrationTests
         }
 
         DatabaseTools tools = CreateTools();
-        string json = await tools.ListDatabases(CancellationToken.None);
-        using JsonDocument doc = JsonDocument.Parse(json);
+        CallToolResult result = await tools.ListDatabases(CancellationToken.None);
+        using JsonDocument doc = JsonDocument.Parse(GetJson(result));
 
         Assert.True(doc.RootElement.GetArrayLength() > 0);
         bool anyCurrent = doc.RootElement.EnumerateArray()

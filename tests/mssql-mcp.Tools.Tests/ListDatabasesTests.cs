@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using ModelContextProtocol.Protocol;
 using mssql_mcp.Core;
 using mssql_mcp.Core.Configuration;
 using NSubstitute;
@@ -30,6 +31,13 @@ public class ListDatabasesTests
         };
         IOptions<MssqlMcpOptions> optionsWrapper = Options.Create(opts);
         return new DatabaseTools(executor, optionsWrapper, NullLogger<DatabaseTools>.Instance);
+    }
+
+    private static string GetJson(CallToolResult result)
+    {
+        Assert.NotNull(result.Content);
+        Assert.True(result.Content.Count >= 1);
+        return Assert.IsType<TextContentBlock>(result.Content[0]).Text;
     }
 
     private static List<Dictionary<string, object?>> FakeDatabases() =>
@@ -65,9 +73,10 @@ public class ListDatabasesTests
             .Returns(FakeDatabases());
 
         DatabaseTools tools = CreateTools(executor);
-        string json = await tools.ListDatabases(CancellationToken.None);
+        CallToolResult result = await tools.ListDatabases(CancellationToken.None);
+        Assert.False(result.IsError ?? false);
 
-        using JsonDocument doc = JsonDocument.Parse(json);
+        using JsonDocument doc = JsonDocument.Parse(GetJson(result));
         Assert.Equal(JsonValueKind.Array, doc.RootElement.ValueKind);
         Assert.Equal(3, doc.RootElement.GetArrayLength());
     }
@@ -80,9 +89,9 @@ public class ListDatabasesTests
             .Returns(FakeDatabases());
 
         DatabaseTools tools = CreateTools(executor);
-        string json = await tools.ListDatabases(CancellationToken.None);
+        CallToolResult result = await tools.ListDatabases(CancellationToken.None);
 
-        using JsonDocument doc = JsonDocument.Parse(json);
+        using JsonDocument doc = JsonDocument.Parse(GetJson(result));
         foreach (JsonElement row in doc.RootElement.EnumerateArray())
         {
             Assert.True(row.TryGetProperty("is_current", out JsonElement _));
@@ -97,9 +106,9 @@ public class ListDatabasesTests
             .Returns(FakeDatabases());
 
         DatabaseTools tools = CreateTools(executor);
-        string json = await tools.ListDatabases(CancellationToken.None);
+        CallToolResult result = await tools.ListDatabases(CancellationToken.None);
 
-        using JsonDocument doc = JsonDocument.Parse(json);
+        using JsonDocument doc = JsonDocument.Parse(GetJson(result));
         JsonElement firstRow = doc.RootElement[0];
         Assert.Equal("AppDb", firstRow.GetProperty("name").GetString());
         // bit coerces to JSON number 1/0 per ADR-0009.
@@ -114,9 +123,9 @@ public class ListDatabasesTests
             .Returns(FakeDatabases());
 
         DatabaseTools tools = CreateTools(executor);
-        string json = await tools.ListDatabases(CancellationToken.None);
+        CallToolResult result = await tools.ListDatabases(CancellationToken.None);
 
-        using JsonDocument doc = JsonDocument.Parse(json);
+        using JsonDocument doc = JsonDocument.Parse(GetJson(result));
         JsonElement[] rows = doc.RootElement.EnumerateArray().ToArray();
         Assert.Equal(0, rows[1].GetProperty("is_current").GetInt64());
         Assert.Equal(0, rows[2].GetProperty("is_current").GetInt64());
@@ -130,9 +139,10 @@ public class ListDatabasesTests
             .Returns(new List<Dictionary<string, object?>>());
 
         DatabaseTools tools = CreateTools(executor);
-        string json = await tools.ListDatabases(CancellationToken.None);
+        CallToolResult result = await tools.ListDatabases(CancellationToken.None);
+        Assert.False(result.IsError ?? false);
 
-        using JsonDocument doc = JsonDocument.Parse(json);
+        using JsonDocument doc = JsonDocument.Parse(GetJson(result));
         Assert.Equal(JsonValueKind.Array, doc.RootElement.ValueKind);
         Assert.Equal(0, doc.RootElement.GetArrayLength());
     }
@@ -145,9 +155,9 @@ public class ListDatabasesTests
             .Returns(FakeDatabases());
 
         DatabaseTools tools = CreateTools(executor);
-        string json = await tools.ListDatabases(CancellationToken.None);
+        CallToolResult result = await tools.ListDatabases(CancellationToken.None);
 
-        using JsonDocument doc = JsonDocument.Parse(json);
+        using JsonDocument doc = JsonDocument.Parse(GetJson(result));
         JsonElement firstRow = doc.RootElement[0];
         Assert.Equal("AppDb", firstRow.GetProperty("name").GetString());
         Assert.Equal(5, firstRow.GetProperty("database_id").GetInt32());
