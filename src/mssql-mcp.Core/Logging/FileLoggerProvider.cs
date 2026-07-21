@@ -58,7 +58,8 @@ public sealed class FileLoggerProvider : ILoggerProvider
         sb.Append(obfuscated);
         if (exception is not null)
         {
-            sb.Append(" | ").Append(exception.GetType().Name).Append(": ").Append(exception.Message);
+            sb.Append(" | ").Append(exception.GetType().Name).Append(": ")
+              .Append(PasswordObfuscator.Obfuscate(exception.Message));
         }
         sb.AppendLine();
 

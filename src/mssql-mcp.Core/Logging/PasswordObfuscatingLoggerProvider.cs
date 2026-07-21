@@ -50,7 +50,7 @@ public sealed class PasswordObfuscatingLoggerProvider : ILoggerProvider
                 logLevel,
                 eventId,
                 new ObfuscatedState(obfuscated),
-                exception,
+                null,
                 static (s, e) => s.Message);
         }
 
