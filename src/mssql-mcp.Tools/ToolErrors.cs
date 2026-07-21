@@ -99,7 +99,7 @@ internal static class ToolErrors
         {
             error = "SQL",
             code = $"SQL{number}",
-            message = ex.Message,
+            message = first?.Message ?? ex.Message,
             severity = severity,
             line = line,
             procedure = procedure,
@@ -130,6 +130,8 @@ internal static class ToolErrors
     public static bool IsTransient(SqlException ex)
     {
         // Check every error in the collection — SqlException can carry multiple.
+        // ex.Number delegates to ex.Errors[0].Number, so the loop covers the populated case.
+        // When ex.Errors is empty, ex.Number returns 0 (non-transient) — correct.
         foreach (SqlError err in ex.Errors)
         {
             if (TransientErrorNumbers.Contains(err.Number))
@@ -137,7 +139,7 @@ internal static class ToolErrors
                 return true;
             }
         }
-        return TransientErrorNumbers.Contains(ex.Number);
+        return false;
     }
 
     public static CallToolResult Internal(Exception ex)
