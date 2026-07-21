@@ -44,6 +44,14 @@ public sealed class SqlGuard : IGuard
             return GuardResult.Accept(sql);
         }
 
+        return ValidateStrict(sql);
+    }
+
+    /// <inheritdoc/>
+    public GuardResult ValidateStrict(string sql)
+    {
+        ArgumentNullException.ThrowIfNull(sql);
+
         // Empty/whitespace-only input is an empty batch (no statement), not a parse error.
         if (string.IsNullOrWhiteSpace(sql))
         {

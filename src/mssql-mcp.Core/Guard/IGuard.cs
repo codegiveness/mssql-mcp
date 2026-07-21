@@ -61,7 +61,17 @@ public interface IGuard
 {
     /// <summary>
     /// Validates the SQL and returns either an accept result (with wrapped SQL ready
-    /// for execution) or a structured rejection.
+    /// for execution) or a structured rejection. In Unrestricted mode, the AST allowlist
+    /// is bypassed and the raw SQL is returned wrapped only in the sentinel.
     /// </summary>
     GuardResult Validate(string sql);
+
+    /// <summary>
+    /// Validates the SQL with the AST allowlist (ADR-0006) regardless of the server's
+    /// <see cref="AccessMode"/>. Used by tools whose safety contract requires validation
+    /// even in Unrestricted mode (e.g. <c>explain_query</c> — there is no legitimate reason
+    /// to bypass plan analysis). On accept, returns the SQL wrapped with sentinel + the
+    /// BEGIN TRANSACTION / ROLLBACK pair per ADR-0007.
+    /// </summary>
+    GuardResult ValidateStrict(string sql);
 }

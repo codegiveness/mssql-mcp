@@ -29,4 +29,15 @@ public interface ISqlExecutor
         string sql,
         IReadOnlyDictionary<string, object>? parameters,
         CancellationToken ct);
+
+    /// <summary>
+    /// Executes <c>SET SHOWPLAN_XML ON</c>, runs the supplied SQL, and returns the
+    /// SHOWPLAN_XML string that SQL Server emits as a single-row, single-column result
+    /// set (the query is not actually executed — SQL Server returns the estimated plan).
+    /// Always runs <c>SET SHOWPLAN_XML OFF</c> in a finally block so the session-scoped
+    /// setting cannot leak onto a pooled connection (ADR-0016 Oracle watch-out-for #2).
+    /// </summary>
+    /// <param name="sql">SQL text to plan. Must already be Guard-validated.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<string> ExecuteShowPlanXmlAsync(string sql, CancellationToken ct);
 }
