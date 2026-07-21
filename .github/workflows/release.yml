@@ -1,0 +1,103 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v0.1.0). Used for archive naming and version sync.'
+        required: true
+        type: string
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Resolve tag name
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve version (tag without v prefix)
+        id: ver
+        run: |
+          tag="${{ steps.tag.outputs.name }}"
+          version="${tag#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # CI gate: build + test before producing any artifacts.
+      - run: dotnet restore
+      - run: dotnet build --no-restore
+      - run: dotnet test --no-build --filter Category!=Integration
+
+      # Self-contained single-file builds for Unix RIDs (managed SNI, MIT-clean per ADR-0002).
+      - name: Build linux-x64
+        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/linux-x64
+      - name: Build linux-arm64
+        run: dotnet publish src/mssql-mcp -c Release -r linux-arm64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/linux-arm64
+      - name: Build osx-x64
+        run: dotnet publish src/mssql-mcp -c Release -r osx-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/osx-x64
+      - name: Build osx-arm64
+        run: dotnet publish src/mssql-mcp -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/osx-arm64
+      # Framework-dependent for Windows (SNI license blocks self-contained per ADR-0002).
+      - name: Build win-x64 (framework-dependent)
+        run: dotnet publish src/mssql-mcp -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o artifacts/win-x64
+
+      # Flat archives: binary at archive root per sqz contract (ADR-0002).
+      - name: Archive Unix RIDs
+        run: |
+          for rid in linux-x64 linux-arm64 osx-x64 osx-arm64; do
+            (cd artifacts/$rid && tar -czf ../mssql-mcp-${{ steps.tag.outputs.name }}-$rid.tar.gz *)
+          done
+      - name: Archive Windows RID
+        run: cd artifacts/win-x64 && zip -r ../mssql-mcp-${{ steps.tag.outputs.name }}-win-x64.zip *
+
+      - name: Generate SHA256 checksums
+        run: |
+          cd artifacts
+          for f in mssql-mcp-*.tar.gz mssql-mcp-*.zip; do
+            sha256sum "$f" > "$f.sha256"
+          done
+
+      # NuGet pack + push (sequential before npm so a NuGet failure aborts the release).
+      - name: Pack NuGet
+        run: dotnet pack src/mssql-mcp -c Release -o artifacts
+      - name: Push NuGet
+        run: dotnet nuget push "artifacts/mssql-mcp.*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+
+      # Sync npm version to the tag, then publish.
+      - name: Sync npm version
+        run: node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('npm/package.json')); p.version='${{ steps.ver.outputs.version }}'; fs.writeFileSync('npm/package.json', JSON.stringify(p,null,2)+'\n')"
+      - name: npm publish
+        run: cd npm && npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # GitHub Release with archives + checksums attached.
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          files: |
+            artifacts/mssql-mcp-*.tar.gz
+            artifacts/mssql-mcp-*.zip
+            artifacts/mssql-mcp-*.sha256

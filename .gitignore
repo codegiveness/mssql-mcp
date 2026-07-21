@@ -3,6 +3,17 @@
 [Oo]bj/
 [Oo]ut/
 
+# Exception: the npm shim at npm/bin/mssql-mcp must be committed.
+# The general [Bb]in/ rule above matches the npm/bin/ directory; re-include it
+# and the shim file explicitly. Git cannot re-include a file if its parent
+# directory is ignored, so we negate both.
+# The committed file is a Node.js shim. The postinstall script (npm/install.js)
+# overwrites it with the real native binary. Developers who run `npm install`
+# locally will see it modified in git status — restore with
+# `git checkout -- npm/bin/mssql-mcp`. See ADR-0002 (sqz pattern) and ADR-0014.
+!npm/bin/
+!npm/bin/mssql-mcp
+
 # NuGet
 *.nupkg
 *.snupkg
@@ -45,8 +56,13 @@
 *.coveragexml
 
 # npm
+# NOTE: npm/bin/mssql-mcp is intentionally NOT ignored. The committed file is a
+# Node.js shim that makes `npx mssql-mcp` work immediately after install. The
+# postinstall script (npm/install.js) overwrites it with the real native binary
+# downloaded from GitHub Releases. Developers who run `npm install` locally will
+# see `npm/bin/mssql-mcp` show as modified in git status — restore the shim with
+# `git checkout -- npm/bin/mssql-mcp`. See ADR-0002 (sqz pattern) and ADR-0014.
 npm/node_modules/
-npm/bin/mssql-mcp
 npm/bin/mssql-mcp.exe
 npm/*.tgz
 
