@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -21,12 +20,6 @@ namespace mssql_mcp.Tools;
 [McpServerToolType]
 public sealed class SqlTools
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        WriteIndented = false,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
     private readonly ISqlExecutor _executor;
     private readonly IGuard _guard;
     private readonly MssqlMcpOptions _options;
@@ -74,7 +67,7 @@ public sealed class SqlTools
             if (guardResult.WrappedSql is null)
             {
                 // Defensive: Guard invariants guarantee WrappedSql on accept; treat absence as internal error.
-                return InternalError("Guard accepted but WrappedSql was null.");
+                return ToolErrors.Internal(new InvalidOperationException("Guard accepted but WrappedSql was null."));
             }
             sqlToExecute = guardResult.WrappedSql;
         }
@@ -95,27 +88,35 @@ public sealed class SqlTools
         {
             rows = await _executor.ExecuteQueryAsync(sqlToExecute, ct).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // The MCP client cancelled the request — NOT a command timeout. Rethrow so the
+            // MCP framework can handle the cancellation gracefully. Do NOT return a TIMEOUT
+            // error for a client-initiated cancel.
+            throw;
+        }
         catch (OperationCanceledException)
         {
-            return TimeoutError(_options.QueryTimeout);
+            // Command timeout (not client cancellation) — return TIMEOUT per ADR-0010.
+            _logger.LogError("[timeout] execute_sql exceeded {Timeout}s command timeout", _options.QueryTimeout);
+            return ToolErrors.Timeout(_options.QueryTimeout);
         }
         catch (SqlException ex)
         {
-            return SqlError(ex);
+            _logger.LogError("[sql] execute_sql failed: {Message} (code {Number}, severity {Severity})", ex.Message, ex.Number, ex.Class);
+            return ToolErrors.SqlError(ex);
+        }
+        catch (Exception ex)
+        {
+            // ADR-0010 INTERNAL: any other unhandled exception. Never include stack trace in
+            // the agent response — full detail goes to logs per ADR-0011.
+            _logger.LogError(ex, "[internal] execute_sql unhandled exception: {Type}: {Message}", ex.GetType().Name, ex.Message);
+            return ToolErrors.Internal(ex);
         }
 
-        string json = JsonSerializer.Serialize(rows, JsonOptions);
+        string json = JsonSerializer.Serialize(rows, ToolErrors.JsonOptions);
         _logger.LogInformation("[tool] execute_sql returned {Count} rows", rows.Count);
-        return Text(json, isError: false);
-    }
-
-    private static CallToolResult Text(string json, bool isError)
-    {
-        return new CallToolResult
-        {
-            Content = new List<ContentBlock> { new TextContentBlock { Text = json } },
-            IsError = isError,
-        };
+        return ToolErrors.Success(json);
     }
 
     private static CallToolResult GuardRejectionError(GuardRejection rejection)
@@ -131,53 +132,11 @@ public sealed class SqlTools
                 ? null
                 : new { line = rejection.Line, column = rejection.Column },
         };
-        string json = JsonSerializer.Serialize(payload, JsonOptions);
-        return Text(json, isError: true);
-    }
-
-    private static CallToolResult InternalError(string detail)
-    {
-        object payload = new
+        string json = JsonSerializer.Serialize(payload, ToolErrors.JsonOptions);
+        return new CallToolResult
         {
-            error = "INTERNAL",
-            detail = detail,
+            Content = new List<ContentBlock> { new TextContentBlock { Text = json } },
+            IsError = true,
         };
-        string json = JsonSerializer.Serialize(payload, JsonOptions);
-        return Text(json, isError: true);
-    }
-
-    private static CallToolResult TimeoutError(int timeoutSeconds)
-    {
-        // ADR-0010 TIMEOUT shape. timeout_ms is the configured command timeout in milliseconds.
-        int timeoutMs = timeoutSeconds * 1000;
-        object payload = new
-        {
-            error = "TIMEOUT",
-            timeout_ms = timeoutMs,
-            detail = $"Query exceeded {timeoutSeconds}s command timeout",
-        };
-        string json = JsonSerializer.Serialize(payload, JsonOptions);
-        return Text(json, isError: true);
-    }
-
-    private static CallToolResult SqlError(SqlException ex)
-    {
-        // ADR-0010 SQL shape. SqlException may carry multiple errors — the first is the most actionable.
-        SqlError? first = ex.Errors.Count > 0 ? ex.Errors[0] : null;
-        int number = first?.Number ?? ex.Number;
-        byte severity = first?.Class ?? ex.Class;
-        int line = first?.LineNumber ?? ex.LineNumber;
-        string? procedure = first?.Procedure ?? ex.Procedure;
-        object payload = new
-        {
-            error = "SQL",
-            code = $"SQL{number}",
-            message = ex.Message,
-            severity = severity,
-            line = line,
-            procedure = procedure,
-        };
-        string json = JsonSerializer.Serialize(payload, JsonOptions);
-        return Text(json, isError: true);
     }
 }

@@ -25,11 +25,6 @@ public sealed class DatabaseTools
         ORDER BY is_current DESC, name
         """;
 
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        WriteIndented = false,
-    };
-
     private readonly ISqlExecutor _executor;
     private readonly MssqlMcpOptions _options;
     private readonly ILogger<DatabaseTools> _logger;
@@ -58,60 +53,29 @@ public sealed class DatabaseTools
         {
             rows = await _executor.ExecuteQueryAsync(ListDatabasesSql, ct).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // Client cancellation — rethrow, not a timeout.
+            throw;
+        }
         catch (OperationCanceledException)
         {
-            return TimeoutError(_options.QueryTimeout);
+            _logger.LogError("[timeout] list_databases exceeded {Timeout}s command timeout", _options.QueryTimeout);
+            return ToolErrors.Timeout(_options.QueryTimeout);
         }
         catch (SqlException ex)
         {
-            return SqlError(ex);
+            _logger.LogError("[sql] list_databases failed: {Message} (code {Number}, severity {Severity})", ex.Message, ex.Number, ex.Class);
+            return ToolErrors.SqlError(ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[internal] list_databases unhandled exception: {Type}: {Message}", ex.GetType().Name, ex.Message);
+            return ToolErrors.Internal(ex);
         }
 
         _logger.LogInformation("[tool] list_databases returned {Count} databases", rows.Count);
-        string json = JsonSerializer.Serialize(rows, JsonOptions);
-        return new CallToolResult
-        {
-            Content = new List<ContentBlock> { new TextContentBlock { Text = json } },
-            IsError = false,
-        };
-    }
-
-    private static CallToolResult TimeoutError(int timeoutSeconds)
-    {
-        int timeoutMs = timeoutSeconds * 1000;
-        object payload = new
-        {
-            error = "TIMEOUT",
-            timeout_ms = timeoutMs,
-            detail = $"Query exceeded {timeoutSeconds}s command timeout",
-        };
-        return new CallToolResult
-        {
-            Content = new List<ContentBlock> { new TextContentBlock { Text = JsonSerializer.Serialize(payload, JsonOptions) } },
-            IsError = true,
-        };
-    }
-
-    private static CallToolResult SqlError(SqlException ex)
-    {
-        SqlError? first = ex.Errors.Count > 0 ? ex.Errors[0] : null;
-        int number = first?.Number ?? ex.Number;
-        byte severity = first?.Class ?? ex.Class;
-        int line = first?.LineNumber ?? ex.LineNumber;
-        string? procedure = first?.Procedure ?? ex.Procedure;
-        object payload = new
-        {
-            error = "SQL",
-            code = $"SQL{number}",
-            message = ex.Message,
-            severity = severity,
-            line = line,
-            procedure = procedure,
-        };
-        return new CallToolResult
-        {
-            Content = new List<ContentBlock> { new TextContentBlock { Text = JsonSerializer.Serialize(payload, JsonOptions) } },
-            IsError = true,
-        };
+        string json = JsonSerializer.Serialize(rows, ToolErrors.JsonOptions);
+        return ToolErrors.Success(json);
     }
 }

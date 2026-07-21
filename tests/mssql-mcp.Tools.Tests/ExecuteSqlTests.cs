@@ -253,6 +253,87 @@ public class ExecuteSqlTests
         Assert.Equal("empty_batch", doc.RootElement.GetProperty("rule").GetString());
         await executor.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
+
+    // ---------- Null column value preserved (ADR-0009: NULL → JSON null) ----------
+
+    [Fact]
+    public async Task ExecuteSql_NullColumn_PreservedInJson()
+    {
+        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new List<Dictionary<string, object?>>
+            {
+                new() { ["a"] = 1, ["b"] = null },
+            });
+
+        SqlTools tools = CreateTools(executor, RestrictedOptions());
+        CallToolResult result = await tools.ExecuteSql("SELECT 1 AS a, NULL AS b", CancellationToken.None);
+
+        Assert.False(result.IsError ?? false);
+        string json = GetText(result);
+        using JsonDocument doc = JsonDocument.Parse(json);
+        Assert.Equal(1, doc.RootElement.GetArrayLength());
+        Assert.Equal(1, doc.RootElement[0].GetProperty("a").GetInt32());
+        // The key "b" MUST be present with JSON null (ADR-0009), NOT omitted.
+        Assert.True(doc.RootElement[0].TryGetProperty("b", out JsonElement bVal));
+        Assert.Equal(JsonValueKind.Null, bVal.ValueKind);
+    }
+
+    // ---------- INTERNAL error (catch-all) ----------
+
+    [Fact]
+    public async Task ExecuteSql_UnexpectedException_ReturnsInternalError_AndIsErrorTrue()
+    {
+        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Throws(new InvalidOperationException("Something went wrong inside the executor"));
+
+        SqlTools tools = CreateTools(executor, RestrictedOptions());
+        CallToolResult result = await tools.ExecuteSql("SELECT 1", CancellationToken.None);
+
+        Assert.True(result.IsError ?? false);
+        string json = GetText(result);
+        using JsonDocument doc = JsonDocument.Parse(json);
+        Assert.Equal("INTERNAL", doc.RootElement.GetProperty("error").GetString());
+        Assert.Equal("InvalidOperationException", doc.RootElement.GetProperty("exception_type").GetString());
+        Assert.NotNull(doc.RootElement.GetProperty("detail").GetString());
+    }
+
+    // ---------- Client cancellation is NOT a timeout ----------
+
+    [Fact]
+    public async Task ExecuteSql_ClientCancellation_Rethrows_NotTimeout()
+    {
+        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Throws(new OperationCanceledException(cts.Token));
+
+        SqlTools tools = CreateTools(executor, RestrictedOptions());
+        // Client cancellation should rethrow, NOT return a TIMEOUT error.
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await tools.ExecuteSql("SELECT 1", cts.Token));
+    }
+
+    // ---------- SqlException with fallback path ----------
+
+    [Fact]
+    public async Task ExecuteSql_SqlException_UsesFirstErrorProperties()
+    {
+        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Throws(SqlExceptionFactory.Create(number: 208, message: "Invalid object name 'users'.", severity: 16, line: 1));
+
+        SqlTools tools = CreateTools(executor, RestrictedOptions());
+        CallToolResult result = await tools.ExecuteSql("SELECT * FROM users", CancellationToken.None);
+
+        Assert.True(result.IsError ?? false);
+        string json = GetText(result);
+        using JsonDocument doc = JsonDocument.Parse(json);
+        Assert.Equal("SQL", doc.RootElement.GetProperty("error").GetString());
+        Assert.Equal("SQL208", doc.RootElement.GetProperty("code").GetString());
+    }
 }
 
 /// <summary>
