@@ -147,7 +147,11 @@ public sealed class DatabaseTools
         string dbPrefix;
         if (database is not null)
         {
-            DatabaseValidationResult validation = await TryValidateDatabaseAsync(database, ct).ConfigureAwait(false);
+            DatabaseValidationResult? validation = await TryValidateDatabaseAsync(database, ct).ConfigureAwait(false);
+            if (validation is null)
+            {
+                return ToolErrors.Timeout(_options.QueryTimeout);
+            }
             if (validation is { Valid: false, Error: not null })
             {
                 return ToolErrors.ConnectionError(validation.Error);
@@ -212,7 +216,11 @@ public sealed class DatabaseTools
         string dbPrefix;
         if (database is not null)
         {
-            DatabaseValidationResult validation = await TryValidateDatabaseAsync(database, ct).ConfigureAwait(false);
+            DatabaseValidationResult? validation = await TryValidateDatabaseAsync(database, ct).ConfigureAwait(false);
+            if (validation is null)
+            {
+                return ToolErrors.Timeout(_options.QueryTimeout);
+            }
             if (validation is { Valid: false, Error: not null })
             {
                 return ToolErrors.ConnectionError(validation.Error);
@@ -302,7 +310,11 @@ public sealed class DatabaseTools
         string dbPrefix;
         if (database is not null)
         {
-            DatabaseValidationResult validation = await TryValidateDatabaseAsync(database, ct).ConfigureAwait(false);
+            DatabaseValidationResult? validation = await TryValidateDatabaseAsync(database, ct).ConfigureAwait(false);
+            if (validation is null)
+            {
+                return ToolErrors.Timeout(_options.QueryTimeout);
+            }
             if (validation is { Valid: false, Error: not null })
             {
                 return ToolErrors.ConnectionError(validation.Error);
@@ -386,7 +398,7 @@ public sealed class DatabaseTools
         return ToolErrors.Success(json);
     }
 
-    private async Task<DatabaseValidationResult> TryValidateDatabaseAsync(string database, CancellationToken ct)
+    private async Task<DatabaseValidationResult?> TryValidateDatabaseAsync(string database, CancellationToken ct)
     {
         try
         {
@@ -398,7 +410,7 @@ public sealed class DatabaseTools
         }
         catch (OperationCanceledException)
         {
-            throw;
+            return null;
         }
     }
 

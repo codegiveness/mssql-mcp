@@ -117,14 +117,14 @@ public sealed class OpsTools
         """;
 
     // 3. Index fragmentation summary (SAMPLED mode — NOT DETAILED per ADR-0016).
+    //    OBJECT_NAME uses database_id arg to resolve names in the target DB (Oracle C1).
     private const string IndexFragmentationSqlTemplate =
         """
         SELECT COUNT(*) AS total_indexes,
                SUM(CASE WHEN ips.avg_fragmentation_in_percent > 30 THEN 1 ELSE 0 END) AS fragmented_gt_30pct,
                MAX(ips.avg_fragmentation_in_percent) AS max_fragmentation,
-               (SELECT TOP 1 OBJECT_NAME(ips.object_id) + ' (' + CAST(CAST(ips.avg_fragmentation_in_percent AS int) AS varchar) + '%)'
+               (SELECT TOP 1 OBJECT_NAME(ips.object_id, {1}) + ' (' + CAST(CAST(ips.avg_fragmentation_in_percent AS int) AS varchar) + '%)'
                 FROM {0}sys.dm_db_index_physical_stats({1}, NULL, NULL, NULL, 'SAMPLED') ips
-                JOIN {0}sys.indexes i ON ips.object_id = i.object_id AND ips.index_id = i.index_id
                 WHERE ips.avg_fragmentation_in_percent > 30
                 ORDER BY ips.avg_fragmentation_in_percent DESC) AS worst
         FROM {0}sys.dm_db_index_physical_stats({1}, NULL, NULL, NULL, 'SAMPLED') ips
@@ -180,7 +180,11 @@ public sealed class OpsTools
         string dbPrefix;
         if (database is not null)
         {
-            DatabaseValidationResult validation = await TryValidateDatabaseAsync(database, ct).ConfigureAwait(false);
+            DatabaseValidationResult? validation = await TryValidateDatabaseAsync(database, ct).ConfigureAwait(false);
+            if (validation is null)
+            {
+                return ToolErrors.Timeout(_options.QueryTimeout);
+            }
             if (validation is { Valid: false, Error: not null })
             {
                 return ToolErrors.ConnectionError(validation.Error);
@@ -260,7 +264,11 @@ public sealed class OpsTools
         // Still validate the database name for safety (confirm it exists and is online).
         if (database is not null)
         {
-            DatabaseValidationResult validation = await TryValidateDatabaseAsync(database, ct).ConfigureAwait(false);
+            DatabaseValidationResult? validation = await TryValidateDatabaseAsync(database, ct).ConfigureAwait(false);
+            if (validation is null)
+            {
+                return ToolErrors.Timeout(_options.QueryTimeout);
+            }
             if (validation is { Valid: false, Error: not null })
             {
                 return ToolErrors.ConnectionError(validation.Error);
@@ -335,7 +343,11 @@ public sealed class OpsTools
         string dbIdExpr;
         if (database is not null)
         {
-            DatabaseValidationResult validation = await TryValidateDatabaseAsync(database, ct).ConfigureAwait(false);
+            DatabaseValidationResult? validation = await TryValidateDatabaseAsync(database, ct).ConfigureAwait(false);
+            if (validation is null)
+            {
+                return ToolErrors.Timeout(_options.QueryTimeout);
+            }
             if (validation is { Valid: false, Error: not null })
             {
                 return ToolErrors.ConnectionError(validation.Error);
@@ -414,7 +426,7 @@ public sealed class OpsTools
 
     // ---------- Helpers ----------
 
-    private async Task<DatabaseValidationResult> TryValidateDatabaseAsync(string database, CancellationToken ct)
+    private async Task<DatabaseValidationResult?> TryValidateDatabaseAsync(string database, CancellationToken ct)
     {
         try
         {
@@ -426,7 +438,7 @@ public sealed class OpsTools
         }
         catch (OperationCanceledException)
         {
-            throw;
+            return null;
         }
     }
 
