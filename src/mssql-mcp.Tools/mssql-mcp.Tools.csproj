@@ -16,4 +16,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="mssql-mcp.Tools.Tests" />
+  </ItemGroup>
+
 </Project>

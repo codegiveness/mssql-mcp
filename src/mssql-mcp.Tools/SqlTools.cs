@@ -138,9 +138,8 @@ public sealed class SqlTools
             return ToolErrors.Internal(ex);
         }
 
-        string json = JsonSerializer.Serialize(rows, ToolErrors.JsonOptions);
         _logger.LogInformation("[tool] execute_sql returned {Count} rows", rows.Count);
-        return ToolErrors.Success(json);
+        return ToolErrors.SuccessWithByteCap(rows, _options.MaxResultBytes, _logger);
     }
 
     private async Task<CallToolResult> ExecuteNonQueryAndSerialize(

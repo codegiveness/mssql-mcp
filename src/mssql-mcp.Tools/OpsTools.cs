@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Globalization;
-using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -241,8 +240,7 @@ public sealed class OpsTools
         }
 
         _logger.LogInformation("[tool] analyze_indexes returned {Count} missing indexes", rows.Count);
-        string json = JsonSerializer.Serialize(rows, ToolErrors.JsonOptions);
-        return ToolErrors.Success(json);
+        return ToolErrors.SuccessWithByteCap(rows, _options.MaxResultBytes, _logger);
     }
 
     /// <summary>
@@ -322,8 +320,7 @@ public sealed class OpsTools
         }
 
         _logger.LogInformation("[tool] get_top_queries returned {Count} queries", rows.Count);
-        string json = JsonSerializer.Serialize(rows, ToolErrors.JsonOptions);
-        return ToolErrors.Success(json);
+        return ToolErrors.SuccessWithByteCap(rows, _options.MaxResultBytes, _logger);
     }
 
     /// <summary>
@@ -420,8 +417,7 @@ public sealed class OpsTools
         }
 
         _logger.LogInformation("[tool] analyze_db_health returned {Count} checks", summaries.Count);
-        string json = JsonSerializer.Serialize(summaries, ToolErrors.JsonOptions);
-        return ToolErrors.Success(json);
+        return ToolErrors.SuccessWithByteCap(summaries, _options.MaxResultBytes, _logger);
     }
 
     // ---------- Helpers ----------

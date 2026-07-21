@@ -1,6 +1,8 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using mssql_mcp.Core.Guard;
 
@@ -50,6 +52,143 @@ internal static class ToolErrors
     // ---------- Success ----------
 
     public static CallToolResult Success(string json) => Text(json, isError: false);
+
+    /// <summary>
+    /// Serializes <paramref name="items"/> as a JSON array, stopping when the accumulated UTF-8
+    /// byte count crosses <paramref name="maxBytes"/> (ADR-0003 transport safety net). When
+    /// truncated, returns TWO <see cref="TextContentBlock"/> items: the JSON array first
+    /// (closed at the point of truncation), then a truncation notice. <paramref name="maxBytes"/>
+    /// of <c>0</c> disables the cap and serializes all items. Accepts a covariant list so
+    /// both <see cref="List{Dictionary{String,Object}}"/> (rowsets) and <see cref="List{Object}"/>
+    /// (mixed payloads like <c>list_objects</c>) work without copy or overload selection.
+    /// </summary>
+    /// <param name="items">Payload elements per ADR-0009 (rows or status objects).</param>
+    /// <param name="maxBytes">Byte threshold. <c>0</c> disables (no truncation).</param>
+    /// <param name="logger">Optional logger for the truncation event.</param>
+    /// <returns>
+    /// A <see cref="CallToolResult"/> with one <see cref="TextContentBlock"/> (no truncation)
+    /// or two (data + notice). The data block is always a valid JSON array.
+    /// </returns>
+    public static CallToolResult SuccessWithByteCap(
+        IReadOnlyList<object> items,
+        long maxBytes,
+        Microsoft.Extensions.Logging.ILogger? logger = null)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        if (maxBytes <= 0)
+        {
+            string allJson = JsonSerializer.Serialize(items, JsonOptions);
+            return Success(allJson);
+        }
+
+        // Build the array incrementally so we can stop at the threshold without re-serializing.
+        // Each item is a complete JSON value (object, string, number) — keep it whole so the
+        // outer array is valid JSON. Prefix with comma for all but the first element.
+        StringBuilder buffer = new();
+        buffer.Append('[');
+
+        long totalBytes = 1;
+        int returned = 0;
+        bool truncated = false;
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            string itemJson = JsonSerializer.Serialize(items[i], JsonOptions);
+            string segment = (i == 0 ? string.Empty : ",") + itemJson;
+
+            int segmentBytes = Encoding.UTF8.GetByteCount(segment);
+            if (totalBytes + segmentBytes > maxBytes)
+            {
+                truncated = true;
+                break;
+            }
+
+            buffer.Append(segment);
+            totalBytes += segmentBytes;
+            returned++;
+        }
+
+        buffer.Append(']');
+
+        if (!truncated)
+        {
+            return Success(buffer.ToString());
+        }
+
+        string notice = $"[truncated] Result exceeded {maxBytes} bytes. {returned} rows returned, more exist. Narrow with WHERE, TOP, or OFFSET/FETCH.";
+        logger?.LogWarning("[byte-cap] Truncated at {Bytes} bytes, {Rows} rows returned (threshold {Threshold})", totalBytes, returned, maxBytes);
+
+        // Two TextContent items: data array first, truncation notice second.
+        return new CallToolResult
+        {
+            Content = new List<ContentBlock>
+            {
+                new TextContentBlock { Text = buffer.ToString() },
+                new TextContentBlock { Text = notice },
+            },
+            IsError = false,
+        };
+    }
+
+    /// <summary>
+    /// Truncates <paramref name="text"/> when its UTF-8 byte count crosses
+    /// <paramref name="maxBytes"/> (ADR-0003 transport safety net for non-array payloads like
+    /// <c>explain_query</c>'s raw SHOWPLAN_XML). <paramref name="maxBytes"/> of <c>0</c> disables.
+    /// When truncated, returns TWO <see cref="TextContentBlock"/> items: the text (cut to fit
+    /// under the byte threshold) first, then a truncation notice as the second item.
+    /// </summary>
+    public static CallToolResult SuccessWithByteCap(
+        string text,
+        long maxBytes,
+        Microsoft.Extensions.Logging.ILogger? logger = null)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        if (maxBytes <= 0)
+        {
+            return Success(text);
+        }
+
+        int textBytes = Encoding.UTF8.GetByteCount(text);
+        if (textBytes <= maxBytes)
+        {
+            return Success(text);
+        }
+
+        // Truncate at a character boundary so the result is valid UTF-8 (and valid XML when the
+        // input is XML). Binary search for the largest char count whose UTF-8 encoding fits under
+        // maxBytes — O(log n) instead of decrementing one char at a time.
+        int lo = 0;
+        int hi = text.Length;
+        while (lo < hi)
+        {
+            int mid = lo + (hi - lo + 1) / 2;
+            if (Encoding.UTF8.GetByteCount(text.AsSpan(0, mid)) <= maxBytes)
+            {
+                lo = mid;
+            }
+            else
+            {
+                hi = mid - 1;
+            }
+        }
+        int charCount = lo;
+        string truncatedText = text.Substring(0, charCount);
+
+        string notice = $"[truncated] Result exceeded {maxBytes} bytes. Truncated to {charCount} characters. Narrow the query or request summary format.";
+        logger?.LogWarning("[byte-cap] Truncated text from {Original} to {Truncated} chars (threshold {Threshold} bytes)", text.Length, charCount, maxBytes);
+
+        return new CallToolResult
+        {
+            Content = new List<ContentBlock>
+            {
+                new TextContentBlock { Text = truncatedText },
+                new TextContentBlock { Text = notice },
+            },
+            IsError = false,
+        };
+    }
 
     // ---------- ADR-0010 error classes ----------
 

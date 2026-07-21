@@ -101,7 +101,8 @@ public sealed class PlanTools
         // format: "xml" returns raw SHOWPLAN_XML; anything else (null, "summary", unknown) → summary.
         if (string.Equals(format, "xml", StringComparison.OrdinalIgnoreCase))
         {
-            return ToolErrors.Success(planXml);
+            _logger.LogInformation("[tool] explain_query returned xml plan ({Bytes} bytes)", Encoding.UTF8.GetByteCount(planXml));
+            return ToolErrors.SuccessWithByteCap(planXml, _options.MaxResultBytes, _logger);
         }
 
         object summary = BuildSummary(planXml);

@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -128,8 +127,7 @@ public sealed class DatabaseTools
         }
 
         _logger.LogInformation("[tool] list_databases returned {Count} databases", rows.Count);
-        string json = JsonSerializer.Serialize(rows, ToolErrors.JsonOptions);
-        return ToolErrors.Success(json);
+        return ToolErrors.SuccessWithByteCap(rows, _options.MaxResultBytes, _logger);
     }
 
     /// <summary>
@@ -193,8 +191,7 @@ public sealed class DatabaseTools
         }
 
         _logger.LogInformation("[tool] list_schemas returned {Count} schemas", rows.Count);
-        string json = JsonSerializer.Serialize(rows, ToolErrors.JsonOptions);
-        return ToolErrors.Success(json);
+        return ToolErrors.SuccessWithByteCap(rows, _options.MaxResultBytes, _logger);
     }
 
     /// <summary>
@@ -286,8 +283,7 @@ public sealed class DatabaseTools
 
         _logger.LogInformation("[tool] list_objects returned {Count} objects (truncated={Truncated})",
             rows.Count, rows.Count == clampedLimit);
-        string json = JsonSerializer.Serialize(payload, ToolErrors.JsonOptions);
-        return ToolErrors.Success(json);
+        return ToolErrors.SuccessWithByteCap(payload, _options.MaxResultBytes, _logger);
     }
 
     /// <summary>
@@ -394,8 +390,7 @@ public sealed class DatabaseTools
         }
 
         _logger.LogInformation("[tool] get_object_details returned {Count} detail rows", detailRows.Count);
-        string json = JsonSerializer.Serialize(detailRows, ToolErrors.JsonOptions);
-        return ToolErrors.Success(json);
+        return ToolErrors.SuccessWithByteCap(detailRows, _options.MaxResultBytes, _logger);
     }
 
     private async Task<DatabaseValidationResult?> TryValidateDatabaseAsync(string database, CancellationToken ct)
