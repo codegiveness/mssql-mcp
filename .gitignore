@@ -67,3 +67,6 @@ Desktop.ini
 
 # Azure SQL Edge (integration test data)
 azure-sql-edge-data/
+
+# OpenCode session state
+.omo/
