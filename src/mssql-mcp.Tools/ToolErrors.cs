@@ -82,4 +82,18 @@ internal static class ToolErrors
         };
         return Text(JsonSerializer.Serialize(payload, JsonOptions), isError: true);
     }
+
+    /// <summary>
+    /// ADR-0010 CONNECTION class. Used for cross-DB validation failures (database not found,
+    /// not online, not multi-user) and transient connection errors after retries exhausted.
+    /// </summary>
+    public static CallToolResult ConnectionError(string detail)
+    {
+        object payload = new
+        {
+            error = "CONNECTION",
+            detail = detail,
+        };
+        return Text(JsonSerializer.Serialize(payload, JsonOptions), isError: true);
+    }
 }

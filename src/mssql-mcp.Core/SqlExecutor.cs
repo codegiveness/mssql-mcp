@@ -27,6 +27,14 @@ public sealed class SqlExecutor : ISqlExecutor
 
     public async Task<List<Dictionary<string, object?>>> ExecuteQueryAsync(string sql, CancellationToken ct)
     {
+        return await ExecuteQueryAsync(sql, parameters: null, ct).ConfigureAwait(false);
+    }
+
+    public async Task<List<Dictionary<string, object?>>> ExecuteQueryAsync(
+        string sql,
+        IReadOnlyDictionary<string, object>? parameters,
+        CancellationToken ct)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);
 
         using SqlConnection connection = new(_connectionString);
@@ -36,6 +44,14 @@ public sealed class SqlExecutor : ISqlExecutor
         {
             CommandTimeout = _commandTimeout,
         };
+
+        if (parameters is { Count: > 0 })
+        {
+            foreach (KeyValuePair<string, object> p in parameters)
+            {
+                command.Parameters.AddWithValue(p.Key, p.Value ?? DBNull.Value);
+            }
+        }
 
         using SqlDataReader reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
 
