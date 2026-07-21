@@ -223,6 +223,34 @@ public sealed class SqlGuard : IGuard
                 detail: "[guard] Restricted mode: OPENDATASOURCE is not permitted."));
         }
 
+        public override void Visit(BulkOpenRowset node)
+        {
+            // BulkOpenRowset is the AST node for OPENROWSET(BULK 'file', SINGLE_CLOB) — a file-read
+            // vector that does NOT inherit from OpenRowsetTableReference. Caught separately per
+            // Oracle review (Critical bypass fix).
+            SetRejection(new GuardRejection(
+                rule: "openrowset_bulk",
+                detail: "[guard] Restricted mode: OPENROWSET(BULK ...) is not permitted."));
+        }
+
+        public override void Visit(InternalOpenRowset node)
+        {
+            // InternalOpenRowset — internal OPENROWSET variant used by system queries.
+            // Blocked defensively — no legitimate agent use.
+            SetRejection(new GuardRejection(
+                rule: "openrowset_internal",
+                detail: "[guard] Restricted mode: internal OPENROWSET is not permitted."));
+        }
+
+        public override void Visit(OpenRowsetCosmos node)
+        {
+            // OpenRowsetCosmos — OPENROWSET Cosmos DB access (Azure Synapse Analytics).
+            // Blocked — cross-service data access.
+            SetRejection(new GuardRejection(
+                rule: "openrowset_cosmos",
+                detail: "[guard] Restricted mode: OPENROWSET for Cosmos DB is not permitted."));
+        }
+
         public override void Visit(ExecuteAsStatement node)
         {
             SetRejection(new GuardRejection(

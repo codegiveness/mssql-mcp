@@ -27,7 +27,13 @@ Even within an allowed `SelectStatement`, reject a small, targeted set of danger
 | Construct | Visitor override | Why blocked |
 |---|---|---|
 | `SELECT ... INTO` | `Visit(SelectStatement)` → check `node.Into` | DDL disguised as SELECT — creates a table |
-| `OPENROWSET`/`OPENDATASOURCE`/`OPENQUERY`/`OPENXML` in FROM | `Visit(QuerySpecification)` → walk `FromClause` | Reads arbitrary files / remote servers |
+| `OPENROWSET('provider', ...)` in FROM | `Visit(OpenRowsetTableReference)` | Reads arbitrary files / remote servers (provider form) |
+| `OPENROWSET(BULK 'file', ...)` in FROM | `Visit(BulkOpenRowset)` | Reads arbitrary local files (BULK form). **Note:** `BulkOpenRowset` is a separate AST node from `OpenRowsetTableReference` — they are siblings, not parent/child. Both must be blocked. |
+| `OPENROWSET` for Cosmos DB | `Visit(OpenRowsetCosmos)` | Cross-service data access (Azure Synapse) |
+| Internal OPENROWSET | `Visit(InternalOpenRowset)` | Internal variant — no legitimate agent use |
+| `OPENQUERY` in FROM | `Visit(OpenQueryTableReference)` | Executes pass-through query on linked server |
+| `OPENXML` in FROM | `Visit(OpenXmlTableReference)` | Parses XML document |
+| `OPENDATASOURCE` in FROM | `Visit(AdHocTableReference)` | Ad-hoc access to remote data source |
 | `EXECUTE AS` | `Visit(ExecuteAsStatement)` | Changes execution context — privilege escalation |
 | Four-part (linked-server) names | `Visit(SchemaObjectName)` → check for 4 parts | Cross-server queries bypass server-level controls |
 | `BulkInsertStatement` | `Visit(BulkInsertStatement)` | Belt-and-suspenders — bulk import is never read-only |

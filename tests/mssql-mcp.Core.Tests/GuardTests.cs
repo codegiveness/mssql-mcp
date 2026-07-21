@@ -60,7 +60,15 @@ public class GuardTests
     {
         var guard = CreateGuard();
         var result = guard.Validate("SELECT * FROM Users WHERE name = 'test'");
-        Assert.True(result.Accepted, $"Expected accept, got rejection: {result.Rejection?.Rule} — {result.Rejection?.Detail}");
+        Assert.True(result.Accepted);
+    }
+
+    [Fact]
+    public void Accept_SystemCatalogView()
+    {
+        var guard = CreateGuard();
+        var result = guard.Validate("SELECT * FROM sys.databases");
+        Assert.True(result.Accepted);
     }
 
     // ---------- Reject: Layer 1 statement-type ----------
@@ -142,6 +150,22 @@ public class GuardTests
         var guard = CreateGuard();
         var result = guard.Validate("SELECT * FROM OPENROWSET('SQLNCLI', 'Server=local;Trusted_Connection=true;', 'SELECT 1')");
         Assert.Equal("openrowset", RequireRejection(result).Rule);
+    }
+
+    [Fact]
+    public void Reject_OpenRowsetBulk()
+    {
+        var guard = CreateGuard();
+        var result = guard.Validate("SELECT * FROM OPENROWSET(BULK 'C:\\file.txt', SINGLE_CLOB) AS x");
+        Assert.Equal("openrowset_bulk", RequireRejection(result).Rule);
+    }
+
+    [Fact]
+    public void Reject_OpenRowsetCosmos()
+    {
+        var guard = CreateGuard();
+        var result = guard.Validate("SELECT * FROM OPENROWSET('cosmosdb', 'account=...;database=...', 'SELECT * FROM c')");
+        Assert.True(result.Rejection is not null, "OPENROWSET Cosmos should be rejected");
     }
 
     [Fact]
