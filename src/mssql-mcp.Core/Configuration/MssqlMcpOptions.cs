@@ -29,8 +29,16 @@ public sealed class MssqlMcpOptions
     public const string CliAccessMode = "--access-mode";
     public const string CliQueryTimeout = "--query-timeout";
     public const string CliLogLevel = "--log-level";
+    public const string CliValidate = "--validate";
 
     public string ConnectionString { get; set; } = string.Empty;
+
+    /// <summary>
+    /// When true, the host opens a connection, runs SELECT 1, prints a result to stderr,
+    /// and exits 0/1 — without starting the MCP stdio server. Pre-flight check (ticket 10).
+    /// CLI-only: no env var, since validate is a one-shot operator action, not runtime config.
+    /// </summary>
+    public bool Validate { get; set; }
     public AccessMode AccessMode { get; set; } = AccessMode.Restricted;
     public int QueryTimeout { get; set; } = 30;
     public string LogLevel { get; set; } = "info";
@@ -50,6 +58,10 @@ public sealed class MssqlMcpOptions
         ArgumentNullException.ThrowIfNull(env);
 
         var options = new MssqlMcpOptions();
+
+        // --validate is a boolean switch (no value). CLI-only — no env var, since validate
+        // is a one-shot operator action, not runtime config (ADR-0015).
+        options.Validate = HasCliFlag(args, CliValidate);
 
         // Connection string: env wins over CLI (secrets live in env, not argv) per ADR-0015.
         string? cliConnStr = GetCliValue(args, CliConnectionString);
@@ -212,6 +224,29 @@ public sealed class MssqlMcpOptions
             }
         }
         return null;
+    }
+
+    /// <summary>
+    /// Returns true if the boolean <paramref name="flag"/> is present in argv.
+    /// Accepts <c>--flag</c>, <c>--flag=true</c>, <c>--flag=false</c> (case-sensitive flag name).
+    /// </summary>
+    private static bool HasCliFlag(string[] args, string flag)
+    {
+        string eqForm = flag + "=";
+        for (int i = 0; i < args.Length; i++)
+        {
+            string token = args[i];
+            if (token.StartsWith(eqForm, StringComparison.Ordinal))
+            {
+                string value = token[eqForm.Length..];
+                return bool.TryParse(value, out bool parsed) && parsed;
+            }
+            if (token == flag)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>

@@ -25,6 +25,16 @@ catch (InvalidOperationException ex)
     return 1;
 }
 
+// --validate: pre-flight connection check — open, SELECT 1, close, exit 0/1.
+// Does NOT start the MCP stdio server (stdout stays clean for the protocol).
+if (options.Validate)
+{
+    using CancellationTokenSource validateCts = new(TimeSpan.FromMinutes(2));
+    (bool ok, string message) = await ConnectionValidator.ValidateAsync(options, validateCts.Token);
+    Console.Error.WriteLine(message);
+    return ok ? 0 : 1;
+}
+
 // Parse log level (CLI > env > default "info"). Fail fast on invalid value per ADR-0015.
 LogLevel logLevel;
 try
@@ -55,6 +65,7 @@ builder.Services.AddOptions<MssqlMcpOptions>()
         o.RetryCount = options.RetryCount;
         o.RetryIntervalMin = options.RetryIntervalMin;
         o.RetryIntervalMax = options.RetryIntervalMax;
+        o.Validate = options.Validate;
     });
 
 builder.Services.AddSingleton<ISqlExecutor>(sp =>
