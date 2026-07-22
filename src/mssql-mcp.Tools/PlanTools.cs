@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -21,6 +22,8 @@ namespace mssql_mcp.Tools;
 /// to bypass plan analysis even in Unrestricted mode.
 /// </summary>
 [McpServerToolType]
+[UnconditionalSuppressMessage("Trimming", "IL2026",
+    Justification = "Anonymous payload types are compiler-generated with fully-known structure. Properties are preserved by the compiler and discovered via reflection at runtime.")]
 public sealed class PlanTools
 {
     private const string ShowPlanNamespace = "http://schemas.microsoft.com/sqlserver/2004/07/showplan";

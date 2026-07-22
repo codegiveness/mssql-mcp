@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -18,6 +19,8 @@ namespace mssql_mcp.Tools;
 /// set to <c>true</c> and a structured JSON envelope in the TextContent body per ADR-0010.
 /// </summary>
 [McpServerToolType]
+[UnconditionalSuppressMessage("Trimming", "IL2026",
+    Justification = "Anonymous payload types are compiler-generated with fully-known structure. Properties are preserved by the compiler and discovered via reflection at runtime.")]
 public sealed class SqlTools
 {
     private readonly ISqlExecutor _executor;

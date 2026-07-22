@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -90,7 +91,7 @@ builder.Services.AddSingleton<IGuard>(sp =>
 // provider per invocation via ActivatorUtilities.CreateInstance.
 bool unrestricted = options.AccessMode == AccessMode.Unrestricted;
 
-static void AddTool<TTool>(IServiceCollection services, string methodName, bool? readOnly, bool? destructive)
+static void AddTool<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicConstructors)] TTool>(IServiceCollection services, string methodName, bool? readOnly, bool? destructive)
     where TTool : class
 {
     MethodInfo method = typeof(TTool).GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance)

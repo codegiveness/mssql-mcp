@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -14,6 +15,8 @@ namespace mssql_mcp.Tools;
 /// with structured JSON per ADR-0010. Used by <see cref="SqlTools"/>, <see cref="DatabaseTools"/>,
 /// and future tool classes to avoid drift.
 /// </summary>
+[UnconditionalSuppressMessage("Trimming", "IL2026",
+    Justification = "Anonymous payload types are compiler-generated with fully-known structure. Properties are preserved by the compiler and discovered via reflection at runtime.")]
 internal static class ToolErrors
 {
     /// <summary>
