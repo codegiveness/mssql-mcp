@@ -57,7 +57,10 @@ jobs:
       - name: Wait for SQL Server to be ready
         run: |
           for i in $(seq 1 60); do
-            if docker exec mssql-edge /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "YourStrong!Passw0rd" -C -Q "SELECT 1" >/dev/null 2>&1; then
+            if docker exec mssql-edge bash -c 'echo > /dev/tcp/localhost/1433' 2>/dev/null; then
+              echo "SQL Server port is open"
+              # Give it a moment to finish recovery
+              sleep 3
               echo "SQL Server is ready"
               exit 0
             fi
