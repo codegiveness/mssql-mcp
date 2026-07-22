@@ -49,9 +49,9 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       # CI gate: build + test before producing any artifacts.
-      - run: dotnet restore
-      - run: dotnet build --no-restore
-      - run: dotnet test --no-build --filter Category!=Integration
+      - run: dotnet restore mssql-mcp.sln
+      - run: dotnet build mssql-mcp.sln --no-restore
+      - run: dotnet test mssql-mcp.sln --no-build --filter Category!=Integration
 
       # Self-contained single-file builds for Unix RIDs (managed SNI, MIT-clean per ADR-0002).
       - name: Build linux-x64
