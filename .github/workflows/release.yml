@@ -85,7 +85,7 @@ jobs:
       # GitHub Release FIRST so install.js can fetch archives before npm publish lands.
       # Conventional Commits auto-notes (titles enforced by semantic.yml from #16).
       - name: Create GitHub Release
-        run: gh release create ${{ steps.tag.outputs.name }} --generate-notes --title ${{ steps.tag.outputs.name }} artifacts/mssql-mcp-*.tar.gz artifacts/mssql-mcp-*.zip artifacts/mssql-mcp-*.sha256
+        run: gh release create ${{ steps.tag.outputs.name }} --generate-notes --title ${{ steps.tag.outputs.name }} artifacts/mssql-mcp-*.tar.gz artifacts/mssql-mcp-*.zip artifacts/mssql-mcp-*.sha256 || gh release upload ${{ steps.tag.outputs.name }} artifacts/mssql-mcp-*.tar.gz artifacts/mssql-mcp-*.zip artifacts/mssql-mcp-*.sha256 --clobber
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -113,7 +113,7 @@ jobs:
         with:
           user: ${{ secrets.NUGET_USERNAME }}
       - name: Push NuGet
-        run: dotnet nuget push "artifacts/codegiveness.mssql-mcp.*.nupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+        run: dotnet nuget push "artifacts/codegiveness.mssql-mcp.*.nupkg" --skip-duplicate --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
 
       # Sync npm version to the tag, then publish with provenance (requires id-token: write).
       - name: Sync npm version
