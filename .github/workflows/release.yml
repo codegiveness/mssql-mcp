@@ -119,6 +119,6 @@ jobs:
       - name: Sync npm version
         run: node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('npm/package.json')); p.version='${{ steps.ver.outputs.version }}'; fs.writeFileSync('npm/package.json', JSON.stringify(p,null,2)+'\n')"
       - name: npm publish
-        run: cd npm && npm publish --provenance --access public
+        run: cd npm && npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
