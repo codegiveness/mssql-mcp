@@ -92,12 +92,8 @@ jobs:
       # Attest GitHub Release archives + checksums BEFORE registry pushes so attestation
       # failure aborts the release. NOT the .nupkg — NuGet.org re-signs packages on
       # ingestion, breaking the SHA (NuGetGallery#10026, see ADR-0019).
-      # NOTE: Artifact attestations require a PUBLIC repo (or GitHub Enterprise Cloud).
-      # continue-on-error so private-repo releases still ship; attestation will work
-      # once the repo is flipped public (Phase 5).
       - name: Attest GitHub Release artifacts
         uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
-        continue-on-error: true
         with:
           subject-path: |
             artifacts/mssql-mcp-*.tar.gz
@@ -119,6 +115,6 @@ jobs:
       - name: Sync npm version
         run: node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('npm/package.json')); p.version='${{ steps.ver.outputs.version }}'; fs.writeFileSync('npm/package.json', JSON.stringify(p,null,2)+'\n')"
       - name: npm publish
-        run: cd npm && npm publish --access public
+        run: cd npm && npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
