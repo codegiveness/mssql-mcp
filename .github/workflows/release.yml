@@ -102,11 +102,12 @@ jobs:
       - name: Pack NuGet
         run: dotnet pack src/mssql-mcp -c Release -o artifacts
       - name: NuGet Trusted Publishing login
+        id: nuget-login
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
         with:
-          nuget-host: https://api.nuget.org/v3/index.json
+          user: ${{ secrets.NUGET_USERNAME }}
       - name: Push NuGet
-        run: dotnet nuget push "artifacts/mssql-mcp.*.nupkg" --source https://api.nuget.org/v3/index.json
+        run: dotnet nuget push "artifacts/mssql-mcp.*.nupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
 
       # Sync npm version to the tag, then publish with provenance (requires id-token: write).
       - name: Sync npm version

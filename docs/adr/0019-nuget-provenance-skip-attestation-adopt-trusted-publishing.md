@@ -25,7 +25,7 @@ The `actions/attest@v4` step runs AFTER `gh release create` (so the artifacts ex
 ## Consequences
 
 - Trusted Publishing requires a one-time manual NuGet.org trusted-publisher configuration: link the GitHub repo + workflow file + environment on the NuGet package's "Publish" settings. This is done outside code and is a prerequisite for the first Trusted Publishing push.
-- `NUGET_API_KEY` is not deleted from repo secrets in this change — deletion is deferred until the first successful Trusted Publishing push is verified (tracked in #19's release verification).
+- The `NuGet/login@v1.2.0` action requires a `NUGET_USERNAME` repo secret (the NuGet.org account name) and outputs a short-lived `NUGET_API_KEY` consumed by `dotnet nuget push --api-key`. The long-lived `NUGET_API_KEY` secret is deleted after the first successful Trusted Publishing push is verified (tracked in #19's release verification).
 - npm provenance requires `id-token: write` on the `build-and-release` job (added to `release.yml`); the top-level workflow `permissions` stays `contents: read`.
 - Consumers who verify GitHub Release or npm artifacts via `gh attestation verify` or `npm audit signatures` get a cryptographically-verifiable link back to this repo; NuGet consumers do not (the package is repository-signed by NuGet.org but not provenance-attested). The gap is documented in `SECURITY.md` and tracked via NuGet/Home#13581.
 - If NuGet/Home#13581 ships native provenance, this ADR's Decision 2 reverses (add `actions/attest@v4` for the `.nupkg`); Decisions 1, 3, 4 stand.
