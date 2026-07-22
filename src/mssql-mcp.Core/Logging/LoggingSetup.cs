@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
@@ -46,7 +47,7 @@ public static class LoggingSetup
     /// change notifications. Used to feed <see cref="ConsoleLoggerProvider"/> a pre-configured
     /// <see cref="ConsoleLoggerOptions"/> without spinning up the full Options subsystem.
     /// </summary>
-    private sealed class FixedOptionsMonitor<T> : IOptionsMonitor<T>
+    private sealed class FixedOptionsMonitor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T> : IOptionsMonitor<T>
     {
         private readonly T _value;
 
