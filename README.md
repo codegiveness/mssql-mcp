@@ -9,6 +9,14 @@
 
 A Model Context Protocol (MCP) server for Microsoft SQL Server, built in C#/.NET 10. Lets AI agents (Claude Desktop, Cursor, etc.) safely query and interact with SQL Server through a controlled tool surface.
 
+> **Get started in one command:**
+> ```bash
+> npx -y @codegiveness/mssql-mcp --validate
+> ```
+> 1. **Install** — the npm package downloads a prebuilt self-contained binary.
+> 2. **Configure** — paste the config snippet below into your MCP client.
+> 3. **Validate** — `--validate` confirms the server starts and the DB connection works.
+
 ## Quick start
 
 ### macOS/Linux
@@ -75,6 +83,24 @@ The `mssql-mcp` command should be on your PATH after installation. Use `mssql-mc
 ## Why this exists
 
 The existing MSSQL MCP servers either expose raw SQL with no guardrails, ship broken/missing tools, or only target PostgreSQL. `mssql-mcp` gives agents a small, well-typed tool surface backed by AST validation, read-only transactions, timeouts, and a byte-size transport safety net — so an agent can explore schema, run SELECTs, and analyze query plans without a human in the loop, by default.
+
+| Feature | mssql-mcp | raw-SQL servers | DAB MCP |
+|---|---|---|---|
+| Guardrails | AST validation + read-only transactions | None | Config-driven, broad |
+| Destructive SQL | Blocked by default (rollback) | Allowed | Depends on config |
+| Tool surface | 9 typed tools | 1 raw-SQL tool | CRUD + SQL |
+| Transport safety | Byte-size limit on stdio | None | None |
+| Language | C#/.NET 10 | Various | C#/.NET |
+| Target DB | SQL Server | Various | SQL Server |
+
+### Migrating from `mssql-mcp-cli`
+
+The original npm package `mssql-mcp-cli` still works and will continue to receive updates. The scoped package `@codegiveness/mssql-mcp` is the recommended install name going forward — it makes the install name match the invocation name. To switch, update your MCP client config:
+
+```bash
+# Before: "args": ["-y", "mssql-mcp-cli"]
+# After:  "args": ["-y", "@codegiveness/mssql-mcp"]
+```
 
 ## Supported clients
 

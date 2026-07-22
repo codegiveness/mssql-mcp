@@ -126,3 +126,44 @@ jobs:
           npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  smoke:
+    runs-on: ubuntu-latest
+    needs: build-and-release
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build self-contained binary (linux-x64)
+        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o smoke
+
+      - name: Verify --version exits 0
+        run: ./smoke/mssql-mcp --version
+
+      - name: Start Azure SQL Edge
+        run: |
+          docker run -d \
+            -e "ACCEPT_EULA=1" \
+            -e "MSSQL_SA_PASSWORD=YourStrong!Passw0rd" \
+            -p 1433:1433 --name mssql-edge \
+            mcr.microsoft.com/azure-sql-edge:latest
+
+      - name: Wait for SQL Server to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if docker exec mssql-edge /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "YourStrong!Passw0rd" -C -Q "SELECT 1" >/dev/null 2>&1; then
+              echo "SQL Server is ready"
+              exit 0
+            fi
+            echo "Waiting for SQL Server... ($i/30)"
+            sleep 2
+          done
+          echo "SQL Server did not start in time"
+          exit 1
+
+      - name: Verify --validate exits 0
+        run: ./smoke/mssql-mcp --validate
+        env:
+          MSSQL_CONNECTION_STRING: "Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;"
