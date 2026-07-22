@@ -86,6 +86,8 @@ jobs:
       # Conventional Commits auto-notes (titles enforced by semantic.yml from #16).
       - name: Create GitHub Release
         run: gh release create ${{ steps.tag.outputs.name }} --generate-notes --title ${{ steps.tag.outputs.name }} artifacts/mssql-mcp-*.tar.gz artifacts/mssql-mcp-*.zip artifacts/mssql-mcp-*.sha256
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       # Attest GitHub Release archives + checksums BEFORE registry pushes so attestation
       # failure aborts the release. NOT the .nupkg — NuGet.org re-signs packages on
