@@ -1,4 +1,6 @@
 using System.Collections;
+using System.Reflection;
+using Microsoft.Data.SqlClient;
 using mssql_mcp.Core.Configuration;
 
 namespace mssql_mcp.Core.Tests;
@@ -90,6 +92,9 @@ public class ValidateFlagTests
     [Fact]
     public async Task ValidateAsync_InvalidConnectionString_ReturnsFalseWithObfuscatedMessage()
     {
+        // An unsupported keyword produces ArgumentException at parse time (before any network
+        // call). The failure is classified by exception type → [argument]. Password obfuscation
+        // still applies (ADR-0005).
         MssqlMcpOptions options = new()
         {
             ConnectionString = "Server=;Database=;InvalidKeyword=Yes;Password=hunter2;",
@@ -102,7 +107,29 @@ public class ValidateFlagTests
 
         Assert.False(ok);
         Assert.StartsWith(ConnectionValidator.FailurePrefix, message);
+        Assert.Contains("[argument]:", message);
         // Password value must never appear in the error message (ADR-0005).
+        Assert.DoesNotContain("hunter2", message);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_BadHost_ReturnsFalseWithConnectionTag()
+    {
+        // Bad host never resolves — fails at OpenAsync with a SqlException whose Number is a
+        // network-class code (e.g. 11001 = WSAHOST_NOT_FOUND). Classified as [connection].
+        MssqlMcpOptions options = new()
+        {
+            ConnectionString = "Server=nonexistent.invalid.host.example;Database=master;User Id=sa;Password=hunter2;Connect Timeout=1;Encrypt=False;TrustServerCertificate=True;",
+            RetryCount = 0,
+            RetryIntervalMin = 0,
+            RetryIntervalMax = 1,
+        };
+
+        (bool ok, string message) = await ConnectionValidator.ValidateAsync(options, CancellationToken.None);
+
+        Assert.False(ok);
+        Assert.StartsWith(ConnectionValidator.FailurePrefix, message);
+        Assert.Contains("[connection]:", message);
         Assert.DoesNotContain("hunter2", message);
     }
 
@@ -124,6 +151,8 @@ public class ValidateFlagTests
     [Fact]
     public async Task ValidateAsync_CancelledToken_ReturnsFalseWithMessage()
     {
+        // A cancelled token surfaces as TaskCanceledException (subclass of
+        // OperationCanceledException) → classified as [timeout].
         MssqlMcpOptions options = new()
         {
             ConnectionString = "Server=localhost;Integrated Security=true;",
@@ -139,6 +168,78 @@ public class ValidateFlagTests
 
         Assert.False(ok);
         Assert.StartsWith(ConnectionValidator.FailurePrefix, message);
+        Assert.Contains("[timeout]:", message);
+    }
+
+    // --- ClassifyFailure: direct unit tests via fabricated SqlException (ticket 31) ---
+    // SqlException has no public ctor; SqlExceptionFactory builds one through reflection, the
+    // same pattern used in mssql-mcp.Tools.Tests/ExecuteSqlTests.cs.
+
+    [Fact]
+    public void ClassifyFailure_SqlException_Number18456_ReturnsAuth()
+    {
+        SqlException ex = SqlExceptionFactory.Create(number: 18456, message: "Login failed for user 'sa'.");
+        Assert.Equal("auth", ConnectionValidator.ClassifyFailure(ex));
+    }
+
+    [Fact]
+    public void ClassifyFailure_SqlException_NumberNeg2_ReturnsTimeout()
+    {
+        SqlException ex = SqlExceptionFactory.Create(number: -2, message: "Execution Timeout Expired.");
+        Assert.Equal("timeout", ConnectionValidator.ClassifyFailure(ex));
+    }
+
+    [Fact]
+    public void ClassifyFailure_SqlException_NumberNeg2076_ReturnsCertificate()
+    {
+        SqlException ex = SqlExceptionFactory.Create(number: -2076, message: "The certificate chain was issued by an authority that is not trusted.");
+        Assert.Equal("certificate", ConnectionValidator.ClassifyFailure(ex));
+    }
+
+    [Theory]
+    [InlineData(53)]
+    [InlineData(64)]
+    [InlineData(233)]
+    [InlineData(10060)]
+    public void ClassifyFailure_SqlException_ConnectionNumbers_ReturnsConnection(int number)
+    {
+        SqlException ex = SqlExceptionFactory.Create(number: number, message: "A network-related error occurred.");
+        Assert.Equal("connection", ConnectionValidator.ClassifyFailure(ex));
+    }
+
+    [Fact]
+    public void ClassifyFailure_SqlException_UnrecognizedNumber_ReturnsConnection()
+    {
+        // A SqlException during pre-flight validation that doesn't match a known auth/timeout/
+        // certificate number is treated as connection-class — the validator's job is to confirm
+        // reachability, so an unmatched SqlException is most likely a connection-layer failure.
+        SqlException ex = SqlExceptionFactory.Create(number: 11001, message: "No such host is known.");
+        Assert.Equal("connection", ConnectionValidator.ClassifyFailure(ex));
+    }
+
+    [Fact]
+    public void ClassifyFailure_OperationCanceledException_ReturnsTimeout()
+    {
+        Assert.Equal("timeout", ConnectionValidator.ClassifyFailure(new TaskCanceledException()));
+        Assert.Equal("timeout", ConnectionValidator.ClassifyFailure(new OperationCanceledException()));
+    }
+
+    [Fact]
+    public void ClassifyFailure_TimeoutException_ReturnsTimeout()
+    {
+        Assert.Equal("timeout", ConnectionValidator.ClassifyFailure(new TimeoutException()));
+    }
+
+    [Fact]
+    public void ClassifyFailure_ArgumentException_ReturnsArgument()
+    {
+        Assert.Equal("argument", ConnectionValidator.ClassifyFailure(new ArgumentException("Keyword not supported.")));
+    }
+
+    [Fact]
+    public void ClassifyFailure_OtherException_ReturnsTypeNameLowercasedWithoutExceptionSuffix()
+    {
+        Assert.Equal("io", ConnectionValidator.ClassifyFailure(new IOException("disk full")));
     }
 
     // --- Connection string env-precedence applies even when --validate is set ---
@@ -153,5 +254,67 @@ public class ValidateFlagTests
             env);
         Assert.True(options.Validate);
         Assert.Equal("Server=env;", options.ConnectionString);
+    }
+}
+
+/// <summary>
+/// Builds a real <see cref="SqlException"/> via reflection for ClassifyFailure unit tests.
+/// SqlException has no public constructor. Mirrors the helper in
+/// mssql-mcp.Tools.Tests/ExecuteSqlTests.cs (kept local to avoid cross-project internals).
+/// </summary>
+internal static class SqlExceptionFactory
+{
+    public static SqlException Create(int number, string message, byte severity = 16, int line = 1, string? procedure = null)
+    {
+        Type sqlErrorType = typeof(SqlError);
+        Type sqlErrorCollectionType = typeof(SqlErrorCollection);
+
+        ConstructorInfo? errorCtor = sqlErrorType.GetConstructors(
+            BindingFlags.NonPublic | BindingFlags.Instance)
+            .FirstOrDefault(c => c.GetParameters().Length == 9)
+            ?? throw new InvalidOperationException("SqlError 9-arg ctor not found.");
+
+        object error = errorCtor.Invoke(new object?[]
+        {
+            number,        // infoNumber
+            (byte)1,       // errorState
+            severity,      // errorClass
+            "localhost",   // server
+            message,       // errorMessage
+            procedure,     // procedure
+            line,          // lineNumber
+            0,             // win32ErrorCode
+            null,          // exception
+        });
+
+        ConstructorInfo? collectionCtor = sqlErrorCollectionType.GetConstructor(
+            BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null)
+            ?? throw new InvalidOperationException("SqlErrorCollection parameterless ctor not found.");
+        object collection = collectionCtor.Invoke(null);
+
+        MethodInfo? addMethod = sqlErrorCollectionType.GetMethod("Add", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? throw new InvalidOperationException("SqlErrorCollection.Add not found.");
+        addMethod.Invoke(collection, new[] { error });
+
+        Type sqlExceptionType = typeof(SqlException);
+        ConstructorInfo? exCtor = sqlExceptionType.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)
+            .FirstOrDefault(c =>
+            {
+                ParameterInfo[] p = c.GetParameters();
+                return p.Length == 4
+                    && p[0].ParameterType == typeof(string)
+                    && p[1].ParameterType == typeof(SqlErrorCollection)
+                    && p[2].ParameterType == typeof(Exception)
+                    && p[3].ParameterType == typeof(Guid);
+            })
+            ?? throw new InvalidOperationException("SqlException 4-arg ctor not found.");
+
+        return (SqlException)exCtor.Invoke(new object?[]
+        {
+            message,
+            collection,
+            null,
+            Guid.Empty,
+        });
     }
 }

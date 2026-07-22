@@ -2,28 +2,31 @@
 
 [![CI](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/mssql-mcp)](https://www.nuget.org/packages/mssql-mcp)
+[![npm (scoped)](https://img.shields.io/npm/v/@codegiveness/mssql-mcp)](https://www.npmjs.com/package/@codegiveness/mssql-mcp)
 [![npm](https://img.shields.io/npm/v/mssql-mcp-cli)](https://www.npmjs.com/package/mssql-mcp-cli)
 [![.NET](https://img.shields.io/badge/.NET-10-blue)](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/github/license/codegiveness/mssql-mcp)](./LICENSE)
 
 A Model Context Protocol (MCP) server for Microsoft SQL Server, built in C#/.NET 10. Lets AI agents (Claude Desktop, Cursor, etc.) safely query and interact with SQL Server through a controlled tool surface.
 
-## Why this exists
+## Quick start
 
-The existing MSSQL MCP servers either expose raw SQL with no guardrails, ship broken/missing tools, or only target PostgreSQL. `mssql-mcp` gives agents a small, well-typed tool surface backed by AST validation, read-only transactions, timeouts, and a byte-size transport safety net — so an agent can explore schema, run SELECTs, and analyze query plans without a human in the loop, by default.
+### macOS/Linux
 
-## Quick start (npm)
+The npm package wraps a prebuilt self-contained .NET binary (the sqz pattern). `npx -y @codegiveness/mssql-mcp` works on Linux x64/arm64 and macOS x64/arm64 without installing .NET.
 
-The npm package wraps a prebuilt self-contained .NET binary (the sqz pattern). `npx -y mssql-mcp-cli` works on Linux x64/arm64 and macOS x64/arm64 without installing .NET. Windows falls back to framework-dependent (requires .NET 10 runtime).
+```bash
+npx -y @codegiveness/mssql-mcp --validate
+```
+
+Add it to Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
 
 ```jsonc
-// Claude Desktop: ~/Library/Application Support/Claude/claude_desktop_config.json (macOS)
-//                %APPDATA%\Claude\claude_desktop_config.json        (Windows)
 {
   "mcpServers": {
     "mssql-mcp": {
       "command": "npx",
-      "args": ["-y", "mssql-mcp"],
+      "args": ["-y", "@codegiveness/mssql-mcp"],
       "env": {
         "MSSQL_CONNECTION_STRING": "Server=localhost;Database=WideWorldImporters;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;"
       }
@@ -34,9 +37,9 @@ The npm package wraps a prebuilt self-contained .NET binary (the sqz pattern). `
 
 Restart Claude Desktop. Ask Claude: *"What databases do I have?"* and it should call `list_databases`.
 
-## Quick start (dotnet tool)
+### Windows
 
-If you have the .NET 10 SDK installed, install as a global tool. This is the recommended path on Windows (no SNI license concern — NuGet restore resolves `Microsoft.Data.SqlClient.SNI` on your machine) and works cross-platform.
+Install as a global .NET tool (recommended on Windows):
 
 ```bash
 dotnet tool install -g mssql-mcp
@@ -56,6 +59,41 @@ Then point your MCP client at the installed binary. With Claude Desktop:
   }
 }
 ```
+
+<details>
+<summary>Dotnet tool path on macOS/Linux</summary>
+
+If you prefer the .NET tool on macOS/Linux, install the .NET 10 SDK first, then run:
+
+```bash
+dotnet tool install -g mssql-mcp
+```
+
+The `mssql-mcp` command should be on your PATH after installation. Use `mssql-mcp --validate` to confirm it starts.
+</details>
+
+## Why this exists
+
+The existing MSSQL MCP servers either expose raw SQL with no guardrails, ship broken/missing tools, or only target PostgreSQL. `mssql-mcp` gives agents a small, well-typed tool surface backed by AST validation, read-only transactions, timeouts, and a byte-size transport safety net — so an agent can explore schema, run SELECTs, and analyze query plans without a human in the loop, by default.
+
+## Supported clients
+
+<!-- TODO: #37 — harness snippets -->
+
+| Harness | Status | Snippet |
+|---|---|---|
+| Claude Desktop | supported | see Quick start |
+| Cursor | planned | `<!-- TODO: #37 -->` |
+| VS Code/Copilot | planned | `<!-- TODO: #37 -->` |
+| Windsurf | planned | `<!-- TODO: #37 -->` |
+| Cline/Roo | planned | `<!-- TODO: #37 -->` |
+| Continue | planned | `<!-- TODO: #37 -->` |
+
+## Verify it works
+
+<!-- TODO: #38 — verify-it-works content -->
+
+Run `mssql-mcp --validate` to confirm the server can start and connect to the database configured via `MSSQL_CONNECTION_STRING`. If it prints a validation success message, the wiring is correct. If it passes but the agent still can't see the server, check the MCP client logs and see [Troubleshooting](#troubleshooting).
 
 ## Access modes
 
@@ -140,8 +178,8 @@ Invalid values fail fast at startup with a clear `[startup]` error naming the va
 
 | RID | Self-contained | Archive | Notes |
 |---|---|---|---|
-| `linux-x64` | yes | `.tar.gz` | `npx -y mssql-mcp-cli` just works |
-| `linux-arm64` | yes | `.tar.gz` | `npx -y mssql-mcp-cli` just works |
+| `linux-x64` | yes | `.tar.gz` | `npx -y @codegiveness/mssql-mcp` just works |
+| `linux-arm64` | yes | `.tar.gz` | `npx -y @codegiveness/mssql-mcp` just works |
 | `osx-x64` | yes | `.tar.gz` | Intel Macs |
 | `osx-arm64` | yes | `.tar.gz` | Apple Silicon |
 | `win-x64` | no (framework-dependent) | `.zip` | Requires .NET 10 runtime; `dotnet tool install` is the recommended path |
@@ -163,11 +201,15 @@ The fail-loudly contract (no silent fallback, no retry in v1) is documented in [
 
 ### Windows note
 
-`npx -y mssql-mcp-cli` on Windows will download a framework-dependent build. The first invocation requires the .NET 10 runtime to be installed. If you don't want to install the runtime, install the .NET tool instead:
+`npx -y @codegiveness/mssql-mcp` on Windows will download a framework-dependent build. The first invocation requires the .NET 10 runtime to be installed. If you don't want to install the runtime, install the .NET tool instead:
 
 ```bash
 dotnet tool install -g mssql-mcp
 ```
+
+## Troubleshooting
+
+<!-- TODO: #38 — troubleshooting content -->
 
 ## Security
 

@@ -35,3 +35,15 @@ _Avoid_: payload, response body, message
 **Configuration Precedence**:
 Rule for resolving runtime config values: CLI flag (if present) > env var > hardcoded default. The single exception is `MSSQL_CONNECTION_STRING`, which takes precedence over the `--connection-string` flag because secrets live in env, not argv.
 _Avoid_: override chain, config hierarchy
+
+**Onboarding Surface**:
+The set of artifacts a first-time user touches to go from "heard about it" to "agent returns a query result." Four layers, in order: install one-liner, harness-specific config snippet, verify-it-works command, troubleshooting/FAQ. A repo "feels instant" when all four layers exist and the first two are copy-pasteable with zero reading.
+_Avoid_: DX, user experience, getting started
+
+**Harness**:
+An MCP client application that hosts the server and drives tool calls (Claude Desktop, Cursor, Windsurf, Cline, Continue, Zed, VS Code, Codex CLI, opencode, etc.). Distinguished from the Agent (the AI) and the end user (the human). The server is harness-agnostic over stdio, but each harness has its own config file format and location.
+_Avoid_: client, host, editor (use "Harness" for the MCP client app; "Agent" for the AI inside it)
+
+**Harness Verification Record**:
+The per-harness artifact produced by the manual verification step (ADR-0022). For each of the 6 documented harnesses, records three things: (1) config file path per OS, (2) log file location, (3) what a successful MCP connection looks like in that harness's UI/logs. Feeds the Troubleshooting section's per-harness "where to look" table. A harness snippet cannot be published until its Verification Record is complete.
+_Avoid_: harness test, client checklist

@@ -118,3 +118,11 @@ jobs:
         run: cd npm && npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: npm publish scoped (@codegiveness/mssql-mcp)
+        run: |
+          cd npm
+          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json')); p.name='@codegiveness/mssql-mcp'; fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n')"
+          npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

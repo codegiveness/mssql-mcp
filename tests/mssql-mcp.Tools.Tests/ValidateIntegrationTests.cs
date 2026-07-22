@@ -56,6 +56,7 @@ public class ValidateIntegrationTests
 
         Assert.False(ok);
         Assert.StartsWith(ConnectionValidator.FailurePrefix, message);
+        Assert.Contains("[connection]:", message);
         Assert.DoesNotContain("hunter2", message);
     }
 }

@@ -85,6 +85,18 @@ function sha256Hex(buf) {
   return crypto.createHash('sha256').update(buf).digest('hex');
 }
 
+// Classify a download error from fetchUrl into an actionable reason string.
+// Inspects the error message for HTTP status codes and the error code for
+// network-level failures (ECONNRESET, ENOTFOUND, ECONNREFUSED).
+function classifyDownloadError(err) {
+  if (err && err.message && /HTTP 404\b/.test(err.message)) return 'release not published yet';
+  if (err && (err.code === 'ECONNRESET' || err.code === 'ENOTFOUND' || err.code === 'ECONNREFUSED')) {
+    return 'network or proxy blocked';
+  }
+  if (err && err.message && /timeout/i.test(err.message)) return 'timed out';
+  return 'download failed';
+}
+
 // Parse a .sha256 sidecar file. Accepts "<hex>  <filename>" or bare "<hex>".
 function parseChecksumFile(text) {
   const trimmed = text.trim();
@@ -160,7 +172,7 @@ async function main() {
   try {
     archiveBuf = await fetchUrl(archiveUrl);
   } catch (e) {
-    die('download failed for archive: ' + e.message + '\n  URL: ' + archiveUrl);
+    die('download failed for archive [' + classifyDownloadError(e) + ']: ' + e.message + '\n  URL: ' + archiveUrl);
     return;
   }
 
@@ -169,7 +181,7 @@ async function main() {
   try {
     checksumBuf = await fetchUrl(checksumUrl);
   } catch (e) {
-    die('download failed for checksum: ' + e.message + '\n  URL: ' + checksumUrl);
+    die('download failed for checksum [' + classifyDownloadError(e) + ']: ' + e.message + '\n  URL: ' + checksumUrl);
     return;
   }
 
@@ -240,4 +252,4 @@ if (require.main === module) {
 }
 
 // Exposed for the smoke test in npm/test.js. Not part of the public API.
-module.exports = { ridFor, archiveExt, parseChecksumFile };
+module.exports = { ridFor, archiveExt, parseChecksumFile, classifyDownloadError };

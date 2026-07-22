@@ -81,6 +81,45 @@ check('parseChecksumFile accepts bare and sha256sum formats', () => {
   assert.strictEqual(mod.parseChecksumFile(star), bare);
 });
 
+check('classifyDownloadError classifies HTTP 404 as release not published', () => {
+  const mod = loadInstallModule();
+  const err = new Error('HTTP 404 for https://github.com/.../mssql-mcp-0.1.0-linux-x64.tar.gz');
+  assert.strictEqual(mod.classifyDownloadError(err), 'release not published yet');
+});
+
+check('classifyDownloadError classifies ECONNRESET as network or proxy blocked', () => {
+  const mod = loadInstallModule();
+  const err = new Error('connect ECONNRESET');
+  err.code = 'ECONNRESET';
+  assert.strictEqual(mod.classifyDownloadError(err), 'network or proxy blocked');
+});
+
+check('classifyDownloadError classifies ENOTFOUND as network or proxy blocked', () => {
+  const mod = loadInstallModule();
+  const err = new Error('getaddrinfo ENOTFOUND github.com');
+  err.code = 'ENOTFOUND';
+  assert.strictEqual(mod.classifyDownloadError(err), 'network or proxy blocked');
+});
+
+check('classifyDownloadError classifies ECONNREFUSED as network or proxy blocked', () => {
+  const mod = loadInstallModule();
+  const err = new Error('connect ECONNREFUSED 127.0.0.1:443');
+  err.code = 'ECONNREFUSED';
+  assert.strictEqual(mod.classifyDownloadError(err), 'network or proxy blocked');
+});
+
+check('classifyDownloadError classifies timeout as timed out', () => {
+  const mod = loadInstallModule();
+  const err = new Error('timeout downloading https://github.com/.../archive');
+  assert.strictEqual(mod.classifyDownloadError(err), 'timed out');
+});
+
+check('classifyDownloadError falls back to download failed for unknown errors', () => {
+  const mod = loadInstallModule();
+  assert.strictEqual(mod.classifyDownloadError(new Error('something weird')), 'download failed');
+  assert.strictEqual(mod.classifyDownloadError(new Error('HTTP 500 for ...')), 'download failed');
+});
+
 if (failures > 0) {
   console.error('\n' + failures + ' test(s) failed.');
   process.exit(1);

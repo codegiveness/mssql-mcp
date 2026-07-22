@@ -10,6 +10,14 @@ using mssql_mcp.Core.Guard;
 using mssql_mcp.Core.Logging;
 using mssql_mcp.Tools;
 
+// --version: print the assembly version and exit 0. No DB connection required.
+if (args.Contains("--version"))
+{
+    string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
+    Console.WriteLine("mssql-mcp " + version);
+    return 0;
+}
+
 // CRITICAL: stdout is the MCP JSON-RPC transport — all logging MUST go to stderr.
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
