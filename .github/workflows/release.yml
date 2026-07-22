@@ -113,7 +113,7 @@ jobs:
         with:
           user: ${{ secrets.NUGET_USERNAME }}
       - name: Push NuGet
-        run: dotnet nuget push "artifacts/mssql-mcp.*.nupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+        run: dotnet nuget push "artifacts/codegiveness.mssql-mcp.*.nupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
 
       # Sync npm version to the tag, then publish with provenance (requires id-token: write).
       - name: Sync npm version
