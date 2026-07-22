@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/mssql-mcp)](https://www.nuget.org/packages/mssql-mcp)
-[![npm](https://img.shields.io/npm/v/mssql-mcp)](https://www.npmjs.com/package/mssql-mcp)
+[![npm](https://img.shields.io/npm/v/@codegiveness/mssql-mcp)](https://www.npmjs.com/package/@codegiveness/mssql-mcp)
 [![.NET](https://img.shields.io/badge/.NET-10-blue)](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/github/license/codegiveness/mssql-mcp)](./LICENSE)
 
@@ -14,7 +14,7 @@ The existing MSSQL MCP servers either expose raw SQL with no guardrails, ship br
 
 ## Quick start (npm)
 
-The npm package wraps a prebuilt self-contained .NET binary (the sqz pattern). `npx -y mssql-mcp` works on Linux x64/arm64 and macOS x64/arm64 without installing .NET. Windows falls back to framework-dependent (requires .NET 10 runtime).
+The npm package wraps a prebuilt self-contained .NET binary (the sqz pattern). `npx -y @codegiveness/mssql-mcp` works on Linux x64/arm64 and macOS x64/arm64 without installing .NET. Windows falls back to framework-dependent (requires .NET 10 runtime).
 
 ```jsonc
 // Claude Desktop: ~/Library/Application Support/Claude/claude_desktop_config.json (macOS)
@@ -140,8 +140,8 @@ Invalid values fail fast at startup with a clear `[startup]` error naming the va
 
 | RID | Self-contained | Archive | Notes |
 |---|---|---|---|
-| `linux-x64` | yes | `.tar.gz` | `npx -y mssql-mcp` just works |
-| `linux-arm64` | yes | `.tar.gz` | `npx -y mssql-mcp` just works |
+| `linux-x64` | yes | `.tar.gz` | `npx -y @codegiveness/mssql-mcp` just works |
+| `linux-arm64` | yes | `.tar.gz` | `npx -y @codegiveness/mssql-mcp` just works |
 | `osx-x64` | yes | `.tar.gz` | Intel Macs |
 | `osx-arm64` | yes | `.tar.gz` | Apple Silicon |
 | `win-x64` | no (framework-dependent) | `.zip` | Requires .NET 10 runtime; `dotnet tool install` is the recommended path |
@@ -163,7 +163,7 @@ The fail-loudly contract (no silent fallback, no retry in v1) is documented in [
 
 ### Windows note
 
-`npx -y mssql-mcp` on Windows will download a framework-dependent build. The first invocation requires the .NET 10 runtime to be installed. If you don't want to install the runtime, install the .NET tool instead:
+`npx -y @codegiveness/mssql-mcp` on Windows will download a framework-dependent build. The first invocation requires the .NET 10 runtime to be installed. If you don't want to install the runtime, install the .NET tool instead:
 
 ```bash
 dotnet tool install -g mssql-mcp
