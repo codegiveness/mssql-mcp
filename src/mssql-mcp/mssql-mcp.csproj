@@ -21,6 +21,7 @@
     <NoWarn>$(NoWarn);IL2104</NoWarn>
     <VersionPrefix>0.1.0</VersionPrefix>
     <PackAsTool>true</PackAsTool>
+    <PackageId>codegiveness.mssql-mcp</PackageId>
     <ToolCommandName>mssql-mcp</ToolCommandName>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
