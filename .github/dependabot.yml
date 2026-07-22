@@ -10,6 +10,8 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
 
   # NuGet packages used by the .NET solution (src/, tests/).
   - package-ecosystem: "nuget"
@@ -19,3 +21,5 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
