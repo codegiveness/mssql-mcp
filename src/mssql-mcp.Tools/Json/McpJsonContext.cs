@@ -41,6 +41,8 @@ namespace mssql_mcp.Tools.Json;
 [JsonSerializable(typeof(MissingIndexPayload))]
 [JsonSerializable(typeof(RowLimitNotice))]
 [JsonSerializable(typeof(TruncationNotice))]
+[JsonSerializable(typeof(DmlStatusPayload))]
+[JsonSerializable(typeof(DdlStatusPayload))]
 [JsonSerializable(typeof(DbHealthSizeSummary))]
 [JsonSerializable(typeof(DbHealthVlfSummary))]
 [JsonSerializable(typeof(DbHealthFragmentationSummary))]

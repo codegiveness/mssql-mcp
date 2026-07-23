@@ -657,4 +657,46 @@ public class DtoJsonEqualityTests
 
         Assert.Equal(anonymousJson, dtoJson);
     }
+
+    // ---------- DmlStatusPayload / DdlStatusPayload (ticket #49) ----------
+
+    [Fact]
+    public void DmlStatus_SerializesIdenticallyToAnonymous()
+    {
+        DmlStatusPayload dto = new()
+        {
+            Result = "success",
+            StatementType = "INSERT",
+            RowsAffected = 5,
+        };
+
+        object anonymous = new
+        {
+            result = "success",
+            statement_type = "INSERT",
+            rows_affected = 5,
+        };
+
+        Assert.Equal(JsonSerializer.Serialize(anonymous, AnonymousOptions), JsonSerializer.Serialize(dto, DtoOptions));
+    }
+
+    [Fact]
+    public void DdlStatus_SerializesIdenticallyToAnonymous()
+    {
+        DdlStatusPayload dto = new()
+        {
+            Result = "success",
+            StatementType = "CREATE_TABLE",
+            Object = "Orders",
+        };
+
+        object anonymous = new
+        {
+            result = "success",
+            statement_type = "CREATE_TABLE",
+            @object = "Orders",
+        };
+
+        Assert.Equal(JsonSerializer.Serialize(anonymous, AnonymousOptions), JsonSerializer.Serialize(dto, DtoOptions));
+    }
 }

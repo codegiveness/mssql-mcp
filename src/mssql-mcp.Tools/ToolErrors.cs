@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -16,8 +15,6 @@ namespace mssql_mcp.Tools;
 /// with structured JSON per ADR-0010. Used by <see cref="SqlTools"/>, <see cref="DatabaseTools"/>,
 /// and future tool classes to avoid drift.
 /// </summary>
-[UnconditionalSuppressMessage("Trimming", "IL2026",
-    Justification = "SuccessWithByteCap now uses McpJsonContext.Default.Options (ticket #48). Error-payload methods still use reflection-based serialization with anonymous types — migrated in ticket #49. This class-level suppression stays until #49 completes.")]
 internal static class ToolErrors
 {
     /// <summary>
@@ -206,29 +203,29 @@ internal static class ToolErrors
     {
         // statement_type is "" when unknown (e.g. parse_error, empty_batch) per ADR-0010.
         // position is null when both Line and Column are null; otherwise {line, column}.
-        object payload = new
+        GuardRejectionPayload payload = new()
         {
-            error = "GUARD_REJECTION",
-            rule = rejection.Rule,
-            detail = rejection.Detail,
-            statement_type = rejection.StatementType ?? string.Empty,
-            position = rejection.Line is null && rejection.Column is null
+            Error = "GUARD_REJECTION",
+            Rule = rejection.Rule,
+            Detail = rejection.Detail,
+            StatementType = rejection.StatementType ?? string.Empty,
+            Position = rejection.Line is null && rejection.Column is null
                 ? null
-                : new { line = rejection.Line, column = rejection.Column },
+                : new GuardRejectionPayload.PositionDto { Line = rejection.Line, Column = rejection.Column },
         };
-        return Text(JsonSerializer.Serialize(payload, JsonOptions), isError: true);
+        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.Options), isError: true);
     }
 
     public static CallToolResult Timeout(int timeoutSeconds)
     {
         int timeoutMs = timeoutSeconds * 1000;
-        object payload = new
+        TimeoutPayload payload = new()
         {
-            error = "TIMEOUT",
-            timeout_ms = timeoutMs,
-            detail = $"Query exceeded {timeoutSeconds}s command timeout",
+            Error = "TIMEOUT",
+            TimeoutMs = timeoutMs,
+            Detail = $"Query exceeded {timeoutSeconds}s command timeout",
         };
-        return Text(JsonSerializer.Serialize(payload, JsonOptions), isError: true);
+        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.Options), isError: true);
     }
 
     public static CallToolResult SqlError(SqlException ex)
@@ -239,16 +236,16 @@ internal static class ToolErrors
         byte severity = first?.Class ?? ex.Class;
         int line = first?.LineNumber ?? ex.LineNumber;
         string? procedure = first?.Procedure ?? ex.Procedure;
-        object payload = new
+        SqlErrorPayload payload = new()
         {
-            error = "SQL",
-            code = $"SQL{number}",
-            message = PasswordObfuscator.Obfuscate(first?.Message ?? ex.Message),
-            severity = severity,
-            line = line,
-            procedure = procedure,
+            Error = "SQL",
+            Code = $"SQL{number}",
+            Message = PasswordObfuscator.Obfuscate(first?.Message ?? ex.Message),
+            Severity = severity,
+            Line = line,
+            Procedure = procedure,
         };
-        return Text(JsonSerializer.Serialize(payload, JsonOptions), isError: true);
+        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.Options), isError: true);
     }
 
     /// <summary>
@@ -290,13 +287,13 @@ internal static class ToolErrors
     {
         // ADR-0010 INTERNAL shape: {"error":"INTERNAL","exception_type":"...","detail":"..."}
         // Never include stack traces — those go to logs per ADR-0011.
-        object payload = new
+        InternalErrorPayload payload = new()
         {
-            error = "INTERNAL",
-            exception_type = ex.GetType().Name,
-            detail = ex.Message,
+            Error = "INTERNAL",
+            ExceptionType = ex.GetType().Name,
+            Detail = ex.Message,
         };
-        return Text(JsonSerializer.Serialize(payload, JsonOptions), isError: true);
+        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.Options), isError: true);
     }
 
     /// <summary>
@@ -305,12 +302,12 @@ internal static class ToolErrors
     /// </summary>
     public static CallToolResult ConnectionError(string detail)
     {
-        object payload = new
+        ConnectionErrorPayload payload = new()
         {
-            error = "CONNECTION",
-            detail = detail,
+            Error = "CONNECTION",
+            Detail = detail,
         };
-        return Text(JsonSerializer.Serialize(payload, JsonOptions), isError: true);
+        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.Options), isError: true);
     }
 
     /// <summary>
@@ -319,14 +316,14 @@ internal static class ToolErrors
     /// </summary>
     public static CallToolResult ObjectNotFoundError(string? database, string schema, string name, string? type)
     {
-        object payload = new
+        ObjectNotFoundPayload payload = new()
         {
-            error = "OBJECT_NOT_FOUND",
-            schema,
-            name,
-            type = type ?? "UNKNOWN",
-            database = database ?? string.Empty,
+            Error = "OBJECT_NOT_FOUND",
+            Schema = schema,
+            Name = name,
+            Type = type ?? "UNKNOWN",
+            Database = database ?? string.Empty,
         };
-        return Text(JsonSerializer.Serialize(payload, JsonOptions), isError: true);
+        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.Options), isError: true);
     }
 }

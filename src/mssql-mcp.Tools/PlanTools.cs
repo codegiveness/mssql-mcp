@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -12,6 +11,7 @@ using ModelContextProtocol.Server;
 using mssql_mcp.Core;
 using mssql_mcp.Core.Configuration;
 using mssql_mcp.Core.Guard;
+using mssql_mcp.Tools.Json;
 
 namespace mssql_mcp.Tools;
 
@@ -22,8 +22,6 @@ namespace mssql_mcp.Tools;
 /// to bypass plan analysis even in Unrestricted mode.
 /// </summary>
 [McpServerToolType]
-[UnconditionalSuppressMessage("Trimming", "IL2026",
-    Justification = "Anonymous payload types are compiler-generated with fully-known structure. Properties are preserved by the compiler and discovered via reflection at runtime.")]
 public sealed class PlanTools
 {
     private const string ShowPlanNamespace = "http://schemas.microsoft.com/sqlserver/2004/07/showplan";
@@ -108,8 +106,8 @@ public sealed class PlanTools
             return ToolErrors.SuccessWithByteCap(planXml, _options.MaxResultBytes, _logger);
         }
 
-        object summary = BuildSummary(planXml);
-        string json = JsonSerializer.Serialize(summary, ToolErrors.JsonOptions);
+        QueryPlanSummary summary = BuildSummary(planXml);
+        string json = JsonSerializer.Serialize(summary, McpJsonContext.Default.Options);
         _logger.LogInformation("[tool] explain_query returned summary");
         return ToolErrors.Success(json);
     }
@@ -118,7 +116,7 @@ public sealed class PlanTools
     /// Parses SHOWPLAN_XML and extracts: estimated total cost, missing indexes, warnings,
     /// and top 5 RelOp nodes sorted by estimated cost (CPU + IO) descending. Per ADR-0016.
     /// </summary>
-    private static object BuildSummary(string planXml)
+    private static QueryPlanSummary BuildSummary(string planXml)
     {
         XDocument doc = XDocument.Parse(planXml);
 
@@ -128,7 +126,7 @@ public sealed class PlanTools
             .Where(v => v.HasValue)
             .Sum(v => v.GetValueOrDefault());
 
-        List<object> missingIndexes = doc.Descendants(Ns + "MissingIndex")
+        List<MissingIndexPayload> missingIndexes = doc.Descendants(Ns + "MissingIndex")
             .Select(BuildMissingIndex)
             .ToList();
 
@@ -152,22 +150,22 @@ public sealed class PlanTools
             .Take(TopOperationsLimit)
             .ToList();
 
-        return new
+        return new QueryPlanSummary
         {
-            estimated_total_cost = Math.Round(totalCost, 4, MidpointRounding.ToEven),
-            missing_indexes = missingIndexes,
-            warnings,
-            top_operations = topOps.Select(r => (object)new
+            EstimatedTotalCost = Math.Round(totalCost, 4, MidpointRounding.ToEven),
+            MissingIndexes = missingIndexes,
+            Warnings = warnings,
+            TopOperations = topOps.Select(r => new QueryPlanOperation
             {
-                operation = r.Operation,
-                estimated_cost = r.EstimatedCost,
-                estimated_rows = r.EstimatedRows,
-                @object = r.Object,
+                Operation = r.Operation,
+                EstimatedCost = r.EstimatedCost,
+                EstimatedRows = r.EstimatedRows,
+                Object = r.Object,
             }).ToList(),
         };
     }
 
-    private static object BuildMissingIndex(XElement mi)
+    private static MissingIndexPayload BuildMissingIndex(XElement mi)
     {
         // MissingIndex element shape:
         //   <MissingIndexes>
@@ -199,15 +197,15 @@ public sealed class PlanTools
             }
         }
 
-        return new
+        return new MissingIndexPayload
         {
-            impact = impactValue ?? 0.0,
-            database = StripBrackets(mi.Attribute("Database")?.Value),
-            schema = StripBrackets(mi.Attribute("Schema")?.Value),
-            table = StripBrackets(mi.Attribute("Table")?.Value),
-            equality_columns = eqCols.Count > 0 ? string.Join(", ", eqCols) : null,
-            inequality_columns = ineqCols.Count > 0 ? string.Join(", ", ineqCols) : null,
-            included_columns = inclCols.Count > 0 ? string.Join(", ", inclCols) : null,
+            Impact = impactValue ?? 0.0,
+            Database = StripBrackets(mi.Attribute("Database")?.Value),
+            Schema = StripBrackets(mi.Attribute("Schema")?.Value),
+            Table = StripBrackets(mi.Attribute("Table")?.Value),
+            EqualityColumns = eqCols.Count > 0 ? string.Join(", ", eqCols) : null,
+            InequalityColumns = ineqCols.Count > 0 ? string.Join(", ", ineqCols) : null,
+            IncludedColumns = inclCols.Count > 0 ? string.Join(", ", inclCols) : null,
         };
     }
 

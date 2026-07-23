@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -9,6 +8,7 @@ using ModelContextProtocol.Server;
 using mssql_mcp.Core;
 using mssql_mcp.Core.Configuration;
 using mssql_mcp.Core.Guard;
+using mssql_mcp.Tools.Json;
 
 namespace mssql_mcp.Tools;
 
@@ -19,8 +19,6 @@ namespace mssql_mcp.Tools;
 /// set to <c>true</c> and a structured JSON envelope in the TextContent body per ADR-0010.
 /// </summary>
 [McpServerToolType]
-[UnconditionalSuppressMessage("Trimming", "IL2026",
-    Justification = "Anonymous payload types are compiler-generated with fully-known structure. Properties are preserved by the compiler and discovered via reflection at runtime.")]
 public sealed class SqlTools
 {
     private readonly ISqlExecutor _executor;
@@ -184,43 +182,40 @@ public sealed class SqlTools
             statusObjects.Add(BuildStatusObject(s, single ? rowsAffected : -1));
         }
 
-        string json = JsonSerializer.Serialize(statusObjects, ToolErrors.JsonOptions);
+        string json = JsonSerializer.Serialize(statusObjects, McpJsonContext.Default.Options);
         _logger.LogInformation("[tool] execute_sql (unrestricted) returned {Count} status objects", statusObjects.Count);
         return ToolErrors.Success(json);
     }
 
     private static object BuildStatusObject(StatementInfo info, int rowsAffected)
     {
-        // ADR-0009 shape: DML carries rows_affected; DDL carries the object name. SELECT inside
-        // a mixed batch is reported as statement_type=SELECT without rows_affected.
         bool isDml = info.StatementType is "INSERT" or "UPDATE" or "DELETE" or "MERGE"
             or "BULK_INSERT" or "TRUNCATE_TABLE";
         bool isDdl = !isDml && info.StatementType != "SELECT" && info.ObjectName is not null;
 
         if (isDml)
         {
-            return new
+            return new DmlStatusPayload
             {
-                result = "success",
-                statement_type = info.StatementType,
-                rows_affected = rowsAffected,
+                Result = "success",
+                StatementType = info.StatementType,
+                RowsAffected = rowsAffected,
             };
         }
         if (isDdl)
         {
-            return new
+            return new DdlStatusPayload
             {
-                result = "success",
-                statement_type = info.StatementType,
-                @object = info.ObjectName,
+                Result = "success",
+                StatementType = info.StatementType,
+                Object = info.ObjectName,
             };
         }
-        // SELECT in a mixed batch, or UNKNOWN statement type with no object name.
-        return new
+        return new DmlStatusPayload
         {
-            result = "success",
-            statement_type = info.StatementType,
-            rows_affected = rowsAffected,
+            Result = "success",
+            StatementType = info.StatementType,
+            RowsAffected = rowsAffected,
         };
     }
 }

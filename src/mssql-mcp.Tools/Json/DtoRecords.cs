@@ -197,6 +197,33 @@ public sealed record RowLimitNotice
     public int Limit { get; init; }
 }
 
+/// <summary>DML status object for execute_sql non-query results (ADR-0009).</summary>
+public sealed record DmlStatusPayload
+{
+    [JsonPropertyName("result")]
+    public string Result { get; init; } = string.Empty;
+
+    [JsonPropertyName("statement_type")]
+    public string StatementType { get; init; } = string.Empty;
+
+    [JsonPropertyName("rows_affected")]
+    public int RowsAffected { get; init; }
+}
+
+/// <summary>DDL status object for execute_sql non-query results (ADR-0009).</summary>
+public sealed record DdlStatusPayload
+{
+    [JsonPropertyName("result")]
+    public string Result { get; init; } = string.Empty;
+
+    [JsonPropertyName("statement_type")]
+    public string StatementType { get; init; } = string.Empty;
+
+    [JsonPropertyName("object")]
+    [SuppressMessage("Naming", "CA1720:IdentifiersShouldNotMatchTypeNames", Justification = "Matches the anonymous-type property name in SqlTools.BuildStatusObject (@object) for wire compatibility.")]
+    public string? Object { get; init; }
+}
+
 /// <summary>Truncation notice prepended to a list_objects payload when the row cap is hit.</summary>
 public sealed record TruncationNotice
 {
