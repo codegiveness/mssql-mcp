@@ -3,6 +3,10 @@
   "version": "0.3.0",
   "description": "mssql-mcp native binary for win-x64 (framework-dependent, requires .NET 10 runtime)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codegiveness/mssql-mcp"
+  },
   "os": ["win32"],
   "cpu": ["x64"],
   "files": ["mssql-mcp.exe"]
