@@ -1,6 +1,6 @@
 {
   "name": "@codegiveness/mssql-mcp-osx-arm64",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "mssql-mcp native binary for osx-arm64",
   "license": "MIT",
   "repository": {

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-07-23
+
+### Fixed
+
+- **Disabled `PublishTrimmed` on Linux/macOS self-contained builds** to fix issue #44 (all MCP tools crash on the trimmed published binary). `PublishTrimmed=true` disables `System.Text.Json` reflection-based serialization at runtime, causing every tool to return `"An error occurred invoking '<tool>'."`. The `[UnconditionalSuppressMessage("Trimming", "IL2026")]` attribute suppressed the build warning but did not prevent the runtime crash. Trimming will be restored in v0.4.0 via source-generated serialization.
+
+### Changed
+
+- Binary size for Linux/macOS RIDs increased temporarily (~30 MB vs ~15 MB trimmed). Trimmed size returns in v0.4.0.
+
 ## [0.3.1] - 2026-07-23
 
 ### Changed

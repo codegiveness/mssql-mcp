@@ -56,13 +56,13 @@ jobs:
 
       # Self-contained single-file builds for Unix RIDs (managed SNI, MIT-clean per ADR-0002).
       - name: Build linux-x64
-        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/linux-x64
+        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o artifacts/linux-x64
       - name: Build linux-arm64
-        run: dotnet publish src/mssql-mcp -c Release -r linux-arm64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/linux-arm64
+        run: dotnet publish src/mssql-mcp -c Release -r linux-arm64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o artifacts/linux-arm64
       - name: Build osx-x64
-        run: dotnet publish src/mssql-mcp -c Release -r osx-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/osx-x64
+        run: dotnet publish src/mssql-mcp -c Release -r osx-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o artifacts/osx-x64
       - name: Build osx-arm64
-        run: dotnet publish src/mssql-mcp -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/osx-arm64
+        run: dotnet publish src/mssql-mcp -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o artifacts/osx-arm64
       # Framework-dependent for Windows (SNI license blocks self-contained per ADR-0002).
       - name: Build win-x64 (framework-dependent)
         run: dotnet publish src/mssql-mcp -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o artifacts/win-x64
@@ -167,7 +167,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Build self-contained binary (linux-x64)
-        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o smoke
+        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o smoke
 
       - name: Verify --version exits 0
         run: ./smoke/mssql-mcp --version
