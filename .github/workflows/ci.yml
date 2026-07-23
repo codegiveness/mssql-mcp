@@ -101,8 +101,8 @@ jobs:
 
       - name: npm pack main + per-platform packages
         run: |
-          cd npm/platforms/linux-x64 && npm pack --pack-destination ../.. && cd ../..
-          cd npm && npm pack --pack-destination .. && cd ..
+          (cd npm/platforms/linux-x64 && npm pack)
+          (cd npm && npm pack)
 
       - name: Verify --ignore-scripts install resolves optional dep and runs --version
         run: |
