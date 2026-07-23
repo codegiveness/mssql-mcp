@@ -79,7 +79,7 @@ Downloaded binaries cache at `~/.mssql-mcp/bin/<version>/<rid>/mssql-mcp` (Unix)
 
 ### 5. Error message contract
 
-Every failure mode prints: (1) the problem and RID, (2) the direct GitHub Releases URL for manual download, (3) the `dotnet tool install -g mssql-mcp` fallback. No dead ends. Three failure modes:
+Every failure mode prints: (1) the problem and RID, (2) the direct GitHub Releases URL for manual download, (3) the `dotnet tool install -g codegiveness.mssql-mcp` fallback. No dead ends. Three failure modes:
 
 - **Unsupported platform** — no RID match. Print supported RIDs and the `dotnet tool` fallback.
 - **Windows .NET 10 missing** — framework-dependent binary can't start. Print the runtime download URL and the `dotnet tool` fallback.

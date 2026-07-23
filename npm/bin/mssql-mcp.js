@@ -277,7 +277,7 @@ async function selfHealOrDie(rid) {
 
 // --- Error message contract ---
 // Every failure mode prints: (1) the problem and RID, (2) the direct GitHub
-// Releases URL for manual download, (3) the `dotnet tool install -g mssql-mcp`
+// Releases URL for manual download, (3) the `dotnet tool install -g codegiveness.mssql-mcp`
 // fallback. No dead ends. See ADR-0028 §5.
 
 function failUnsupportedPlatform() {
@@ -286,7 +286,7 @@ function failUnsupportedPlatform() {
   console.error('  supported RIDs: linux-x64, linux-arm64, osx-x64, osx-arm64, win-x64');
   console.error('');
   console.error('Install the .NET tool instead:');
-  console.error('  dotnet tool install -g mssql-mcp');
+  console.error('  dotnet tool install -g codegiveness.mssql-mcp');
   process.exit(1);
 }
 
@@ -299,7 +299,7 @@ function failDownloadDisabled(rid, archiveUrl) {
   console.error('  ' + archiveUrl);
   console.error('');
   console.error('Or install the .NET tool:');
-  console.error('  dotnet tool install -g mssql-mcp');
+  console.error('  dotnet tool install -g codegiveness.mssql-mcp');
   process.exit(1);
 }
 
@@ -313,7 +313,7 @@ function failDownloadError(rid, kind, reason, message, url) {
   console.error('  ' + url);
   console.error('');
   console.error('Or install the .NET tool:');
-  console.error('  dotnet tool install -g mssql-mcp');
+  console.error('  dotnet tool install -g codegiveness.mssql-mcp');
   process.exit(1);
 }
 
@@ -328,7 +328,7 @@ function failChecksumMismatch(rid, expected, actual, archiveUrl) {
   console.error('  ' + archiveUrl);
   console.error('');
   console.error('Or install the .NET tool:');
-  console.error('  dotnet tool install -g mssql-mcp');
+  console.error('  dotnet tool install -g codegiveness.mssql-mcp');
   process.exit(1);
 }
 
@@ -341,7 +341,7 @@ function failExtractionFailed(rid, archiveUrl) {
   console.error('  ' + archiveUrl);
   console.error('');
   console.error('Or install the .NET tool:');
-  console.error('  dotnet tool install -g mssql-mcp');
+  console.error('  dotnet tool install -g codegiveness.mssql-mcp');
   process.exit(1);
 }
 
@@ -354,7 +354,7 @@ function failWindowsDotNetMissing(spawnError) {
   console.error('  https://dotnet.microsoft.com/download');
   console.error('');
   console.error('Or install the .NET tool (includes the runtime):');
-  console.error('  dotnet tool install -g mssql-mcp');
+  console.error('  dotnet tool install -g codegiveness.mssql-mcp');
   process.exit(1);
 }
 

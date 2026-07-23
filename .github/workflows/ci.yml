@@ -122,7 +122,7 @@ jobs:
           output=$(MSSQL_MCP_NO_DOWNLOAD=1 npx mssql-mcp --version 2>&1 || true)
           echo "$output"
           echo "$output" | grep -q "github.com/codegiveness/mssql-mcp/releases/download/"
-          echo "$output" | grep -q "dotnet tool install -g mssql-mcp"
+          echo "$output" | grep -q "dotnet tool install -g codegiveness.mssql-mcp"
           echo "Error message contract verified."
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

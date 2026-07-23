@@ -11,7 +11,7 @@ Current README is 267 lines, reference-doc-dense, with no "fast path." Quickstar
 ### Section order (15 sections)
 
 1. Badges + hero (add scoped npm badge)
-2. **Quick start** — platform-aware: macOS/Linux `npx -y @codegiveness/mssql-mcp`, Windows `dotnet tool install -g mssql-mcp`. One Claude Desktop config snippet. One `--validate` check. Dotnet-tool-on-macOS/Linux in a `<details>`.
+2. **Quick start** — platform-aware: macOS/Linux `npx -y @codegiveness/mssql-mcp`, Windows `dotnet tool install -g codegiveness.mssql-mcp`. One Claude Desktop config snippet. One `--validate` check. Dotnet-tool-on-macOS/Linux in a `<details>`.
 3. **Supported clients** (NEW) — 6-harness table (Claude Desktop, Cursor, VS Code/Copilot, Windsurf, Cline/Roo, Continue), one snippet per row, less-common collapsed.
 4. **Verify it works** (NEW) — `--validate` as proof command; points to Troubleshooting if it passes but agent can't see server.
 5. Access modes

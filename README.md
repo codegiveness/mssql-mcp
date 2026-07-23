@@ -1,7 +1,7 @@
 # mssql-mcp
 
 [![CI](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml)
-[![NuGet](https://img.shields.io/nuget/v/mssql-mcp)](https://www.nuget.org/packages/mssql-mcp)
+[![NuGet](https://img.shields.io/nuget/v/codegiveness.mssql-mcp)](https://www.nuget.org/packages/codegiveness.mssql-mcp)
 [![npm (scoped)](https://img.shields.io/npm/v/@codegiveness/mssql-mcp)](https://www.npmjs.com/package/@codegiveness/mssql-mcp)
 [![.NET](https://img.shields.io/badge/.NET-10-blue)](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/github/license/codegiveness/mssql-mcp)](./LICENSE)
@@ -18,7 +18,7 @@ A Model Context Protocol (MCP) server for Microsoft SQL Server, built in C#/.NET
 
    > **Windows without .NET 10?** The Windows build is framework-dependent and requires the [.NET 10 runtime](https://dotnet.microsoft.com/download). If you don't have it, install the .NET tool instead:
    > ```bash
-   > dotnet tool install -g mssql-mcp
+   > dotnet tool install -g codegiveness.mssql-mcp
    > mssql-mcp --version
    > ```
    > Then use `"command": "mssql-mcp"` (instead of `"command": "npx"`) in your MCP client config in step 2. See [Windows note](#windows-note) below.
@@ -51,7 +51,7 @@ A Model Context Protocol (MCP) server for Microsoft SQL Server, built in C#/.NET
 If you prefer the .NET tool on macOS/Linux, install the .NET 10 SDK first, then run:
 
 ```bash
-dotnet tool install -g mssql-mcp
+dotnet tool install -g codegiveness.mssql-mcp
 ```
 
 The `mssql-mcp` command should be on your PATH after installation. Use `mssql-mcp --version` to confirm it starts, then point your MCP client at `mssql-mcp` (instead of `npx -y @codegiveness/mssql-mcp`) in step 2.
@@ -196,14 +196,14 @@ The shim (`npm/bin/mssql-mcp.js`) runs on every invocation:
 2. If the optional dependency is absent (`--no-optional`, corporate mirrors), checks the cache at `~/.mssql-mcp/bin/<version>/<rid>/`. If cached, execs it.
 3. If not cached, downloads the flat archive from the matching GitHub Release, verifies the `.sha256` sidecar, extracts, `chmod 755` (Unix), caches, and execs. Set `MSSQL_MCP_NO_DOWNLOAD=1` to skip the download attempt.
 
-Every failure mode prints the RID, the GitHub Releases URL for manual download, and the `dotnet tool install -g mssql-mcp` fallback. See [ADR-0028](./docs/adr/0028-binary-delivery-via-optional-dependencies-and-shim-self-heal.md) for the full design.
+Every failure mode prints the RID, the GitHub Releases URL for manual download, and the `dotnet tool install -g codegiveness.mssql-mcp` fallback. See [ADR-0028](./docs/adr/0028-binary-delivery-via-optional-dependencies-and-shim-self-heal.md) for the full design.
 
 ### Windows note
 
 `npx -y @codegiveness/mssql-mcp` on Windows delivers a framework-dependent build via `optionalDependencies`. The build requires the .NET 10 runtime to be installed. If the runtime is missing, the shim prints a clear error with the [download URL](https://dotnet.microsoft.com/download) and the `dotnet tool install` fallback. If you don't want to install the runtime, install the .NET tool instead:
 
 ```bash
-dotnet tool install -g mssql-mcp
+dotnet tool install -g codegiveness.mssql-mcp
 ```
 
 ## Troubleshooting

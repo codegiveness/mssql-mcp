@@ -61,7 +61,7 @@ The Quick start is a single 3-step flow using `npx`. Immediately below step 1, a
 ```markdown
 > **Windows without .NET 10?** Install as a .NET tool instead:
 > ```bash
-> dotnet tool install -g mssql-mcp
+> dotnet tool install -g codegiveness.mssql-mcp
 > mssql-mcp --version
 > ```
 ```

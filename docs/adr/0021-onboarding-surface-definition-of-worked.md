@@ -9,7 +9,7 @@ The goal was stated as "easy to use, install and always 100% worked." That phras
 ## Decision
 
 **"100% worked" = A + B + C**, where:
-- **A — Install succeeds**: the documented one-liner downloads a working binary; `npx -y mssql-mcp-cli` (or `dotnet tool install -g mssql-mcp`) exits 0 and places the binary.
+- **A — Install succeeds**: the documented one-liner downloads a working binary; `npx -y mssql-mcp-cli` (or `dotnet tool install -g codegiveness.mssql-mcp`) exits 0 and places the binary.
 - **B — Server starts**: the process launches and completes the MCP `initialize` handshake; the agent receives the tool list.
 - **C — Connection validates**: `mssql-mcp --validate` opens a connection to SQL Server, runs `SELECT 1`, closes, exits 0. On failure, the error names which layer broke (binary missing, config malformed, connection refused, auth failed).
 
