@@ -67,7 +67,7 @@ jobs:
       - name: Build win-x64 (framework-dependent)
         run: dotnet publish src/mssql-mcp -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o artifacts/win-x64
 
-      # Flat archives: binary at archive root per sqz contract (ADR-0002).
+      # Flat archives: binary at archive root (ADR-0002).
       - name: Archive Unix RIDs
         run: |
           for rid in linux-x64 linux-arm64 osx-x64 osx-arm64; do
@@ -83,7 +83,7 @@ jobs:
             sha256sum "$f" > "$f.sha256"
           done
 
-      # GitHub Release FIRST so install.js can fetch archives before npm publish lands.
+      # GitHub Release FIRST so the shim self-heal can fetch archives before npm publish lands.
       # Conventional Commits auto-notes (titles enforced by semantic.yml from #16).
       - name: Create GitHub Release
         run: gh release create ${{ steps.tag.outputs.name }} --generate-notes --title ${{ steps.tag.outputs.name }} artifacts/mssql-mcp-*.tar.gz artifacts/mssql-mcp-*.zip artifacts/mssql-mcp-*.sha256 || gh release upload ${{ steps.tag.outputs.name }} artifacts/mssql-mcp-*.tar.gz artifacts/mssql-mcp-*.zip artifacts/mssql-mcp-*.sha256 --clobber

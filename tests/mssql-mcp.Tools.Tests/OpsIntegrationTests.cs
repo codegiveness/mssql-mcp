@@ -36,6 +36,7 @@ public class OpsIntegrationTests
     {
         MssqlMcpOptions options = CreateOptions();
         ISqlExecutor executor = new SqlExecutor(options.ConnectionString, options.QueryTimeout,
+            options.RetryCount, options.RetryIntervalMin, options.RetryIntervalMax,
             NullLogger<SqlExecutor>.Instance);
         return new OpsTools(executor, Options.Create(options), NullLogger<OpsTools>.Instance);
     }

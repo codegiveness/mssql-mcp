@@ -3,7 +3,6 @@
 [![CI](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/mssql-mcp)](https://www.nuget.org/packages/mssql-mcp)
 [![npm (scoped)](https://img.shields.io/npm/v/@codegiveness/mssql-mcp)](https://www.npmjs.com/package/@codegiveness/mssql-mcp)
-[![npm](https://img.shields.io/npm/v/mssql-mcp-cli)](https://www.npmjs.com/package/mssql-mcp-cli)
 [![.NET](https://img.shields.io/badge/.NET-10-blue)](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/github/license/codegiveness/mssql-mcp)](./LICENSE)
 
@@ -84,25 +83,16 @@ The `mssql-mcp` command should be on your PATH after installation. Use `mssql-mc
 
 ## Why this exists
 
-The existing MSSQL MCP servers either expose raw SQL with no guardrails, ship broken/missing tools, or only target PostgreSQL. `mssql-mcp` gives agents a small, well-typed tool surface backed by AST validation, read-only transactions, timeouts, and a byte-size transport safety net — so an agent can explore schema, run SELECTs, and analyze query plans without a human in the loop, by default.
+`mssql-mcp` gives AI agents a small, well-typed tool surface backed by AST validation, read-only transactions, timeouts, and a byte-size transport safety net — so an agent can explore schema, run SELECTs, and analyze query plans without a human in the loop, by default.
 
-| Feature | mssql-mcp | raw-SQL servers | DAB MCP |
-|---|---|---|---|
-| Guardrails | AST validation + read-only transactions | None | Config-driven, broad |
-| Destructive SQL | Blocked by default (rollback) | Allowed | Depends on config |
-| Tool surface | 9 typed tools | 1 raw-SQL tool | CRUD + SQL |
-| Transport safety | Byte-size limit on stdio | None | None |
-| Language | C#/.NET 10 | Various | C#/.NET |
-| Target DB | SQL Server | Various | SQL Server |
-
-### Migrating from `mssql-mcp-cli`
-
-The original npm package `mssql-mcp-cli` still works and will continue to receive updates. The scoped package `@codegiveness/mssql-mcp` is the recommended install name going forward — it makes the install name match the invocation name. To switch, update your MCP client config:
-
-```bash
-# Before: "args": ["-y", "mssql-mcp-cli"]
-# After:  "args": ["-y", "@codegiveness/mssql-mcp"]
-```
+| Feature | mssql-mcp |
+|---|---|
+| Guardrails | AST validation + read-only transactions |
+| Destructive SQL | Blocked by default (rollback) |
+| Tool surface | 9 typed tools |
+| Transport safety | Byte-size limit on stdio |
+| Language | C#/.NET 10 |
+| Target DB | SQL Server |
 
 ## Supported clients
 

@@ -26,7 +26,7 @@ This stays a JSON array of objects (does not violate the lean-array contract). `
 
 ## Considered Options
 
-- **A. Lean array of objects** ✅ — chosen. Matches postgres-mcp and DAB. Smallest token footprint for typical results. Agents already trained on this shape.
+- **A. Lean array of objects** ✅ — chosen. Smallest token footprint for typical results. Agents already trained on this shape.
 - B. Typed envelope (`{columns, rowCount, rows}`) — rejected: columnar layout only wins on wide results (50+ cols, rare); schema metadata rarely used by agents who infer from data.
 - C. Markdown table only — rejected: loses type info (agent can't tell `1` from `"1"`).
 - D. Hybrid (JSON for data tools, markdown for discovery) — rejected: inconsistent shape across tools increases agent cognitive overhead beyond token savings.

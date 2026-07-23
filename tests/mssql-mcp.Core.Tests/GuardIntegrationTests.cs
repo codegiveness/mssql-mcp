@@ -28,14 +28,14 @@ public class GuardIntegrationTests
         string tableName = $"mssql_mcp_guard_test_{Guid.NewGuid():N}";
 
         await using SqlConnection connection = new(ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         // Create a scratch table outside the transaction wrapper.
         using (SqlCommand create = new(
             $"CREATE TABLE [{tableName}] (Id INT NOT NULL PRIMARY KEY, Name NVARCHAR(50) NOT NULL);",
             connection))
         {
-            await create.ExecuteNonQueryAsync();
+            await create.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         }
 
         try
@@ -54,13 +54,13 @@ public class GuardIntegrationTests
 
             using (SqlCommand insert = new(wrappedSql, connection))
             {
-                await insert.ExecuteNonQueryAsync();
+                await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
             }
 
             // The INSERT must have rolled back — verify rowcount is 0.
             using (SqlCommand count = new($"SELECT COUNT(*) FROM [{tableName}];", connection))
             {
-                long rowCount = (long)(await count.ExecuteScalarAsync() ?? 0);
+                long rowCount = (long)(await count.ExecuteScalarAsync(TestContext.Current.CancellationToken) ?? 0);
                 Assert.Equal(0, rowCount);
             }
         }
@@ -68,7 +68,7 @@ public class GuardIntegrationTests
         {
             // Cleanup the scratch table.
             using SqlCommand drop = new($"DROP TABLE IF EXISTS [{tableName}];", connection);
-            await drop.ExecuteNonQueryAsync();
+            await drop.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -101,6 +101,7 @@ public class GuardIntegrationTests
 
         // Execute the wrapped SQL and verify a single row comes back.
         SqlExecutor executor = new(options.ConnectionString, options.QueryTimeout,
+            options.RetryCount, options.RetryIntervalMin, options.RetryIntervalMax,
             NullLogger<SqlExecutor>.Instance);
         List<Dictionary<string, object?>> rows =
             await executor.ExecuteQueryAsync(result.WrappedSql, CancellationToken.None);

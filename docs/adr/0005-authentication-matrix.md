@@ -1,13 +1,13 @@
 # Authentication: SQL password + Windows Integrated + Active Directory Default; env var + CLI flag
 
-v1 supports three auth methods: SQL password (universal baseline), Windows Integrated (`Integrated Security=SSPI`, Windows-only via `dotnet tool` / framework-dependent path — SNI license blocks self-contained Windows builds per ADR-0002), and Active Directory Default (`Authentication=Active Directory Default`, Microsoft's recommended "do the right thing" chain — covers MSI, VS, CLI, Interactive fallbacks). This mirrors DAB's auth set. We skip AD Password and AD Service Principal in v1 — anyone needing them can use AD Default via environment variables, and we can add them in v1.1 if requested.
+v1 supports three auth methods: SQL password (universal baseline), Windows Integrated (`Integrated Security=SSPI`, Windows-only via `dotnet tool` / framework-dependent path — SNI license blocks self-contained Windows builds per ADR-0002), and Active Directory Default (`Authentication=Active Directory Default`, Microsoft's recommended "do the right thing" chain — covers MSI, VS, CLI, Interactive fallbacks). This covers the standard SQL Server authentication matrix. We skip AD Password and AD Service Principal in v1 — anyone needing them can use AD Default via environment variables, and we can add them in v1.1 if requested.
 
-Connection string is supplied via env var `MSSQL_CONNECTION_STRING` or CLI flag `--connection-string`, with env var taking precedence. No config file in v1. Env var matches the MCP host config pattern (Claude Desktop, Cursor inject env vars); CLI flag helps debugging and `npx` one-shots. Connection string details are never logged raw — `Password=...;` is regex-replaced with `Password=***;` in all log output, matching postgres-mcp's obfuscation pattern.
+Connection string is supplied via env var `MSSQL_CONNECTION_STRING` or CLI flag `--connection-string`, with env var taking precedence. No config file in v1. Env var matches the MCP host config pattern (Claude Desktop, Cursor inject env vars); CLI flag helps debugging and `npx` one-shots. Connection string details are never logged raw — `Password=...;` is regex-replaced with `Password=***;` in all log output.
 
 **Considered Options**:
-- SQL password only (c0h1b4 pattern) — rejected: excludes every corporate Windows user on Integrated Auth and every Azure-hosted MSI scenario.
+- SQL password only — rejected: excludes every corporate Windows user on Integrated Auth and every Azure-hosted MSI scenario.
 - Everything except Interactive — rejected: AD Password and AD Service Principal add code paths and testing burden for marginal v1 value; AD Default covers most of their use cases via environment variables.
-- Per-call connection string (c0h1b4 pattern) — rejected: credentials in every tool call is insecure; agent carries connection state in its reasoning context.
+- Per-call connection string — rejected: credentials in every tool call is insecure; agent carries connection state in its reasoning context.
 - Config file (`.mssql-mcp.json`) — rejected for v1: file-location resolution adds complexity for little value when env var + CLI flag cover the MCP host config patterns.
 
 **Consequences**:

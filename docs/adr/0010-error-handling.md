@@ -24,8 +24,8 @@ Surface the error, do **not** exit the process. The agent ran a query that hit a
 ## Considered Options
 
 - **C. Tiered by error class** ✅ — chosen
-- A. Plain text only (postgres-mcp style) — rejected: loses SQL severity/code the agent uses to self-correct
-- B. Structured JSON for every error (DAB style) — rejected: overkill for `[timeout]` and `[connection]`; adds tokens without agent value
+- A. Plain text only — rejected: loses SQL severity/code the agent uses to self-correct
+- B. Structured JSON for every error — rejected: overkill for `[timeout]` and `[connection]`; adds tokens without agent value
 - D. Always structured JSON envelope — rejected: same problem as B, plus inconsistent with the `[guard]`/`[timeout]` prefix convention which is already structured by prefix
 
 ## Consequences

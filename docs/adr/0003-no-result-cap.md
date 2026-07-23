@@ -1,6 +1,6 @@
 # No application-layer row cap; transport-safety byte limit with notice
 
-`execute_sql` and `explain_query` return everything SqlClient gives us — **no row limit**. This deliberately mirrors postgres-mcp's behavior because the user judges agent-managed SQL (`TOP N`, `OFFSET/FETCH`) to be sufficient for controlling result size, and prefers a clean "return what SQL Server returns" contract over an artificial row cap that silently drops rows.
+`execute_sql` and `explain_query` return everything SqlClient gives us — **no row limit**. The user judges agent-managed SQL (`TOP N`, `OFFSET/FETCH`) to be sufficient for controlling result size, and prefers a clean "return what SQL Server returns" contract over an artificial row cap that silently drops rows.
 
 However, an unbounded `SELECT *` against a large table will produce a payload that exceeds MCP transport limits — stdio JSON-RPC fails in the tens-of-MB range, and the agent receives a transport-level broken-pipe error, not a clean signal. The agent then retries the same query and hits the same wall.
 

@@ -32,7 +32,7 @@ src/
 tests/
   mssql-mcp.Core.Tests/ # Guard AST validation, type coercion, etc.
   mssql-mcp.Tools.Tests/ # Tool attribute wiring, schema tests
-npm/                    # npm package (shim + install.js)
+npm/                    # npm package (shim + per-platform binaries)
 docs/adr/               # Architectural Decision Records
 ```
 
@@ -56,10 +56,10 @@ docker run -e "ACCEPT_EULA=1" -e "MSSQL_SA_PASSWORD=YourStrong!Passw0rd" \
   -p 1433:1433 --name mssql-edge -d mcr.microsoft.com/azure-sql-edge:latest
 
 # Run integration tests
-INTEGRATION=true MSSQL_CONNECTION_STRING="Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;" dotnet test
+INTEGRATION=true MSSQL_CONNECTION_STRING="Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;" dotnet test
 ```
 
-Integration tests are tagged `[Trait("Category", "Integration")]` and skipped by default. See `tests/integration/README.md` for details.
+Integration tests are tagged `[Trait("Category", "Integration")]` and skipped by default.
 
 ## Coding Standards
 

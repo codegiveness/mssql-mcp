@@ -10,7 +10,7 @@ ADR-0014 defined five graduation triggers for `0.1.0` → `1.0.0` but left them 
 
 ### Path B: ship 0.1.0 first, then rc → 1.0.0
 
-1. Tag `v0.1.0` against the private repo, verify the full release pipeline end-to-end (build, 5 RIDs, archives, checksums, GitHub Release, NuGet Trusted Publishing, npm with provenance), verify all 10 RID installations (5 RIDs × 2 channels), then flip the repo public (issue #19).
+1. Tag `v0.1.0` against the private repo, verify the full release pipeline end-to-end (build, 5 RIDs, archives, checksums, GitHub Release, NuGet Trusted Publishing, npm with provenance), verify all 5 RID installations, then flip the repo public (issue #19).
 2. Dogfood 30 days (#20) and run `/security-research` skill (#21) **in parallel** — they're independent.
 3. If both pass: tag `v1.0.0-rc.1`, wait 7 days, promote to `v1.0.0` (#22).
 

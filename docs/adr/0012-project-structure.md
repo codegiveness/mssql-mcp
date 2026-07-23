@@ -35,14 +35,20 @@ mssql-mcp/
 │   └── mssql-mcp/                # Program.cs, DI, npm wrapper entrypoint
 │       ├── Program.cs
 │       ├── mssql-mcp.csproj      # Packable as dotnet tool package
-│       └── appsettings.json
+│       └── (no appsettings.json — config is env vars + CLI flags per ADR-0015)
 ├── tests/
 │   ├── mssql-mcp.Core.Tests/
 │   └── mssql-mcp.Tools.Tests/
-├── npm/                          # npm wrapper package (sqz pattern)
+├── npm/                          # npm wrapper package (Node shim + per-platform optionalDependencies)
 │   ├── package.json
-│   ├── install.js
-│   └── bin/mssql-mcp             # Node.js shim, overwritten by install.js
+│   ├── bin/mssql-mcp.js          # Permanent entry point — resolves per-platform binary
+│   ├── platforms/                # Per-platform packages (populated by release pipeline)
+│   │   ├── linux-x64/
+│   │   ├── linux-arm64/
+│   │   ├── osx-x64/
+│   │   ├── osx-arm64/
+│   │   └── win-x64/
+│   └── test.js                   # Shim smoke test
 └── docs/adr/
 ```
 
@@ -69,13 +75,13 @@ mssql-mcp.Core  ←── mssql-mcp.Tools  ←── mssql-mcp (App)
 ## Considered Options
 
 - **B. Multi-project layered** ✅ — chosen
-- A. Single-project flat — rejected: forces Guard tests to drag in MCP SDK; dead-code risk (c0h1b4 had 400 lines of unused `src/utils/` files); weaker signal of intent for public OSS
+- A. Single-project flat — rejected: forces Guard tests to drag in MCP SDK; dead-code risk (untracked utility files accumulate); weaker signal of intent for public OSS
 - C. Single-project + npm subdir only — rejected: same problems as A
 
 ## Consequences
 
 - Core tests instantiate `AstValidator` and `SqlExecutor` directly — no MCP transport, no stdio, no hosting. Fastest, highest-signal test loop.
 - Tools tests verify `[McpServerTool]` attribute wiring and input schema shape — can use the SDK's `McpServerTool` introspection without booting a full server.
-- Cross-project references enforce wiring at compile time — if `Validation.cs` isn't referenced by Tools or App, the build fails. Prevents c0h1b4's dead-code pattern structurally.
+- Cross-project references enforce wiring at compile time — if `Validation.cs` isn't referenced by Tools or App, the build fails. Prevents dead-code accumulation structurally.
 - Three `.csproj` files (~30 lines of XML total) is the cost. Negligible.
 - If we ever swap the MCP SDK (ADR-0008 v2 upgrade), blast radius is one project (Tools).

@@ -17,7 +17,7 @@ Two GitHub Actions workflows. `ci.yml` runs build + test + pack (no publish) on 
 2. Build self-contained binaries per RID:
    - `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`: `dotnet publish -r <rid> --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true`
    - `win-x64`: `dotnet publish -r win-x64 --self-contained false -p:PublishSingleFile=true` (framework-dependent per ADR-0002 — SNI license blocks self-contained Windows)
-3. Archive flat (binary at archive root per sqz contract) — `.tar.gz` for Unix, `.zip` for Windows
+3. Archive flat (binary at archive root per the Node shim contract) — `.tar.gz` for Unix, `.zip` for Windows
 4. Generate SHA256 checksums
 5. Create GitHub Release with archives + checksums
 6. Push `mssql-mcp.<version>.nupkg` to NuGet.org
@@ -28,7 +28,7 @@ Sequential stages prevent partial releases — if NuGet push fails, npm publish 
 ## Versioning
 
 - Semantic Versioning 2.0 for both NuGet and npm.
-- NuGet `<VersionPrefix>0.1.0</VersionPrefix>` in `mssql-mcp.csproj`.
+- NuGet `<VersionPrefix>0.3.0</VersionPrefix>` in `mssql-mcp.csproj`.
 - npm `version` synced from tag (drop the `v` prefix).
 - Prereleases: `v0.2.0-preview.1` tag → NuGet `-preview.1` suffix, npm `0.2.0-preview.1`.
 - GitHub Release tags use the `v` prefix (`v0.1.0`); the actual version number drops it (`0.1.0`).
@@ -75,7 +75,7 @@ If any one of these isn't met, stay on `0.x`.
 ## Considered Options
 
 - **B. Tag-triggered + nightly CI on main + manual dispatch** ✅ — chosen
-- A. Tag-triggered only — rejected: no regression catch on main between releases (c0h1b4's last commit was June 2025 with 2 unanswered issues)
+- A. Tag-triggered only — rejected: no regression catch on main between releases (abandoned projects with unanswered issues are the cautionary tale)
 - C. Manual dispatch only — rejected: standard tag-triggered release is the .NET and npm pattern; manual-only adds friction without benefit
 
 ## Consequences
@@ -92,7 +92,7 @@ If any one of these isn't met, stay on `0.x`.
 > **⚠ Superseded by [ADR-0028](./0028-binary-delivery-via-optional-dependencies-and-shim-self-heal.md)** — binary delivery moved to `optionalDependencies` + shim self-heal. `install.js` and the postinstall script are deleted. The contract below is retained for historical reference only.
 
 The `npm/install.js` postinstall script depends on these release artifacts:
-- One flat archive per RID (binary at archive root, per sqz contract) — `mssql-mcp-{version}-{rid}.tar.gz` (Unix) or `.zip` (Windows)
+- One flat archive per RID (binary at archive root, per the Node shim contract) — `mssql-mcp-{version}-{rid}.tar.gz` (Unix) or `.zip` (Windows)
 - One SHA256 checksum file per archive — `mssql-mcp-{version}-{rid}.tar.gz.sha256`
 - Archives and checksums attached to the GitHub Release for the matching tag
 

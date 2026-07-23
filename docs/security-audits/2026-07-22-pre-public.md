@@ -1,5 +1,7 @@
 # Security Audit — Pre-Public Launch
 
+> **Note:** This is a point-in-time pre-launch security audit (2026-07-22). All 5 blocking findings were fixed before release. Non-blocking items are documented for transparency — each has a rationale for deferral.
+
 **Date:** 2026-07-22
 **Scope:** Full codebase audit before `0.1.0` public release (ADR-0018 trigger #2)
 **Method:** `/security-research` skill — 3 vulnerability hunters + 2 PoC engineers (team-mode)

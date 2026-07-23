@@ -62,12 +62,8 @@ npm/platforms/*/mssql-mcp.exe
 *.coveragexml
 
 # npm
-# NOTE: npm/bin/mssql-mcp is intentionally NOT ignored. The committed file is a
-# Node.js shim that makes `npx mssql-mcp` work immediately after install. The
-# postinstall script (npm/install.js) overwrites it with the real native binary
-# downloaded from GitHub Releases. Developers who run `npm install` locally will
-# see `npm/bin/mssql-mcp` show as modified in git status — restore the shim with
-# `git checkout -- npm/bin/mssql-mcp`. See ADR-0002 (sqz pattern) and ADR-0014.
+# npm/bin/mssql-mcp.js is the permanent entry point (not overwritten at install time).
+# The binary arrives via npm's optionalDependencies — see ADR-0028.
 npm/node_modules/
 npm/bin/mssql-mcp.exe
 npm/*.tgz

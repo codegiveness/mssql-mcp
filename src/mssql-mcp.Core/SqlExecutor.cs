@@ -19,11 +19,6 @@ public sealed class SqlExecutor : ISqlExecutor
     private readonly ILogger<SqlExecutor> _logger;
     private readonly SqlRetryLogicBaseProvider _retryProvider;
 
-    public SqlExecutor(string connectionString, int commandTimeout, ILogger<SqlExecutor> logger)
-        : this(connectionString, commandTimeout, retryCount: 0, retryIntervalMin: 0, retryIntervalMax: 1, logger)
-    {
-    }
-
     public SqlExecutor(
         string connectionString,
         int commandTimeout,

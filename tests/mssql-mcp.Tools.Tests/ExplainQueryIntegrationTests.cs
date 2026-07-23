@@ -41,6 +41,7 @@ public class ExplainQueryIntegrationTests
     private static PlanTools CreatePlanTools(MssqlMcpOptions options)
     {
         ISqlExecutor executor = new SqlExecutor(options.ConnectionString, options.QueryTimeout,
+            options.RetryCount, options.RetryIntervalMin, options.RetryIntervalMax,
             NullLogger<SqlExecutor>.Instance);
         IGuard guard = new SqlGuard(options, NullLogger<SqlGuard>.Instance);
         return new PlanTools(executor, guard, Options.Create(options), NullLogger<PlanTools>.Instance);
@@ -49,6 +50,7 @@ public class ExplainQueryIntegrationTests
     private static SqlTools CreateSqlTools(MssqlMcpOptions options)
     {
         ISqlExecutor executor = new SqlExecutor(options.ConnectionString, options.QueryTimeout,
+            options.RetryCount, options.RetryIntervalMin, options.RetryIntervalMax,
             NullLogger<SqlExecutor>.Instance);
         IGuard guard = new SqlGuard(options, NullLogger<SqlGuard>.Instance);
         return new SqlTools(executor, guard, Options.Create(options), NullLogger<SqlTools>.Instance);

@@ -31,6 +31,7 @@ public class DiscoveryIntegrationTests
             RetryIntervalMax = 10,
         };
         ISqlExecutor executor = new SqlExecutor(options.ConnectionString, options.QueryTimeout,
+            options.RetryCount, options.RetryIntervalMin, options.RetryIntervalMax,
             NullLogger<SqlExecutor>.Instance);
         return new DatabaseTools(executor, Options.Create(options), NullLogger<DatabaseTools>.Instance);
     }

@@ -32,6 +32,7 @@ public class ExecuteSqlIntegrationTests
             RetryIntervalMax = 10,
         };
         ISqlExecutor executor = new SqlExecutor(options.ConnectionString, options.QueryTimeout,
+            options.RetryCount, options.RetryIntervalMin, options.RetryIntervalMax,
             NullLogger<SqlExecutor>.Instance);
         IGuard guard = new SqlGuard(options, NullLogger<SqlGuard>.Instance);
         return new SqlTools(executor, guard, Options.Create(options), NullLogger<SqlTools>.Instance);
@@ -115,6 +116,7 @@ public class ExecuteSqlIntegrationTests
             RetryIntervalMax = 10,
         };
         ISqlExecutor executor = new SqlExecutor(options.ConnectionString, options.QueryTimeout,
+            options.RetryCount, options.RetryIntervalMin, options.RetryIntervalMax,
             NullLogger<SqlExecutor>.Instance);
         IGuard guard = new SqlGuard(options, NullLogger<SqlGuard>.Instance);
         return new SqlTools(executor, guard, Options.Create(options), NullLogger<SqlTools>.Instance);

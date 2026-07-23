@@ -41,7 +41,7 @@ Even within an allowed `SelectStatement`, reject a small, targeted set of danger
 On rejection, the agent receives an MCP error result naming the rejecting layer and the reason: `[guard] Restricted mode: only SELECT and WITH statements are allowed. Got: {StatementType}` or `[guard] Restricted mode: SELECT ... INTO is not permitted.`
 
 **Considered Options**:
-- **Strategy 1 — allowlist statement types, denylist node types** (postgres-mcp pattern). Rejected: a node-type denylist is the trap postgres-mcp fell into — you can never enumerate every dangerous node type, and new SQL Server versions add new ones. The list drifts stale.
+- **Strategy 1 — allowlist statement types, denylist node types**. Rejected: a node-type denylist is a known anti-pattern — you can never enumerate every dangerous node type, and new SQL Server versions add new ones. The list drifts stale.
 - **Strategy 3 — full node-type allowlist via ScriptDom Visitor**. Most secure but highest maintenance cost for v1. ScriptDom has hundreds of node types; whitelisting every one is a maintenance liability. Deferred to v2 if Strategy 2 proves too restrictive.
 - **No intra-statement blocklist (trust statement-type + read-only transaction)**. Rejected: `SELECT ... INTO` is DDL disguised as SELECT, and `OPENROWSET(BULK ...)` reads arbitrary files. The read-only transaction backstop doesn't catch every intra-SELECT danger.
 - **Manual `batch.Statements` iteration instead of Visitor**. Rejected: misses nested statements inside `BEGIN...END`, `IF`, `WHILE` without explicit recursion into every compound statement type. The Visitor handles recursion automatically.

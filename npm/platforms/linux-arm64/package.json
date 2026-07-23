@@ -1,6 +1,6 @@
 {
   "name": "@codegiveness/mssql-mcp-linux-arm64",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "mssql-mcp native binary for linux-arm64",
   "license": "MIT",
   "repository": {

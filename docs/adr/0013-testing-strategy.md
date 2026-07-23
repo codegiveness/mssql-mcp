@@ -10,7 +10,7 @@ Unit tests run on every push with zero external dependencies. Integration tests 
 |---|---|---|
 | Guard AST validation | ~30 (every allow/deny: SELECT, WITH...SELECT, UPDATE, INSERT, DELETE, DROP, SELECT INTO, OPENROWSET, four-part names, DECLARE, EXECUTE, etc.) | `AstValidator.Validate(sql)` pure function, no DB |
 | Type coercion | ~15 (bigint→string, decimal→string, dates→ISO 8601, binary→base64, NULL→null, etc.) | Pure coercion function, no DB |
-| Tool attribute wiring | ~10 (all 10 tools: `[McpServerTool]` present, `ReadOnly`/`Destructive` flags correct per mode, input schema shape) | Reflection, no DB |
+| Tool attribute wiring | ~10 (all 9 tools: `[McpServerTool]` present, `ReadOnly`/`Destructive` flags correct per mode, input schema shape) | Reflection, no DB |
 | CLI arg parsing | ~5 | Parse args, verify options |
 | Password obfuscation | ~3 | Regex replacement on log strings |
 | Sentinel comment prefixing | ~2 | String prefix check |
@@ -31,7 +31,7 @@ Tagged `[Trait("Category", "Integration")]`. Skipped unless `INTEGRATION=true` e
 
 ## Integration DB
 
-**Azure SQL Edge container** for local manual verification. Documented in `tests/integration/README.md`. Not in CI — arm64-incompatible, ~30s startup, ~1GB image. No cross-platform CI story justifies the flak.
+**Azure SQL Edge container** for local manual verification. Not in CI — arm64-incompatible, ~30s startup, ~1GB image. No cross-platform CI story justifies the flak.
 
 ## Considered Options
 
@@ -44,6 +44,6 @@ Tagged `[Trait("Category", "Integration")]`. Skipped unless `INTEGRATION=true` e
 
 - The Guard safety claim (ADR-0006) is fully covered by unit tests — AST allow/deny cases prove the validation logic without needing a DB.
 - Transaction rollback (ADR-0007) is a backstop for AST misses, verified manually before each release. Not on every PR.
-- `c0h1b4` failure mode avoided: their tests required a live DB in `beforeAll`, tested dead code, and had zero mocks. Our unit tests have no DB dependency and test the actual shipped code paths.
+- A common failure mode is avoided: tests that require a live DB in `beforeAll`, test dead code, and have zero mocks. Our unit tests have no DB dependency and test the actual shipped code paths.
 - xUnit's `[Trait]` filtering lets CI run `dotnet test --filter Category!=Integration` cleanly.
 - Test project graph mirrors production: `mssql-mcp.Core.Tests` → tests Core; `mssql-mcp.Tools.Tests` → tests Tools (with Core as transitive dep).

@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.0] - 2025-07-23
+## [0.3.1] - 2026-07-23
+
+### Changed
+
+- **Migrated test framework to xunit.v3** (`xunit` 2.9.3 → `xunit.v3` 3.2.2). The Core.Tests project now emits as an executable (`OutputType=Exe`), and integration tests pass `TestContext.Current.CancellationToken` to async SqlClient calls per xunit.v3's cancellation model.
+- **Removed the 3-argument `SqlExecutor` constructor.** The backward-compat overload that defaulted retry parameters to zero is gone; all callers now pass `retryCount`, `retryIntervalMin`, and `retryIntervalMax` explicitly. All integration test call sites updated.
+- **Bumped `Microsoft.SqlServer.TransactSql.ScriptDom`** from 180.37.3 to 180.59.2.
+- **Documentation cleanup**: removed stale references to the deprecated `mssql-mcp-cli` npm package, the old `install.js` postinstall script, and the "sqz" pattern name across README, ADRs, SECURITY.md, CONTRIBUTING.md, and release pipeline comments. The comparison table in README was simplified to a single-column feature list.
+
+### Fixed
+
+- Corrected the `[0.3.0]` changelog date from `2025-07-23` to `2026-07-23`.
+
+## [0.3.0] - 2026-07-23
 
 ### Changed
 
@@ -15,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Shim self-heals from GitHub Releases.** When an optional dependency is absent (`--no-optional`, corporate mirrors), `bin/mssql-mcp.js` downloads the matching RID archive from GitHub Releases, verifies the SHA256 checksum, extracts to `~/.mssql-mcp/bin/<version>/<rid>/`, and caches it. Subsequent invocations hit the cache. `MSSQL_MCP_NO_DOWNLOAD=1` disables the download for locked-down environments.
 
-- **Package renamed from `mssql-mcp-cli` to `@codegiveness/mssql-mcp`.** The scoped name matches the invocation name. `mssql-mcp-cli` is deprecated on npm at v0.2.0; existing users keep working. Migration is a one-line config change: `mssql-mcp-cli` → `@codegiveness/mssql-mcp` in the `args` array.
+- **Package renamed to `@codegiveness/mssql-mcp`.** The scoped name matches the invocation name.
 
 - **NuGet version now auto-synced from the git tag.** The release pipeline writes `<VersionPrefix>` from the tag, preventing the version drift that caused NuGet to stay at 0.1.0 when npm was at 0.2.0.
 

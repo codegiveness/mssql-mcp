@@ -1,9 +1,9 @@
 # Single connection string at startup; rely on SqlClient built-in retry
 
-The server reads one SQL Server connection string at startup (env var, config file, or CLI arg) and uses it for every tool call. The end user picks the database; the agent does not. SqlClient's built-in connection pool handles pooling. For transient failures (network blips, DB restarts), we configure `SqlRetryLogicOption` on each `SqlConnection` and rely on Microsoft's maintained transient-error list and retry logic — we do not write our own retry layer (c0h1b4 wrote `isTransientError()` and never wired it up; bespoke retry is a maintenance liability).
+The server reads one SQL Server connection string at startup (env var, config file, or CLI arg) and uses it for every tool call. The end user picks the database; the agent does not. SqlClient's built-in connection pool handles pooling. For transient failures (network blips, DB restarts), we configure `SqlRetryLogicOption` on each `SqlConnection` and rely on Microsoft's maintained transient-error list and retry logic — we do not write our own retry layer (a bespoke retry layer is a maintenance liability; Microsoft maintains the transient-error list).
 
 **Considered Options**:
-- Per-call connection string (c0h1b4 pattern) — rejected: credentials in every tool call is insecure and forces the agent to carry connection state.
+- Per-call connection string — rejected: credentials in every tool call is insecure and forces the agent to carry connection state.
 - `use_database` tool for mid-session switching — rejected: which DB to target is a human decision, not an agent decision. Multi-DB users run multiple server instances.
 - Our own retry wrapper around `Open()` + command execution — rejected: Microsoft maintains the transient-error list; re-implementing risks staleness and bugs.
 - No retry, surface errors to agent — rejected: agents misdiagnose transient errors as query bugs and try to "fix" the SQL.

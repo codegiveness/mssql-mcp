@@ -85,7 +85,7 @@ public class RetryLogicTests
         Assert.NotNull(provider.RetryLogic);
         Assert.Equal(4, provider.RetryLogic.NumberOfTries);
         // Microsoft ships the transient-error list as a non-null TransientPredicate.
-        // We do NOT provide our own — this is the key design decision (c0h1b4 fix).
+        // We do NOT provide our own — this is the key design decision: rely on Microsoft's maintained list.
         Assert.NotNull(provider.RetryLogic.TransientPredicate);
         // Exponential backoff uses the exponential interval enumerator.
         Assert.Equal("Microsoft.Data.SqlClient.SqlExponentialIntervalEnumerator",
@@ -143,20 +143,6 @@ public class RetryLogicTests
             NullLogger<SqlExecutor>.Instance);
         conn.RetryLogicProvider = provider; // If this compiles and runs, the API is correct.
         Assert.Same(provider, conn.RetryLogicProvider);
-    }
-
-    [Fact]
-    public void SqlExecutor_DefaultCtor_NoRetryProviderConfigured()
-    {
-        // The 3-arg backward-compat ctor delegates with retryCount=0 — no retries.
-        // Constructing must not throw and must not touch static state.
-        var executor = new SqlExecutor(
-            "Server=localhost;Database=Test;Integrated Security=true;",
-            commandTimeout: 30,
-            NullLogger<SqlExecutor>.Instance);
-
-        // No exception means the 3-arg ctor still works for the 8 existing test sites.
-        Assert.NotNull(executor);
     }
 
     // --- MssqlMcpOptions env-var validation (ADR-0015 fail-fast) ---

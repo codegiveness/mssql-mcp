@@ -12,7 +12,7 @@ These issues are in scope:
 
 - **Guard bypass**: SQL that executes in Restricted mode when it should be rejected (e.g. DML/DDL slipping past the AST allowlist, nested statement evasion, `QuoteIdentifier` bypass enabling cross-DB access).
 - **Credential leakage**: connection strings or passwords appearing in stdout (MCP JSON-RPC channel), logs at non-debug levels, or error messages returned to the Agent.
-- **`install.js` tampering**: checksum bypass, binary substitution, or archive extraction path traversal.
+- **`bin/mssql-mcp.js` tampering**: checksum bypass, binary substitution, or archive extraction path traversal in the shim's self-heal download path.
 - **Authentication bypass**: connection string manipulation that bypasses intended auth restrictions.
 
 These issues are **out of scope** — report them upstream:
