@@ -80,7 +80,7 @@ internal static class ToolErrors
 
         if (maxBytes <= 0)
         {
-            string allJson = JsonSerializer.Serialize(items, McpJsonContext.Default.Options);
+            string allJson = JsonSerializer.Serialize(items, typeof(IReadOnlyList<object>), McpJsonContext.Default);
             return Success(allJson);
         }
 
@@ -96,7 +96,7 @@ internal static class ToolErrors
 
         for (int i = 0; i < items.Count; i++)
         {
-            string itemJson = JsonSerializer.Serialize(items[i], McpJsonContext.Default.Options);
+            string itemJson = JsonSerializer.Serialize(items[i], typeof(object), McpJsonContext.Default);
             string segment = (i == 0 ? string.Empty : ",") + itemJson;
 
             int segmentBytes = Encoding.UTF8.GetByteCount(segment);
@@ -213,7 +213,7 @@ internal static class ToolErrors
                 ? null
                 : new GuardRejectionPayload.PositionDto { Line = rejection.Line, Column = rejection.Column },
         };
-        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.Options), isError: true);
+        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.GuardRejectionPayload), isError: true);
     }
 
     public static CallToolResult Timeout(int timeoutSeconds)
@@ -225,7 +225,7 @@ internal static class ToolErrors
             TimeoutMs = timeoutMs,
             Detail = $"Query exceeded {timeoutSeconds}s command timeout",
         };
-        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.Options), isError: true);
+        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.TimeoutPayload), isError: true);
     }
 
     public static CallToolResult SqlError(SqlException ex)
@@ -245,7 +245,7 @@ internal static class ToolErrors
             Line = line,
             Procedure = procedure,
         };
-        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.Options), isError: true);
+        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.SqlErrorPayload), isError: true);
     }
 
     /// <summary>
@@ -293,7 +293,7 @@ internal static class ToolErrors
             ExceptionType = ex.GetType().Name,
             Detail = ex.Message,
         };
-        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.Options), isError: true);
+        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.InternalErrorPayload), isError: true);
     }
 
     /// <summary>
@@ -307,7 +307,7 @@ internal static class ToolErrors
             Error = "CONNECTION",
             Detail = detail,
         };
-        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.Options), isError: true);
+        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.ConnectionErrorPayload), isError: true);
     }
 
     /// <summary>
@@ -324,6 +324,6 @@ internal static class ToolErrors
             Type = type ?? "UNKNOWN",
             Database = database ?? string.Empty,
         };
-        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.Options), isError: true);
+        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.ObjectNotFoundPayload), isError: true);
     }
 }

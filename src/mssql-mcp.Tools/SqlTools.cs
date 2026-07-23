@@ -182,7 +182,7 @@ public sealed class SqlTools
             statusObjects.Add(BuildStatusObject(s, single ? rowsAffected : -1));
         }
 
-        string json = JsonSerializer.Serialize(statusObjects, McpJsonContext.Default.Options);
+        string json = JsonSerializer.Serialize(statusObjects, typeof(List<object>), McpJsonContext.Default);
         _logger.LogInformation("[tool] execute_sql (unrestricted) returned {Count} status objects", statusObjects.Count);
         return ToolErrors.Success(json);
     }

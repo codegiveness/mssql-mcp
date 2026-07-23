@@ -107,7 +107,7 @@ public sealed class PlanTools
         }
 
         QueryPlanSummary summary = BuildSummary(planXml);
-        string json = JsonSerializer.Serialize(summary, McpJsonContext.Default.Options);
+        string json = JsonSerializer.Serialize(summary, McpJsonContext.Default.QueryPlanSummary);
         _logger.LogInformation("[tool] explain_query returned summary");
         return ToolErrors.Success(json);
     }

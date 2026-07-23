@@ -104,3 +104,20 @@ The `npm/install.js` postinstall script depends on these release artifacts:
 - Verify SHA256 after download; fail on mismatch
 - Print final binary path on success
 - Exit non-zero on any failure so `npm install` reports the failure
+
+## Trimming journey (issue #44)
+
+- **v0.3.0 and earlier**: `PublishTrimmed=true` on Unix RIDs. Worked because serialization used reflection-based `System.Text.Json` with `[UnconditionalSuppressMessage("Trimming", "IL2026")]` suppressing the build warning. But the suppression only hid the build warning — the runtime crash (`InvalidOperationException: Reflection-based serialization has been disabled`) was not prevented. Issue #44 reported this as "all tools crash on SQL Server 2025" (the reporter's diagnosis pointed at SQL Server types; the actual root cause was trimming disabling reflection).
+
+- **v0.3.2**: `PublishTrimmed=false` on Unix RIDs. Quick fix to unblock Linux/macOS users. Binary size increased from ~15 MB to ~30 MB. No code changes.
+
+- **v0.4.0**: `PublishTrimmed=true` restored. All serialization migrated to source-generated `McpJsonContext` (a `JsonSerializerContext` subclass with explicit `[JsonSerializable]` registrations). All anonymous-type error payloads replaced by explicit `record` DTOs. All `[UnconditionalSuppressMessage]` attributes removed. Binary size is ~30 MB (same as v0.3.2's untrimmed size). While trimming is re-enabled, the source-generated `McpJsonContext` registers `object` and `Dictionary<string,object?>` for polymorphic row serialization, which forces the trimmer to retain more metadata than the original reflection-based approach. The binary is functional and unblocks all Linux/macOS users. A future ticket may narrow the type set to recover the ~15 MB size.
+
+## JSON-RPC release smoke step (v0.4.0)
+
+The `smoke` job in `release.yml` now includes a JSON-RPC smoke step that:
+1. Starts Azure SQL Edge in a container
+2. Sends `initialize` + `notifications/initialized` + `tools/call` (list_databases) over stdio to the published binary
+3. Fails the release if the response contains the crash envelope (`"An error occurred invoking '<tool>'."`) or lacks a JSON-RPC `result` field
+
+This regression guard would have caught issue #44 before any user hit it. It runs on every release-tagged build, against the exact trimmed artifact users will install.

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-23
+
+### Fixed
+
+- **Permanently fixed issue #44 via source-generated JSON serialization.** All `System.Text.Json` serialization now uses `McpJsonContext` (a `JsonSerializerContext` subclass) with explicit `[JsonSerializable]` registrations for every DTO and primitive type. `PublishTrimmed=true` is restored on Linux/macOS builds — the trimming that previously crashed `System.Text.Json` reflection-based serialization no longer affects the codebase because no reflection-based serialization remains. Anonymous error-payload types are replaced by explicit `record` DTOs (`GuardRejectionPayload`, `TimeoutPayload`, `SqlErrorPayload`, `InternalErrorPayload`, `ConnectionErrorPayload`, `ObjectNotFoundPayload`, `DmlStatusPayload`, `DdlStatusPayload`, `QueryPlanSummary`, `QueryPlanOperation`, `MissingIndexPayload`). Byte-for-byte JSON equality is verified by `DtoJsonEqualityTests` (24 test methods). All `[UnconditionalSuppressMessage("Trimming", "IL2026")]` attributes are removed from production code.
+
+### Changed
+
+- **Trimmed binary size is ~30 MB** (same as v0.3.2's untrimmed size). While trimming is re-enabled, the source-generated `McpJsonContext` registers `object` and `Dictionary<string,object?>` for polymorphic row serialization, which forces the trimmer to retain more metadata than the original reflection-based approach. The binary is functional and unblocks all Linux/macOS users. A future ticket may narrow the type set to recover the ~15 MB size.
+- **New release smoke step**: the release pipeline now invokes `list_databases` via JSON-RPC over stdio against Azure SQL Edge and fails the release if the response contains the crash envelope (`"An error occurred invoking '<tool>'."`). This regression guard would have caught issue #44 before any user hit it.
+- **ADR-0009** amended: documents the closed-set invariant — the coercion layer's output set (`string`, `int`, `long`, `double`, `bool`, `null`) is registered in `McpJsonContext`, and future Sql* type additions to `Coerce` MUST add a matching `[JsonSerializable]` entry.
+- **ADR-0010** amended: error envelopes are now explicit `record` DTOs rather than anonymous types. JSON shape is unchanged.
+- **ADR-0014** amended: records the `PublishTrimmed=true` → `false` (v0.3.2) → `true` (v0.4.0) journey and the new JSON-RPC smoke step.
+
 ## [0.3.2] - 2026-07-23
 
 ### Fixed

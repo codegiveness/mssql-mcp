@@ -40,3 +40,9 @@ This stays a JSON array of objects (does not violate the lean-array contract). `
 - Unrestricted-mode DDL/DML returns status objects (not `[]`) to disambiguate success from no-rows.
 - Multi-statement batches in Unrestricted mode return one status object per parsed statement. `rows_affected` is `-1` for each when more than one statement ran (SqlClient's `ExecuteNonQueryAsync` returns cumulative count, which cannot be attributed per-statement). Single-statement batches report the actual `rows_affected`.
 - `get_object_details` is an exception: on zero rows, it returns a structured error object (not `[]`) per ADR-0010 — empty arrays are ambiguous for object lookup.
+
+## Source-generated serialization invariant (v0.4.0)
+
+The coercion layer's output set — the types that can appear as values in a `Dictionary<string,object?>` row — is a closed set: `string`, `int`, `long`, `double`, `bool`, `null`. These types, plus `object` and `Dictionary<string,object?>` itself, are registered in `McpJsonContext` (a `JsonSerializerContext` subclass) via `[JsonSerializable]` attributes. This is required because `PublishTrimmed=true` disables `System.Text.Json` reflection-based serialization at runtime (issue #44).
+
+**Invariant**: any future addition of a value type to `TypeCoercion.Coerce` (e.g. a new `Sql*` type mapping) MUST be accompanied by a matching `[JsonSerializable]` entry in `McpJsonContext` if the coerced output type is not already registered. The build will not catch a missing registration (the source generator only warns about declared types, not runtime types); the failure manifests at runtime as `InvalidOperationException: Reflection-based serialization has been disabled`. The release smoke step (ADR-0014) catches this before users hit it.

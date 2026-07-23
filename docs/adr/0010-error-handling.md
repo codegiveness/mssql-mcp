@@ -35,3 +35,16 @@ Surface the error, do **not** exit the process. The agent ran a query that hit a
 - Empty result set is NOT an error for rowset tools — returns `[]` per ADR-0009. Exception: `get_object_details` returns `OBJECT_NOT_FOUND` on zero rows, because object lookup is never ambiguous (if it's not there, it's an error).
 - Severity-25 errors are surfaced to the agent, not fatal to the process.
 - Transient errors only reach `CONNECTION` after `SqlRetryLogicOption` (ADR-0004) exhausts retries — our code never sees the first-attempt transient error.
+
+## DTO-based error envelopes (v0.4.0)
+
+Error payloads are now explicit `record` DTOs rather than anonymous types, to enable source-generated JSON serialization under `PublishTrimmed=true` (issue #44). The DTOs are in `src/mssql-mcp.Tools/Json/DtoRecords.cs`:
+
+- `GuardRejectionPayload` (with nested `PositionDto`)
+- `TimeoutPayload`
+- `SqlErrorPayload`
+- `InternalErrorPayload`
+- `ConnectionErrorPayload`
+- `ObjectNotFoundPayload`
+
+Each DTO has `[JsonPropertyName]` attributes matching the snake_case JSON keys of the original anonymous types, ensuring **byte-for-byte identical JSON output** (verified by `DtoJsonEqualityTests`). The JSON shape documented in the table above is unchanged.

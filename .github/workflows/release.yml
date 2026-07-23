@@ -56,13 +56,13 @@ jobs:
 
       # Self-contained single-file builds for Unix RIDs (managed SNI, MIT-clean per ADR-0002).
       - name: Build linux-x64
-        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o artifacts/linux-x64
+        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/linux-x64
       - name: Build linux-arm64
-        run: dotnet publish src/mssql-mcp -c Release -r linux-arm64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o artifacts/linux-arm64
+        run: dotnet publish src/mssql-mcp -c Release -r linux-arm64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/linux-arm64
       - name: Build osx-x64
-        run: dotnet publish src/mssql-mcp -c Release -r osx-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o artifacts/osx-x64
+        run: dotnet publish src/mssql-mcp -c Release -r osx-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/osx-x64
       - name: Build osx-arm64
-        run: dotnet publish src/mssql-mcp -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o artifacts/osx-arm64
+        run: dotnet publish src/mssql-mcp -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/osx-arm64
       # Framework-dependent for Windows (SNI license blocks self-contained per ADR-0002).
       - name: Build win-x64 (framework-dependent)
         run: dotnet publish src/mssql-mcp -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o artifacts/win-x64
@@ -167,7 +167,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Build self-contained binary (linux-x64)
-        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o smoke
+        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o smoke
 
       - name: Verify --version exits 0
         run: ./smoke/mssql-mcp --version
@@ -201,3 +201,34 @@ jobs:
         run: ./smoke/mssql-mcp --validate
         env:
           MSSQL_CONNECTION_STRING: "Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;"
+
+      - name: Verify MCP tool responds (JSON-RPC smoke)
+        run: |
+          # Send initialize + list_databases tools/call over stdio.
+          # Keep stdin open with a sleep so the server has time to write responses
+          # before EOF triggers shutdown. Without the sleep, the pipe closes after
+          # printf and the server shuts down before flushing responses.
+          # Fail if the response contains the crash envelope or is not valid JSON.
+          response=$({ printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0.0.0"}}}' \
+            '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_databases","arguments":{}}}'; sleep 5; } \
+            | MSSQL_CONNECTION_STRING="Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;" ./smoke/mssql-mcp 2>/dev/null)
+
+          # Check for crash envelope (issue #44 symptom).
+          if echo "$response" | grep -q "An error occurred invoking"; then
+            echo "FAIL: crash envelope detected — trimming broke serialization again"
+            echo "$response"
+            exit 1
+          fi
+
+          # Check that the tools/call response (id:2) exists and has a result.
+          # The initialize response (id:1) also has a result, so we specifically
+          # look for the id:2 line and verify it contains a result field.
+          if ! echo "$response" | grep '"id":2' | grep -q '"result"'; then
+            echo "FAIL: no JSON-RPC result in tools/call response (id:2)"
+            echo "$response"
+            exit 1
+          fi
+
+          echo "PASS: list_databases returned valid JSON-RPC response"
