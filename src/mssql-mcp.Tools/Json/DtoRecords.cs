@@ -209,3 +209,76 @@ public sealed record TruncationNotice
     [JsonPropertyName("note")]
     public string Note { get; init; } = string.Empty;
 }
+
+// ---------- analyze_db_health summary payloads (OpsTools.cs) ----------
+
+/// <summary>Database size health check summary.</summary>
+public sealed record DbHealthSizeSummary
+{
+    [JsonPropertyName("check")]
+    public string Check { get; init; } = "database_size";
+
+    [JsonPropertyName("size_mb")]
+    public long SizeMb { get; init; }
+
+    [JsonPropertyName("log_mb")]
+    public long LogMb { get; init; }
+}
+
+/// <summary>VLF count health check summary.</summary>
+public sealed record DbHealthVlfSummary
+{
+    [JsonPropertyName("check")]
+    public string Check { get; init; } = "vlf_count";
+
+    [JsonPropertyName("count")]
+    public int Count { get; init; }
+
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = string.Empty;
+}
+
+/// <summary>Index fragmentation health check summary.</summary>
+public sealed record DbHealthFragmentationSummary
+{
+    [JsonPropertyName("check")]
+    public string Check { get; init; } = "index_fragmentation";
+
+    [JsonPropertyName("total_indexes")]
+    public long TotalIndexes { get; init; }
+
+    [JsonPropertyName("fragmented_gt_30pct")]
+    public long FragmentedGt30Pct { get; init; }
+
+    [JsonPropertyName("max_fragmentation")]
+    public double MaxFragmentation { get; init; }
+
+    [JsonPropertyName("worst")]
+    public string? Worst { get; init; }
+}
+
+/// <summary>Statistics staleness health check summary.</summary>
+public sealed record DbHealthStatsSummary
+{
+    [JsonPropertyName("check")]
+    public string Check { get; init; } = "stats_staleness";
+
+    [JsonPropertyName("total_stats")]
+    public long TotalStats { get; init; }
+
+    [JsonPropertyName("stale_gt_7d")]
+    public long StaleGt7D { get; init; }
+
+    [JsonPropertyName("oldest_days")]
+    public int OldestDays { get; init; }
+}
+
+/// <summary>Active blocking health check summary.</summary>
+public sealed record DbHealthBlockingSummary
+{
+    [JsonPropertyName("check")]
+    public string Check { get; init; } = "blocking";
+
+    [JsonPropertyName("blocked_sessions")]
+    public int BlockedSessions { get; init; }
+}

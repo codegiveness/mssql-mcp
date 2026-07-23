@@ -23,6 +23,10 @@ namespace mssql_mcp.Tools.Json;
 [JsonSerializable(typeof(long))]
 [JsonSerializable(typeof(double))]
 [JsonSerializable(typeof(bool))]
+[JsonSerializable(typeof(DateTime))]
+[JsonSerializable(typeof(DateTimeOffset))]
+[JsonSerializable(typeof(TimeSpan))]
+[JsonSerializable(typeof(IReadOnlyList<object>))]
 [JsonSerializable(typeof(List<object>))]
 [JsonSerializable(typeof(List<Dictionary<string, object?>>))]
 [JsonSerializable(typeof(GuardRejectionPayload))]
@@ -37,6 +41,11 @@ namespace mssql_mcp.Tools.Json;
 [JsonSerializable(typeof(MissingIndexPayload))]
 [JsonSerializable(typeof(RowLimitNotice))]
 [JsonSerializable(typeof(TruncationNotice))]
+[JsonSerializable(typeof(DbHealthSizeSummary))]
+[JsonSerializable(typeof(DbHealthVlfSummary))]
+[JsonSerializable(typeof(DbHealthFragmentationSummary))]
+[JsonSerializable(typeof(DbHealthStatsSummary))]
+[JsonSerializable(typeof(DbHealthBlockingSummary))]
 internal sealed partial class McpJsonContext : JsonSerializerContext
 {
 }

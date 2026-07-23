@@ -7,6 +7,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using mssql_mcp.Core;
 using mssql_mcp.Core.Configuration;
+using mssql_mcp.Tools.Json;
 
 namespace mssql_mcp.Tools;
 
@@ -270,11 +271,11 @@ public sealed class DatabaseTools
         List<object> payload = new(rows.Count + 1);
         if (rows.Count == clampedLimit)
         {
-            payload.Add(new
+            payload.Add(new TruncationNotice
             {
-                truncated = true,
-                returned = clampedLimit,
-                note = "Results truncated. Refine schema/type filters or raise limit.",
+                Truncated = true,
+                Returned = clampedLimit,
+                Note = "Results truncated. Refine schema/type filters or raise limit.",
             });
         }
         foreach (Dictionary<string, object?> row in rows)

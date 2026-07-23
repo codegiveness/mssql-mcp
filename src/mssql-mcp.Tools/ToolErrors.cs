@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using mssql_mcp.Core.Guard;
 using mssql_mcp.Core.Logging;
+using mssql_mcp.Tools.Json;
 
 namespace mssql_mcp.Tools;
 
@@ -16,7 +17,7 @@ namespace mssql_mcp.Tools;
 /// and future tool classes to avoid drift.
 /// </summary>
 [UnconditionalSuppressMessage("Trimming", "IL2026",
-    Justification = "Anonymous payload types are compiler-generated with fully-known structure. Properties are preserved by the compiler and discovered via reflection at runtime.")]
+    Justification = "SuccessWithByteCap now uses McpJsonContext.Default.Options (ticket #48). Error-payload methods still use reflection-based serialization with anonymous types — migrated in ticket #49. This class-level suppression stays until #49 completes.")]
 internal static class ToolErrors
 {
     /// <summary>
@@ -82,7 +83,7 @@ internal static class ToolErrors
 
         if (maxBytes <= 0)
         {
-            string allJson = JsonSerializer.Serialize(items, JsonOptions);
+            string allJson = JsonSerializer.Serialize(items, McpJsonContext.Default.Options);
             return Success(allJson);
         }
 
@@ -98,7 +99,7 @@ internal static class ToolErrors
 
         for (int i = 0; i < items.Count; i++)
         {
-            string itemJson = JsonSerializer.Serialize(items[i], JsonOptions);
+            string itemJson = JsonSerializer.Serialize(items[i], McpJsonContext.Default.Options);
             string segment = (i == 0 ? string.Empty : ",") + itemJson;
 
             int segmentBytes = Encoding.UTF8.GetByteCount(segment);

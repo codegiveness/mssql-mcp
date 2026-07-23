@@ -7,6 +7,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using mssql_mcp.Core;
 using mssql_mcp.Core.Configuration;
+using mssql_mcp.Tools.Json;
 
 namespace mssql_mcp.Tools;
 
@@ -486,12 +487,7 @@ public sealed class OpsTools
             sizeMb = AsLong(row, "size_mb");
             logMb = AsLong(row, "log_mb");
         }
-        return new
-        {
-            check = "database_size",
-            size_mb = sizeMb,
-            log_mb = logMb,
-        };
+        return new DbHealthSizeSummary { SizeMb = sizeMb, LogMb = logMb };
     }
 
     private static object BuildVlfSummary(List<Dictionary<string, object?>> rows)
@@ -501,12 +497,7 @@ public sealed class OpsTools
         {
             count = AsInt(rows[0], "vlf_count");
         }
-        return new
-        {
-            check = "vlf_count",
-            count,
-            status = VlfStatus(count),
-        };
+        return new DbHealthVlfSummary { Count = count, Status = VlfStatus(count) };
     }
 
     private static object BuildFragmentationSummary(List<Dictionary<string, object?>> rows)
@@ -523,13 +514,12 @@ public sealed class OpsTools
             maxFrag = AsDouble(row, "max_fragmentation");
             worst = row.TryGetValue("worst", out object? w) ? w as string : null;
         }
-        return new
+        return new DbHealthFragmentationSummary
         {
-            check = "index_fragmentation",
-            total_indexes = totalIndexes,
-            fragmented_gt_30pct = fragmentedGt30,
-            max_fragmentation = maxFrag,
-            worst,
+            TotalIndexes = totalIndexes,
+            FragmentedGt30Pct = fragmentedGt30,
+            MaxFragmentation = maxFrag,
+            Worst = worst,
         };
     }
 
@@ -545,12 +535,11 @@ public sealed class OpsTools
             staleGt7d = AsLong(row, "stale_gt_7d");
             maxStalenessDays = AsInt(row, "max_staleness_days");
         }
-        return new
+        return new DbHealthStatsSummary
         {
-            check = "stats_staleness",
-            total_stats = totalStats,
-            stale_gt_7d = staleGt7d,
-            oldest_days = maxStalenessDays,
+            TotalStats = totalStats,
+            StaleGt7D = staleGt7d,
+            OldestDays = maxStalenessDays,
         };
     }
 
@@ -561,11 +550,7 @@ public sealed class OpsTools
         {
             blockedSessions = AsInt(rows[0], "blocked_sessions");
         }
-        return new
-        {
-            check = "blocking",
-            blocked_sessions = blockedSessions,
-        };
+        return new DbHealthBlockingSummary { BlockedSessions = blockedSessions };
     }
 
     private static long AsLong(Dictionary<string, object?> row, string key)

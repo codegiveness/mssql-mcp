@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Protocol;
+using mssql_mcp.Tools.Json;
 
 namespace mssql_mcp.Tools.Tests;
 
@@ -220,7 +221,7 @@ public class ByteSafetyNetTests
         // The covariant IReadOnlyList<object> overload must handle both without copying.
         List<object> payload = new()
         {
-            new { notice = "row limit hit", limit = 1000 },
+            new RowLimitNotice { Notice = "row limit hit", Limit = 1000 },
             new Dictionary<string, object?> { ["name"] = "t1", ["schema"] = "dbo" },
             new Dictionary<string, object?> { ["name"] = "t2", ["schema"] = "dbo" },
         };
