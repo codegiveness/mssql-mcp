@@ -55,3 +55,7 @@ _Avoid_: reliable install, robust install
 **Harness Verification Record**:
 The per-harness artifact produced by the manual verification step (ADR-0022). For each of the 6 documented harnesses, records three things: (1) config file path per OS, (2) log file location, (3) what a successful MCP connection looks like in that harness's UI/logs. Feeds the Troubleshooting section's per-harness "where to look" table. A harness snippet cannot be published until its Verification Record is complete.
 _Avoid_: harness test, client checklist
+
+**Unknown-Argument Dispatch**:
+The `Program.cs` code path that runs before `MssqlMcpOptions.Parse()` and handles commands that do not need a connection string: `--version` (print version, exit 0), `--help`/`-h` (print usage, exit 0), and any unrecognized argument (print usage with error prefix, exit 1). Without this dispatch, unknown arguments fall through to `Parse()`, which throws a connection-string error — confusing because the user wasn't trying to start the server. See ADR-0031.
+_Avoid_: arg parser, command router, CLI dispatcher

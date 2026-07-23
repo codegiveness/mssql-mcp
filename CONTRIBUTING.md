@@ -61,6 +61,21 @@ INTEGRATION=true MSSQL_CONNECTION_STRING="Server=localhost;User Id=sa;Password=Y
 
 Integration tests are tagged `[Trait("Category", "Integration")]` and skipped by default.
 
+## Pre-push checklist
+
+Run these checks before pushing or opening a PR. If any check fails, the push is blocked — no exceptions.
+
+| Check | Command | Expected outcome |
+|-------|---------|------------------|
+| Unit tests | `dotnet test --filter Category!=Integration` | All pass, 0 failed |
+| Integration tests | `INTEGRATION=true MSSQL_CONNECTION_STRING="..." dotnet test` | All pass (requires live SQL Server) |
+| Validate connection | `dotnet run --project src/mssql-mcp -- --validate` (with `.env` loaded) | `[startup] Connection validated successfully.` exit 0 |
+| Help command | `mssql-mcp --help` (or `dotnet run --project src/mssql-mcp -- --help`) | Prints usage block, exit 0 |
+| Unknown-arg error | `mssql-mcp upgrade` (or `dotnet run --project src/mssql-mcp -- upgrade`) | `mssql-mcp: unknown argument 'upgrade'.` to stderr, exit 1 |
+| npm smoke test | `node npm/test.js` (if applicable) | All smoke tests pass |
+| LSP diagnostics | Run LSP diagnostics on changed files | 0 errors |
+| MCP stdio smoke test | `./scripts/mcp-smoke.sh` (with `.env` loaded) | `[PASS] tools/list: 9 tools found` + `[PASS] list_databases: returned N databases` + `ALL CHECKS PASSED` |
+
 ## Coding Standards
 
 ### C# conventions
