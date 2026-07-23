@@ -44,3 +44,13 @@ Ships:
 - `0.3.0`'s scoped package is additive — `mssql-mcp-cli` stays published, so no existing user breaks.
 - The Harness Verification Records (glossary term) are the gate for `0.3.0` — `0.3.0` cannot ship until all 6 are recorded.
 - This ADR does not alter the ADR-0018 graduation path (`0.1.0` → dogfood + security research → `1.0.0-rc.1` → `1.0.0`). `0.2.0` and `0.3.0` are intermediate minors within the `0.x` series.
+
+## Amendment (0.3.0 release)
+
+The original Phase 3 plan shipped "docs restructure, scoped npm package, and 6-harness config snippets after the Harness Verification Records are complete." During 0.3.0 release prep, the scope was adjusted:
+
+**0.3.0 (actual)** ships the scoped npm package + ADR-0028 binary delivery overhaul (optionalDependencies + shim self-heal), README restructure, and the NuGet version-sync fix. The install fix is the high-value change — it eliminates the `postinstall`-didn't-run failure class that broke `npx -y @codegiveness/mssql-mcp`. This could not wait for manual harness verification.
+
+**0.3.1 (deferred)** ships the 6 harness config snippets (#37), verify-it-works + troubleshooting sections (#38), gated on the Harness Verification Records (#34) being complete. These are documentation that depends on manual human verification across 6 harnesses on real machines — a human-in-the-loop task, not a code task.
+
+The core decision (phased shipping) is intact. The adjustment splits Phase 3 into a code release (0.3.0) and a docs release (0.3.1) so the install fix is not blocked by manual verification work.

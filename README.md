@@ -13,15 +13,17 @@ A Model Context Protocol (MCP) server for Microsoft SQL Server, built in C#/.NET
 > ```bash
 > npx -y @codegiveness/mssql-mcp --validate
 > ```
-> 1. **Install** — the npm package downloads a prebuilt self-contained binary.
+> 1. **Install** — npm's dependency resolution delivers the prebuilt binary via per-platform `optionalDependencies`.
 > 2. **Configure** — paste the config snippet below into your MCP client.
 > 3. **Validate** — `--validate` confirms the server starts and the DB connection works.
+
+> **⚠ Windows users:** The Windows build is framework-dependent and requires the [.NET 10 runtime](https://dotnet.microsoft.com/download). If you don't have it, install the .NET tool instead: `dotnet tool install -g mssql-mcp`. See [Windows note](#windows-note) below.
 
 ## Quick start
 
 ### macOS/Linux
 
-The npm package wraps a prebuilt self-contained .NET binary (the sqz pattern). `npx -y @codegiveness/mssql-mcp` works on Linux x64/arm64 and macOS x64/arm64 without installing .NET.
+The npm package resolves a per-platform optional dependency (`@codegiveness/mssql-mcp-<rid>`) that bundles the prebuilt binary — no postinstall script involved. `npx -y @codegiveness/mssql-mcp` works on Linux x64/arm64 and macOS x64/arm64 without installing .NET. If the optional dependency is stripped (`--no-optional`, corporate mirrors), the shim self-heals by downloading from GitHub Releases. See [ADR-0028](./docs/adr/0028-binary-delivery-via-optional-dependencies-and-shim-self-heal.md).
 
 ```bash
 npx -y @codegiveness/mssql-mcp --validate
@@ -212,22 +214,21 @@ Invalid values fail fast at startup with a clear `[startup]` error naming the va
 
 Windows is framework-dependent because the self-contained build would bundle `Microsoft.Data.SqlClient.SNI` under the Microsoft "Distributable Code" license, whose anti-copyleft clause conservatively blocks redistribution under our MIT license. Linux and macOS use the managed SNI implementation (MIT-clean). See [ADR-0002](./docs/adr/0002-distribution-strategy.md) for the full rationale.
 
-### What `install.js` does
+### How the binary is delivered
 
-The npm package's `postinstall` script (`npm/install.js`) does the following on `npm install`:
+The npm package uses per-platform `optionalDependencies` (`@codegiveness/mssql-mcp-<rid>`) — npm's dependency resolution installs the matching package automatically, no `postinstall` script involved. This works even with `--ignore-scripts`.
 
-1. Maps `process.platform` + `process.arch` to a RID. Unsupported platforms fail loudly with the list of supported RIDs and the `dotnet tool install -g mssql-mcp` fallback.
-2. Downloads the flat archive for the resolved RID from the matching GitHub Release (`https://github.com/codegiveness/mssql-mcp/releases/download/v<version>/mssql-mcp-<version>-<rid>.tar.gz` or `.zip`).
-3. Downloads the matching `.sha256` sidecar and verifies the archive hash.
-4. Extracts the archive (flat — binary at archive root) and overwrites `npm/bin/mssql-mcp` with the real native binary.
-5. `chmod 755` on Unix.
-6. Prints the final binary path.
+The shim (`npm/bin/mssql-mcp.js`) runs on every invocation:
 
-The fail-loudly contract (no silent fallback, no retry in v1) is documented in [ADR-0014](./docs/adr/0014-build-release-pipeline.md). If the download fails, the user must see a clear error naming the RID, the URL tried, and the `dotnet tool install` fallback.
+1. Resolves the per-platform optional dependency via `require.resolve` and execs the binary directly (happy path).
+2. If the optional dependency is absent (`--no-optional`, corporate mirrors), checks the cache at `~/.mssql-mcp/bin/<version>/<rid>/`. If cached, execs it.
+3. If not cached, downloads the flat archive from the matching GitHub Release, verifies the `.sha256` sidecar, extracts, `chmod 755` (Unix), caches, and execs. Set `MSSQL_MCP_NO_DOWNLOAD=1` to skip the download attempt.
+
+Every failure mode prints the RID, the GitHub Releases URL for manual download, and the `dotnet tool install -g mssql-mcp` fallback. See [ADR-0028](./docs/adr/0028-binary-delivery-via-optional-dependencies-and-shim-self-heal.md) for the full design.
 
 ### Windows note
 
-`npx -y @codegiveness/mssql-mcp` on Windows will download a framework-dependent build. The first invocation requires the .NET 10 runtime to be installed. If you don't want to install the runtime, install the .NET tool instead:
+`npx -y @codegiveness/mssql-mcp` on Windows delivers a framework-dependent build via `optionalDependencies`. The build requires the .NET 10 runtime to be installed. If the runtime is missing, the shim prints a clear error with the [download URL](https://dotnet.microsoft.com/download) and the `dotnet tool install` fallback. If you don't want to install the runtime, install the .NET tool instead:
 
 ```bash
 dotnet tool install -g mssql-mcp
@@ -300,7 +301,7 @@ Integration tests are tagged `[Trait("Category", "Integration")]` and skipped by
 node npm/test.js
 ```
 
-Verifies `install.js` parses, the RID mapping returns expected values for known platforms, and the checksum parser handles bare and `sha256sum`-formatted sidecar files. The real integration test is `npm pack && npm install` on each platform.
+Verifies the shim (`bin/mssql-mcp.js`) parses, the RID mapping returns expected values for known platforms, and the checksum parser handles bare and `sha256sum`-formatted sidecar files. The real integration test is `npm pack && npm install --ignore-scripts` on each platform.
 
 ### Project layout
 
@@ -313,7 +314,7 @@ src/
 tests/
   mssql-mcp.Core.Tests/ # Guard AST validation, type coercion, etc.
   mssql-mcp.Tools.Tests/ # Tool attribute wiring, schema tests
-npm/                    # npm package: bin shim + install.js + smoke test
+npm/                    # npm package: bin shim + per-platform packages + smoke test
 docs/adr/               # Architectural Decision Records
 ```
 

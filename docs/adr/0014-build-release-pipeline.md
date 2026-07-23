@@ -89,6 +89,8 @@ If any one of these isn't met, stay on `0.x`.
 
 ## `install.js` contract (npm postinstall)
 
+> **⚠ Superseded by [ADR-0028](./0028-binary-delivery-via-optional-dependencies-and-shim-self-heal.md)** — binary delivery moved to `optionalDependencies` + shim self-heal. `install.js` and the postinstall script are deleted. The contract below is retained for historical reference only.
+
 The `npm/install.js` postinstall script depends on these release artifacts:
 - One flat archive per RID (binary at archive root, per sqz contract) — `mssql-mcp-{version}-{rid}.tar.gz` (Unix) or `.zip` (Windows)
 - One SHA256 checksum file per archive — `mssql-mcp-{version}-{rid}.tar.gz.sha256`

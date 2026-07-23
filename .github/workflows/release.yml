@@ -101,6 +101,15 @@ jobs:
             artifacts/mssql-mcp-*.zip
             artifacts/mssql-mcp-*.sha256
 
+      # Sync NuGet version to the tag (like npm — prevents VersionPrefix drift).
+      # The .csproj's <VersionPrefix> is a floor; the tag is the source of truth.
+      - name: Sync NuGet version
+        run: |
+          version="${{ steps.ver.outputs.version }}"
+          sed -i "s|<VersionPrefix>[^<]*</VersionPrefix>|<VersionPrefix>${version}</VersionPrefix>|" src/mssql-mcp/mssql-mcp.csproj
+          echo "Synced VersionPrefix to ${version}"
+          grep VersionPrefix src/mssql-mcp/mssql-mcp.csproj
+
       # NuGet pack + Trusted Publishing push (OIDC, no long-lived API key; see ADR-0019).
       - name: Pack NuGet
         run: dotnet pack src/mssql-mcp -c Release -o artifacts
@@ -112,19 +121,39 @@ jobs:
       - name: Push NuGet
         run: dotnet nuget push "artifacts/codegiveness.mssql-mcp.*.nupkg" --skip-duplicate --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
 
-      # Sync npm version to the tag, then publish with provenance (requires id-token: write).
+      # Sync npm version to the tag, then publish all 6 packages sequentially
+      # (5 per-platform first, main last) with provenance (ADR-0028 §7).
+      # Fail-fast: if any per-platform publish fails, the main package is not published.
       - name: Sync npm version
         run: node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('npm/package.json')); p.version='${{ steps.ver.outputs.version }}'; fs.writeFileSync('npm/package.json', JSON.stringify(p,null,2)+'\n')"
-      - name: npm publish
-        run: cd npm && npm publish --provenance --access public
+
+      - name: Publish per-platform npm packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: npm publish scoped (@codegiveness/mssql-mcp)
         run: |
-          cd npm
-          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json')); p.name='@codegiveness/mssql-mcp'; fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n')"
-          npm publish --provenance --access public
+          set -e
+          tag="${{ steps.tag.outputs.name }}"
+          version="${{ steps.ver.outputs.version }}"
+          for rid in linux-x64 linux-arm64 osx-x64 osx-arm64 win-x64; do
+            echo "=== Publishing @codegiveness/mssql-mcp-$rid ==="
+            pkg_dir="npm/platforms/$rid"
+            # Sync version into the per-platform package.json.
+            node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('$pkg_dir/package.json')); p.version='$version'; fs.writeFileSync('$pkg_dir/package.json', JSON.stringify(p,null,2)+'\n')"
+            # Extract the archive into the package dir (binary at root).
+            ext="tar.gz"
+            [ "$rid" = "win-x64" ] && ext="zip"
+            archive="artifacts/mssql-mcp-${tag}-${rid}.${ext}"
+            if [ "$ext" = "zip" ]; then
+              unzip -o "$archive" -d "$pkg_dir"
+            else
+              tar -xzf "$archive" -C "$pkg_dir"
+            fi
+            # Publish from the per-platform package dir.
+            (cd "$pkg_dir" && npm publish --provenance --access public)
+          done
+
+      - name: Publish main npm package (@codegiveness/mssql-mcp)
+        run: cd npm && npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

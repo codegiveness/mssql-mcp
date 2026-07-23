@@ -44,6 +44,10 @@ _Avoid_: DX, user experience, getting started
 An MCP client application that hosts the server and drives tool calls (Claude Desktop, Cursor, Windsurf, Cline, Continue, Zed, VS Code, Codex CLI, opencode, etc.). Distinguished from the Agent (the AI) and the end user (the human). The server is harness-agnostic over stdio, but each harness has its own config file format and location.
 _Avoid_: client, host, editor (use "Harness" for the MCP client app; "Agent" for the AI inside it)
 
+**Postinstall-Independent Install**:
+An install path that produces a working binary even when npm's `postinstall` lifecycle script is skipped (via `--ignore-scripts`, corporate config, or npx cache quirks). Achieved by bundling the native binary inside platform-specific npm packages declared as `optionalDependencies`, so npm itself installs the correct binary for the host platform with no lifecycle script involvement. The reference benchmark is `npx -y @colbymchenry/codegraph` working on a clean machine with only Node installed and `ignore-scripts=true`.
+_Avoid_: reliable install, robust install
+
 **Harness Verification Record**:
 The per-harness artifact produced by the manual verification step (ADR-0022). For each of the 6 documented harnesses, records three things: (1) config file path per OS, (2) log file location, (3) what a successful MCP connection looks like in that harness's UI/logs. Feeds the Troubleshooting section's per-harness "where to look" table. A harness snippet cannot be published until its Verification Record is complete.
 _Avoid_: harness test, client checklist

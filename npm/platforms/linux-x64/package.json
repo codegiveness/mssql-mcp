@@ -1,0 +1,15 @@
+{
+  "name": "@codegiveness/mssql-mcp-linux-x64",
+  "version": "0.3.0",
+  "description": "mssql-mcp native binary for linux-x64",
+  "license": "MIT",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "mssql-mcp"
+  ]
+}

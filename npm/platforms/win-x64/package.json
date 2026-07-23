@@ -1,0 +1,9 @@
+{
+  "name": "@codegiveness/mssql-mcp-win-x64",
+  "version": "0.3.0",
+  "description": "mssql-mcp native binary for win-x64 (framework-dependent, requires .NET 10 runtime)",
+  "license": "MIT",
+  "os": ["win32"],
+  "cpu": ["x64"],
+  "files": ["mssql-mcp.exe"]
+}
