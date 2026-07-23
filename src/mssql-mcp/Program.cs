@@ -10,12 +10,23 @@ using mssql_mcp.Core.Guard;
 using mssql_mcp.Core.Logging;
 using mssql_mcp.Tools;
 
-// --version: print the assembly version and exit 0. No DB connection required.
-if (args.Contains("--version"))
+// Pre-Parse dispatch: --version / --help / -h handled before any DB or env access (ADR-0031).
+// Help takes precedence over version; everything else falls through to RunServer.
+CliDispatchResult dispatch = CliDispatch.Dispatch(args);
+switch (dispatch)
 {
-    string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
-    Console.WriteLine("mssql-mcp " + version);
-    return 0;
+    case CliDispatchResult.Version:
+        string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
+        Console.WriteLine("mssql-mcp " + version);
+        return 0;
+    case CliDispatchResult.Help:
+        Console.WriteLine(CliDispatch.UsageText);
+        return 0;
+    case CliDispatchResult.UnknownArgument unknown:
+        Console.Error.WriteLine($"mssql-mcp: unknown argument '{unknown.Argument}'.");
+        Console.Error.WriteLine();
+        Console.Error.WriteLine(CliDispatch.UsageText);
+        return 1;
 }
 
 // CRITICAL: stdout is the MCP JSON-RPC transport — all logging MUST go to stderr.

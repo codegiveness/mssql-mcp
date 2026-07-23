@@ -47,18 +47,20 @@ public sealed class DatabaseTools
 
     private const string ColumnsSqlTemplate =
         """
-        SELECT name, system_type_name, max_length, precision, scale, is_nullable, is_identity, ordinal_position
-        FROM {0}sys.columns
-        WHERE object_id = @objectId
-        ORDER BY ordinal_position
+        SELECT c.name, t.name AS system_type_name, c.max_length, c.precision, c.scale, c.is_nullable, c.is_identity, c.column_id AS ordinal_position
+        FROM {0}sys.columns c
+        JOIN {0}sys.types t ON c.user_type_id = t.user_type_id
+        WHERE c.object_id = @objectId
+        ORDER BY c.column_id
         """;
 
     private const string ParametersSqlTemplate =
         """
-        SELECT name, system_type_name, max_length, precision, scale, is_output, parameter_id, default_value
-        FROM {0}sys.parameters
-        WHERE object_id = @objectId
-        ORDER BY parameter_id
+        SELECT p.name, t.name AS system_type_name, p.max_length, p.precision, p.scale, p.is_output, p.parameter_id, p.default_value
+        FROM {0}sys.parameters p
+        JOIN {0}sys.types t ON p.user_type_id = t.user_type_id
+        WHERE p.object_id = @objectId
+        ORDER BY p.parameter_id
         """;
 
     private const string IndexesSqlTemplate =
@@ -340,8 +342,8 @@ public sealed class DatabaseTools
                 return ToolErrors.ObjectNotFoundError(database, schema, name, type);
             }
 
-            string typeChar = lookupRows[0].TryGetValue("type", out object? t) && t is string tv ? tv : string.Empty;
-            long objectId = lookupRows[0].TryGetValue("object_id", out object? oid) && oid is long l ? l : 0L;
+            string typeChar = lookupRows[0].TryGetValue("type", out object? t) && t is string tv ? tv.Trim() : string.Empty;
+            long objectId = lookupRows[0].TryGetValue("object_id", out object? oid) ? oid switch { long l => l, int i => i, _ => 0L } : 0L;
 
             string columnsSql = string.Format(CultureInfo.InvariantCulture, ColumnsSqlTemplate, dbPrefix);
             string parametersSql = string.Format(CultureInfo.InvariantCulture, ParametersSqlTemplate, dbPrefix);

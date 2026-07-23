@@ -72,28 +72,140 @@ The `mssql-mcp` command should be on your PATH after installation. Use `mssql-mc
 
 ## Supported clients
 
-<!-- TODO: #37 — harness snippets -->
+mssql-mcp works with any MCP-compatible client. The config below goes into the client's MCP server settings. Replace `<your-server>`, `<your-database>`, `<your-username>`, `<your-password>` with your SQL Server details.
 
-| Harness | Status | Snippet |
-|---|---|---|
-| Claude Desktop | supported | see Quick start |
-| Cursor | planned | `<!-- TODO: #37 -->` |
-| VS Code/Copilot | planned | `<!-- TODO: #37 -->` |
-| Windsurf | planned | `<!-- TODO: #37 -->` |
-| Cline/Roo | planned | `<!-- TODO: #37 -->` |
-| Continue | planned | `<!-- TODO: #37 -->` |
+### Claude Desktop
 
-## Verify it works
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 
-Step 3 of Quick start (`--validate`) proves the server starts and the DB connection works. This section proves the last mile: the agent can see the server and call tools.
+```jsonc
+{
+  "mcpServers": {
+    "mssql-mcp": {
+      "command": "npx",
+      "args": ["-y", "@codegiveness/mssql-mcp"],
+      "env": {
+        "MSSQL_CONNECTION_STRING": "Server=<your-server>;Database=<your-database>;User Id=<your-username>;Password=<your-password>;Encrypt=True;TrustServerCertificate=True;"
+      }
+    }
+  }
+}
+```
 
-1. **Restart your MCP client** (Claude Desktop, Cursor, etc.) so it picks up the config change from step 2.
-2. **Ask the agent something that requires a tool call**, e.g. *"What databases do I have?"* — the agent should call `list_databases` and return a JSON array of databases.
-3. **If the agent can't see the server**, check the MCP client logs:
-   - **Claude Desktop:** `~/Library/Logs/Claude/mcp*.log` (macOS), `%APPDATA%\Claude\logs\mcp*.log` (Windows).
-   - **Other clients:** see [Troubleshooting](#troubleshooting).
+### Cursor
 
-If `--validate` passed but the agent can't see the server, the server is working — the harness config is the problem (wrong config file path, JSON syntax error, missing env var, or the client needs a restart).
+Edit `~/.cursor/mcp.json` (macOS/Linux) or `%USERPROFILE%\.cursor\mcp.json` (Windows):
+
+```jsonc
+{
+  "mcpServers": {
+    "mssql-mcp": {
+      "command": "npx",
+      "args": ["-y", "@codegiveness/mssql-mcp"],
+      "env": {
+        "MSSQL_CONNECTION_STRING": "Server=<your-server>;Database=<your-database>;User Id=<your-username>;Password=<your-password>;Encrypt=True;TrustServerCertificate=True;"
+      }
+    }
+  }
+}
+```
+
+### VS Code / GitHub Copilot
+
+Edit `.vscode/mcp.json` in your workspace (or `~/.vscode/mcp.json` for global):
+
+```jsonc
+{
+  "mcpServers": {
+    "mssql-mcp": {
+      "command": "npx",
+      "args": ["-y", "@codegiveness/mssql-mcp"],
+      "env": {
+        "MSSQL_CONNECTION_STRING": "Server=<your-server>;Database=<your-database>;User Id=<your-username>;Password=<your-password>;Encrypt=True;TrustServerCertificate=True;"
+      }
+    }
+  }
+}
+```
+
+### Windsurf
+
+Edit `~/.codeium/windsurf/mcp_config.json`:
+
+```jsonc
+{
+  "mcpServers": {
+    "mssql-mcp": {
+      "command": "npx",
+      "args": ["-y", "@codegiveness/mssql-mcp"],
+      "env": {
+        "MSSQL_CONNECTION_STRING": "Server=<your-server>;Database=<your-database>;User Id=<your-username>;Password=<your-password>;Encrypt=True;TrustServerCertificate=True;"
+      }
+    }
+  }
+}
+```
+
+### Cline / Roo Code
+
+Edit `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json` (VS Code extension path):
+
+```jsonc
+{
+  "mcpServers": {
+    "mssql-mcp": {
+      "command": "npx",
+      "args": ["-y", "@codegiveness/mssql-mcp"],
+      "env": {
+        "MSSQL_CONNECTION_STRING": "Server=<your-server>;Database=<your-database>;User Id=<your-username>;Password=<your-password>;Encrypt=True;TrustServerCertificate=True;"
+      }
+    }
+  }
+}
+```
+
+### Continue
+
+Edit `~/.continue/config.json`:
+
+```jsonc
+{
+  "mcpServers": {
+    "mssql-mcp": {
+      "command": "npx",
+      "args": ["-y", "@codegiveness/mssql-mcp"],
+      "env": {
+        "MSSQL_CONNECTION_STRING": "Server=<your-server>;Database=<your-database>;User Id=<your-username>;Password=<your-password>;Encrypt=True;TrustServerCertificate=True;"
+      }
+    }
+  }
+}
+```
+
+### Verify the connection
+
+After editing your client's config:
+
+1. **Restart the client** so it picks up the config change.
+2. **Ask the agent** *"What databases do I have?"* — it should call `list_databases` and return a JSON array.
+3. **If it fails**, run `npx -y @codegiveness/mssql-mcp --validate` in your terminal. Prints `[startup] Connection validated successfully.` → the server works; the client config is the problem (wrong path, JSON syntax error, missing env var, or the client needs a restart).
+
+### dotnet tool alternative
+
+If you installed via `dotnet tool install -g codegiveness.mssql-mcp`, replace the `command`/`args` in any config above with:
+
+```jsonc
+{
+  "mcpServers": {
+    "mssql-mcp": {
+      "command": "mssql-mcp",
+      "env": {
+        "MSSQL_CONNECTION_STRING": "Server=<your-server>;Database=<your-database>;User Id=<your-username>;Password=<your-password>;Encrypt=True;TrustServerCertificate=True;"
+      }
+    }
+  }
+}
+```
 
 ## Access modes
 

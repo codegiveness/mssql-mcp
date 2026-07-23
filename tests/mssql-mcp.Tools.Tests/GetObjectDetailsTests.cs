@@ -359,4 +359,28 @@ public class GetObjectDetailsTests
         string lookupSql = capturedSqls[1];
         Assert.Contains("object_id", lookupSql, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task GetObjectDetails_Table_TypeCharPadded_ReturnsColumns()
+    {
+        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
+        executor.ExecuteQueryAsync(
+                Arg.Any<string>(),
+                Arg.Any<IReadOnlyDictionary<string, object>?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(
+                ObjectRow("U "),  // char(2) padded — real SQL Server behavior
+                Columns(),
+                Indexes(),
+                Triggers());
+
+        DatabaseTools tools = CreateTools(executor);
+        CallToolResult result = await tools.GetObjectDetails(null, "dbo", "Orders", null, CancellationToken.None);
+
+        Assert.False(result.IsError ?? false);
+        string json = GetJson(result);
+        using JsonDocument doc = JsonDocument.Parse(json);
+        Assert.Equal(4, doc.RootElement.GetArrayLength());
+        Assert.Equal("Id", doc.RootElement[0].GetProperty("name").GetString());
+    }
 }

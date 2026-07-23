@@ -172,6 +172,21 @@ jobs:
       - name: Verify --version exits 0
         run: ./smoke/mssql-mcp --version
 
+      - name: Verify --help exits 0 and prints usage
+        run: |
+          output=$(./smoke/mssql-mcp --help)
+          echo "$output" | grep -q "Usage: mssql-mcp"
+          echo "$output" | grep -q "To update"
+
+      - name: Verify unknown argument exits 1
+        run: |
+          set +e
+          output=$(./smoke/mssql-mcp upgrade 2>&1 1>/dev/null)
+          exit_code=$?
+          set -e
+          echo "$output" | grep -q "unknown argument 'upgrade'"
+          [ "$exit_code" -eq 1 ] || { echo "Expected exit 1, got $exit_code"; exit 1; }
+
       - name: Start Azure SQL Edge
         run: |
           docker run -d \

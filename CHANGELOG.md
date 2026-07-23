@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-07-24
+
+### Added
+
+- **`--help`/`-h` flag** — prints a usage block listing all flags, env var equivalents, defaults, and a "To update" section (npm + dotnet tool update paths). Exits 0. Previously, running `mssql-mcp --help` produced a confusing "Missing SQL Server connection string" error.
+- **Graceful unknown-argument error** — unrecognized arguments (e.g. `mssql-mcp upgrade`) now print `mssql-mcp: unknown argument '<arg>'.` + the usage block to stderr and exit 1. Previously, unknown args fell through to `MssqlMcpOptions.Parse()` and threw a connection-string error that had nothing to do with the user's intent.
+- **Pre-push verification discipline** — `CONTRIBUTING.md` and `AGENTS.md` now carry a pre-push checklist table (unit tests, integration tests, `--validate`, `--help`, unknown-arg error, npm smoke, LSP diagnostics, MCP stdio smoke). `.env.example` is committed as a template with angle-bracket placeholders.
+- **MCP stdio smoke test** — `scripts/mcp-smoke.sh` uses the official MCP Inspector CLI to perform a real JSON-RPC handshake (`initialize` → `tools/list` → `tools/call list_databases`). Added to the pre-push checklist as mandatory.
+- **ADR-0031** — records the decision rationale for the unknown-argument dispatch layer and pre-push discipline.
+
+### Fixed
+
+- **`get_object_details` returned `[]` for every object** — three bugs in `DatabaseTools.cs`:
+  1. `sys.objects.type` is `char(2)`, returning `"U "` (padded). The code compared to `"U"` without trimming — `Trim()` the value after reading.
+  2. `sys.columns` and `sys.parameters` don't have a `system_type_name` column — join to `sys.types` on `user_type_id` to get the type name.
+  3. `sys.objects.object_id` is `int` (Int32), not `long` (Int64). The `is long` check failed silently, defaulting `objectId` to `0L`, so all detail queries matched nothing — handle both `int` and `long`.
+
+### Changed
+
+- **`Program.cs` now dispatches via `CliDispatch`** — a pure function in Core decides Version/Help/UnknownArgument/RunServer before `MssqlMcpOptions.Parse()` runs. `Parse()` is unchanged. Precedence: Help > Version > UnknownArgument > RunServer.
+
 ## [0.4.0] - 2026-07-23
 
 ### Fixed
