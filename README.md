@@ -8,66 +8,42 @@
 
 A Model Context Protocol (MCP) server for Microsoft SQL Server, built in C#/.NET 10. Lets AI agents (Claude Desktop, Cursor, etc.) safely query and interact with SQL Server through a controlled tool surface.
 
-> **Get started in one command:**
-> ```bash
-> npx -y @codegiveness/mssql-mcp --validate
-> ```
-> 1. **Install** — npm's dependency resolution delivers the prebuilt binary via per-platform `optionalDependencies`.
-> 2. **Configure** — paste the config snippet below into your MCP client.
-> 3. **Validate** — `--validate` confirms the server starts and the DB connection works.
-
-> **⚠ Windows users:** The Windows build is framework-dependent and requires the [.NET 10 runtime](https://dotnet.microsoft.com/download). If you don't have it, install the .NET tool instead: `dotnet tool install -g mssql-mcp`. See [Windows note](#windows-note) below.
-
 ## Quick start
 
-### macOS/Linux
+1. **Install** — verify the binary runs on your machine:
+   ```bash
+   npx -y @codegiveness/mssql-mcp --version
+   ```
+   Prints `mssql-mcp 0.x.x` → install succeeded. The npm package resolves a per-platform optional dependency (`@codegiveness/mssql-mcp-<rid>`) that bundles the prebuilt binary — no postinstall script involved. Works on Linux x64/arm64 and macOS x64/arm64 without installing .NET. If the optional dependency is stripped (`--no-optional`, corporate mirrors), the shim self-heals by downloading from GitHub Releases. See [ADR-0028](./docs/adr/0028-binary-delivery-via-optional-dependencies-and-shim-self-heal.md).
 
-The npm package resolves a per-platform optional dependency (`@codegiveness/mssql-mcp-<rid>`) that bundles the prebuilt binary — no postinstall script involved. `npx -y @codegiveness/mssql-mcp` works on Linux x64/arm64 and macOS x64/arm64 without installing .NET. If the optional dependency is stripped (`--no-optional`, corporate mirrors), the shim self-heals by downloading from GitHub Releases. See [ADR-0028](./docs/adr/0028-binary-delivery-via-optional-dependencies-and-shim-self-heal.md).
+   > **Windows without .NET 10?** The Windows build is framework-dependent and requires the [.NET 10 runtime](https://dotnet.microsoft.com/download). If you don't have it, install the .NET tool instead:
+   > ```bash
+   > dotnet tool install -g mssql-mcp
+   > mssql-mcp --version
+   > ```
+   > Then use `"command": "mssql-mcp"` (instead of `"command": "npx"`) in your MCP client config in step 2. See [Windows note](#windows-note) below.
 
-```bash
-npx -y @codegiveness/mssql-mcp --validate
-```
+2. **Configure** — add the server to your MCP client. For Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
+   ```jsonc
+   {
+     "mcpServers": {
+       "mssql-mcp": {
+         "command": "npx",
+         "args": ["-y", "@codegiveness/mssql-mcp"],
+         "env": {
+           "MSSQL_CONNECTION_STRING": "Server=<your-server>;Database=<your-database>;User Id=<your-username>;Password=<your-password>;Encrypt=True;TrustServerCertificate=True;"
+         }
+       }
+     }
+   }
+   ```
+   Replace the `<...>` placeholders with your SQL Server details. See [Authentication](#authentication) for connection-string examples (SQL auth, Windows Integrated, Entra ID).
 
-Add it to Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
-
-```jsonc
-{
-  "mcpServers": {
-    "mssql-mcp": {
-      "command": "npx",
-      "args": ["-y", "@codegiveness/mssql-mcp"],
-      "env": {
-        "MSSQL_CONNECTION_STRING": "Server=localhost;Database=WideWorldImporters;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;"
-      }
-    }
-  }
-}
-```
-
-Restart Claude Desktop. Ask Claude: *"What databases do I have?"* and it should call `list_databases`.
-
-### Windows
-
-Install as a global .NET tool (recommended on Windows):
-
-```bash
-dotnet tool install -g mssql-mcp
-```
-
-Then point your MCP client at the installed binary. With Claude Desktop:
-
-```jsonc
-{
-  "mcpServers": {
-    "mssql-mcp": {
-      "command": "mssql-mcp",
-      "env": {
-        "MSSQL_CONNECTION_STRING": "Server=localhost;Database=WideWorldImporters;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;"
-      }
-    }
-  }
-}
-```
+3. **Validate** — confirm the server starts and the DB connection works:
+   ```bash
+   npx -y @codegiveness/mssql-mcp --validate
+   ```
+   Prints `[startup] Connection validated successfully.` → wiring is correct.
 
 <details>
 <summary>Dotnet tool path on macOS/Linux</summary>
@@ -78,7 +54,7 @@ If you prefer the .NET tool on macOS/Linux, install the .NET 10 SDK first, then 
 dotnet tool install -g mssql-mcp
 ```
 
-The `mssql-mcp` command should be on your PATH after installation. Use `mssql-mcp --validate` to confirm it starts.
+The `mssql-mcp` command should be on your PATH after installation. Use `mssql-mcp --version` to confirm it starts, then point your MCP client at `mssql-mcp` (instead of `npx -y @codegiveness/mssql-mcp`) in step 2.
 </details>
 
 ## Why this exists
@@ -109,9 +85,15 @@ The `mssql-mcp` command should be on your PATH after installation. Use `mssql-mc
 
 ## Verify it works
 
-<!-- TODO: #38 — verify-it-works content -->
+Step 3 of Quick start (`--validate`) proves the server starts and the DB connection works. This section proves the last mile: the agent can see the server and call tools.
 
-Run `mssql-mcp --validate` to confirm the server can start and connect to the database configured via `MSSQL_CONNECTION_STRING`. If it prints a validation success message, the wiring is correct. If it passes but the agent still can't see the server, check the MCP client logs and see [Troubleshooting](#troubleshooting).
+1. **Restart your MCP client** (Claude Desktop, Cursor, etc.) so it picks up the config change from step 2.
+2. **Ask the agent something that requires a tool call**, e.g. *"What databases do I have?"* — the agent should call `list_databases` and return a JSON array of databases.
+3. **If the agent can't see the server**, check the MCP client logs:
+   - **Claude Desktop:** `~/Library/Logs/Claude/mcp*.log` (macOS), `%APPDATA%\Claude\logs\mcp*.log` (Windows).
+   - **Other clients:** see [Troubleshooting](#troubleshooting).
+
+If `--validate` passed but the agent can't see the server, the server is working — the harness config is the problem (wrong config file path, JSON syntax error, missing env var, or the client needs a restart).
 
 ## Access modes
 

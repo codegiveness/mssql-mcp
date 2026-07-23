@@ -40,6 +40,10 @@ _Avoid_: override chain, config hierarchy
 The set of artifacts a first-time user touches to go from "heard about it" to "agent returns a query result." Four layers, in order: install one-liner, harness-specific config snippet, verify-it-works command, troubleshooting/FAQ. A repo "feels instant" when all four layers exist and the first two are copy-pasteable with zero reading.
 _Avoid_: DX, user experience, getting started
 
+**Zero-Config Proof Command**:
+A command that proves the install succeeded without requiring any configuration. Must exit 0 on a clean machine with only the tool itself installed. Distinct from a connection validator (which proves the DB wiring and therefore requires a connection string). A command that needs configuration to succeed must not appear in the hero position of the README — it belongs after the configuration step. The test: "can the dumbest user who reads nothing else paste this and see success?" If no, it's in the wrong section.
+_Avoid_: smoke test, health check, install verify
+
 **Harness**:
 An MCP client application that hosts the server and drives tool calls (Claude Desktop, Cursor, Windsurf, Cline, Continue, Zed, VS Code, Codex CLI, opencode, etc.). Distinguished from the Agent (the AI) and the end user (the human). The server is harness-agnostic over stdio, but each harness has its own config file format and location.
 _Avoid_: client, host, editor (use "Harness" for the MCP client app; "Agent" for the AI inside it)
