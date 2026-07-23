@@ -43,7 +43,7 @@ Single custom logger filter applies `Password=...;` → `Password=***;` regex re
 
 ## Consequences
 
-- No file rotation in v1 — `MSSQL_LOG_FILE` writes to the exact path the user gives. Users wanting rotation configure logrotate / Windows Event Tracing externally. Documented in README.
+- ~~No file rotation in v1~~ — reversed by [ADR-0030](./0030-log-file-rotation.md): the file sink now performs built-in size-based rotation (`MSSQL_LOG_FILE_MAX_BYTES` / `MSSQL_LOG_FILE_MAX_ROLLS`).
 - Stack traces from `[internal]` errors go to logs at `Error` level, never to the Agent (per ADR-0010).
 - No new dependencies — `Microsoft.Extensions.Logging.Console` ships with the SDK; file logging uses BCL `Stream` + `Microsoft.Extensions.Logging.Abstractions`.
 - Adding structured JSON logging in v2 is additive (new formatter) and non-breaking.

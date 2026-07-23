@@ -205,15 +205,18 @@ jobs:
       - name: Verify MCP tool responds (JSON-RPC smoke)
         run: |
           # Send initialize + list_databases tools/call over stdio.
-          # Keep stdin open with a sleep so the server has time to write responses
-          # before EOF triggers shutdown. Without the sleep, the pipe closes after
-          # printf and the server shuts down before flushing responses.
+          # Messages are sent with small delays between them so the server has time
+          # to process each request and flush its response before receiving the next.
+          # A trailing sleep keeps stdin open so EOF doesn't trigger early shutdown.
           # Fail if the response contains the crash envelope or is not valid JSON.
-          response=$({ printf '%s\n' \
-            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0.0.0"}}}' \
-            '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
-            '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_databases","arguments":{}}}'; sleep 5; } \
-            | MSSQL_CONNECTION_STRING="Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;" ./smoke/mssql-mcp 2>/dev/null)
+          response=$({
+            printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0.0.0"}}}'
+            sleep 2
+            printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+            sleep 1
+            printf '%s\n' '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_databases","arguments":{}}}'
+            sleep 10
+          } | MSSQL_CONNECTION_STRING="Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;" ./smoke/mssql-mcp 2>/dev/null)
 
           # Check for crash envelope (issue #44 symptom).
           if echo "$response" | grep -q "An error occurred invoking"; then

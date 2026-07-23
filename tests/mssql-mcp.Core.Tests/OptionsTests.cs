@@ -71,6 +71,88 @@ public class OptionsTests
         Assert.Equal(3, options.RetryCount);
         Assert.Equal(2, options.RetryIntervalMin);
         Assert.Equal(10, options.RetryIntervalMax);
+        Assert.Equal(50 * 1024 * 1024L, options.LogFileMaxBytes);
+        Assert.Equal(3, options.LogFileMaxRolls);
+    }
+
+    [Fact]
+    public void Parse_EnvLogFileMaxBytes_Applied()
+    {
+        var env = Env(("MSSQL_LOG_FILE_MAX_BYTES", "1024"));
+        var options = MssqlMcpOptions.Parse(
+            new[] { "--connection-string", "Server=x;" },
+            env);
+        Assert.Equal(1024L, options.LogFileMaxBytes);
+    }
+
+    [Fact]
+    public void Parse_EnvLogFileMaxBytes_Zero_DisablesRotation()
+    {
+        var env = Env(("MSSQL_LOG_FILE_MAX_BYTES", "0"));
+        var options = MssqlMcpOptions.Parse(
+            new[] { "--connection-string", "Server=x;" },
+            env);
+        Assert.Equal(0L, options.LogFileMaxBytes);
+    }
+
+    [Fact]
+    public void Parse_EnvLogFileMaxBytes_Negative_Throws()
+    {
+        var env = Env(("MSSQL_LOG_FILE_MAX_BYTES", "-1"));
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            MssqlMcpOptions.Parse(
+                new[] { "--connection-string", "Server=x;" },
+                env));
+        Assert.Contains("[startup]", ex.Message);
+        Assert.Contains("log file max bytes", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("-1", ex.Message);
+    }
+
+    [Fact]
+    public void Parse_EnvLogFileMaxBytes_InvalidValue_Throws()
+    {
+        var env = Env(("MSSQL_LOG_FILE_MAX_BYTES", "abc"));
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            MssqlMcpOptions.Parse(
+                new[] { "--connection-string", "Server=x;" },
+                env));
+        Assert.Contains("log file max bytes", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("abc", ex.Message);
+    }
+
+    [Fact]
+    public void Parse_EnvLogFileMaxRolls_Applied()
+    {
+        var env = Env(("MSSQL_LOG_FILE_MAX_ROLLS", "5"));
+        var options = MssqlMcpOptions.Parse(
+            new[] { "--connection-string", "Server=x;" },
+            env);
+        Assert.Equal(5, options.LogFileMaxRolls);
+    }
+
+    [Fact]
+    public void Parse_EnvLogFileMaxRolls_Negative_Throws()
+    {
+        var env = Env(("MSSQL_LOG_FILE_MAX_ROLLS", "-1"));
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            MssqlMcpOptions.Parse(
+                new[] { "--connection-string", "Server=x;" },
+                env));
+        Assert.Contains("[startup]", ex.Message);
+        Assert.Contains("log file max rolls", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("-1", ex.Message);
+    }
+
+    [Fact]
+    public void Parse_EnvLogFileMaxRolls_InvalidValue_Throws()
+    {
+        var env = Env(("MSSQL_LOG_FILE_MAX_ROLLS", "abc"));
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            MssqlMcpOptions.Parse(
+                new[] { "--connection-string", "Server=x;" },
+                env));
+        Assert.Contains("log file max rolls", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("abc", ex.Message);
     }
 
     [Fact]

@@ -14,6 +14,8 @@ public sealed class MssqlMcpOptions
     public const string EnvQueryTimeout = "MSSQL_QUERY_TIMEOUT";
     public const string EnvLogLevel = "MSSQL_LOG_LEVEL";
     public const string EnvLogFile = "MSSQL_LOG_FILE";
+    public const string EnvLogFileMaxBytes = "MSSQL_LOG_FILE_MAX_BYTES";
+    public const string EnvLogFileMaxRolls = "MSSQL_LOG_FILE_MAX_ROLLS";
     public const string EnvMaxResultBytes = "MSSQL_MAX_RESULT_BYTES";
     public const string EnvRetryCount = "MSSQL_RETRY_COUNT";
     public const string EnvRetryIntervalMin = "MSSQL_RETRY_INTERVAL";
@@ -24,6 +26,10 @@ public sealed class MssqlMcpOptions
     public const int DefaultRetryCount = 3;
     public const int DefaultRetryIntervalMin = 2;
     public const int DefaultRetryIntervalMax = 10;
+
+    // Default rotation thresholds per ADR-0030. 50 MB active file cap, 3 archived rolls.
+    public const long DefaultLogFileMaxBytes = 50 * 1024 * 1024;
+    public const int DefaultLogFileMaxRolls = 3;
 
     public const string CliConnectionString = "--connection-string";
     public const string CliAccessMode = "--access-mode";
@@ -43,6 +49,8 @@ public sealed class MssqlMcpOptions
     public int QueryTimeout { get; set; } = 30;
     public string LogLevel { get; set; } = "info";
     public string? LogFile { get; set; }
+    public long LogFileMaxBytes { get; set; } = DefaultLogFileMaxBytes;
+    public int LogFileMaxRolls { get; set; } = DefaultLogFileMaxRolls;
     public long MaxResultBytes { get; set; } = 10 * 1024 * 1024; // 10 MB per ADR-0003
     public int RetryCount { get; set; } = DefaultRetryCount;
     public int RetryIntervalMin { get; set; } = DefaultRetryIntervalMin;
@@ -115,6 +123,29 @@ public sealed class MssqlMcpOptions
         if (!string.IsNullOrWhiteSpace(logFileRaw))
         {
             options.LogFile = logFileRaw;
+        }
+
+        // Log file rotation: env only per ADR-0030. maxBytes=0 disables rotation entirely.
+        string? maxBytesRaw = GetEnv(env, EnvLogFileMaxBytes);
+        if (!string.IsNullOrWhiteSpace(maxBytesRaw))
+        {
+            if (!long.TryParse(maxBytesRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out long parsedMaxBytes) || parsedMaxBytes < 0)
+            {
+                throw new InvalidOperationException(
+                    $"[startup] Invalid log file max bytes '{maxBytesRaw}'. Must be a non-negative integer.");
+            }
+            options.LogFileMaxBytes = parsedMaxBytes;
+        }
+
+        string? maxRollsRaw = GetEnv(env, EnvLogFileMaxRolls);
+        if (!string.IsNullOrWhiteSpace(maxRollsRaw))
+        {
+            if (!int.TryParse(maxRollsRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedMaxRolls) || parsedMaxRolls < 0)
+            {
+                throw new InvalidOperationException(
+                    $"[startup] Invalid log file max rolls '{maxRollsRaw}'. Must be a non-negative integer.");
+            }
+            options.LogFileMaxRolls = parsedMaxRolls;
         }
 
         // Max result bytes: env only.

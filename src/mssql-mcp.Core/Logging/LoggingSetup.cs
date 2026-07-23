@@ -18,10 +18,17 @@ public static class LoggingSetup
     /// <item>Minimum level from <paramref name="logLevel"/> (parsed from CLI/env).</item>
     /// <item>Console logger writing to stderr (stdout is the MCP JSON-RPC channel),
     /// wrapped in <see cref="PasswordObfuscatingLoggerProvider"/>.</item>
-    /// <item>File logger writing to <paramref name="logFile"/> if non-empty, also obfuscated.</item>
+    /// <item>File logger writing to <paramref name="logFile"/> if non-empty, also obfuscated.
+    /// Rotation is configured via <paramref name="logFileMaxBytes"/> and
+    /// <paramref name="logFileMaxRolls"/> per ADR-0030.</item>
     /// </list>
     /// </summary>
-    public static void Configure(ILoggingBuilder builder, LogLevel logLevel, string? logFile)
+    public static void Configure(
+        ILoggingBuilder builder,
+        LogLevel logLevel,
+        string? logFile,
+        long logFileMaxBytes,
+        int logFileMaxRolls)
     {
         builder.SetMinimumLevel(logLevel);
 
@@ -38,7 +45,7 @@ public static class LoggingSetup
         if (!string.IsNullOrEmpty(logFile))
         {
             // FileLoggerProvider applies PasswordObfuscator internally as defense-in-depth.
-            builder.AddProvider(new FileLoggerProvider(logFile));
+            builder.AddProvider(new FileLoggerProvider(logFile, logFileMaxBytes, logFileMaxRolls));
         }
     }
 

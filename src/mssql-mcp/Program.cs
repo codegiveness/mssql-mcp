@@ -59,7 +59,7 @@ catch (InvalidOperationException ex)
     return 1;
 }
 
-LoggingSetup.Configure(builder.Logging, logLevel, options.LogFile);
+LoggingSetup.Configure(builder.Logging, logLevel, options.LogFile, options.LogFileMaxBytes, options.LogFileMaxRolls);
 
 // Register options both as concrete type (for direct injection) and via IOptions<T> (for
 // tools that depend on IOptions<MssqlMcpOptions>). AddSingleton<T> alone does NOT populate
@@ -73,6 +73,8 @@ builder.Services.AddOptions<MssqlMcpOptions>()
         o.QueryTimeout = options.QueryTimeout;
         o.LogLevel = options.LogLevel;
         o.LogFile = options.LogFile;
+        o.LogFileMaxBytes = options.LogFileMaxBytes;
+        o.LogFileMaxRolls = options.LogFileMaxRolls;
         o.MaxResultBytes = options.MaxResultBytes;
         o.RetryCount = options.RetryCount;
         o.RetryIntervalMin = options.RetryIntervalMin;

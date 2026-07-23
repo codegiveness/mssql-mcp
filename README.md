@@ -165,10 +165,14 @@ All runtime parameters are configurable via environment variable. Precedence: CL
 | `MSSQL_QUERY_TIMEOUT` | `30` (restricted), `0` (unrestricted) | `--query-timeout` | Per-query command timeout in seconds; `0` = unlimited |
 | `MSSQL_LOG_LEVEL` | `info` | `--log-level` | `trace` / `debug` / `info` / `warning` / `error` / `critical` |
 | `MSSQL_LOG_FILE` | (stderr only) | (none) | Optional file path for log output |
+| `MSSQL_LOG_FILE_MAX_BYTES` | `52428800` (50 MB) | (none) | Byte threshold for active file rotation per ADR-0030; `0` disables rotation |
+| `MSSQL_LOG_FILE_MAX_ROLLS` | `3` | (none) | Number of archived files (`<path>.1`..`<path>.{n}`) retained per ADR-0030 |
 | `MSSQL_MAX_RESULT_BYTES` | `10485760` (10 MB) | (none) | Result byte-size safety net; `0` disables |
 | `MSSQL_RETRY_COUNT` | `3` | (none) | Transient-failure retry count (after first attempt) |
 | `MSSQL_RETRY_INTERVAL` | `2` seconds | (none) | Min backoff for transient retries |
 | `MSSQL_RETRY_INTERVAL_MAX` | `10` seconds | (none) | Max backoff for transient retries |
+
+> **Connection pooling:** The server does not override SqlClient connection-string pool settings. You can set `Max Pool Size` and `Connection Lifetime` in `MSSQL_CONNECTION_STRING` if you need to. In the stdio single-agent deployment model there is one MCP server process per harness, agents call tools sequentially, and the pool realistically holds 1–2 connections, so the per-query command timeout is the backstop against pool exhaustion. See [ADR-0004](./docs/adr/0004-connection-lifecycle.md) for the connection lifecycle rationale.
 
 Invalid values fail fast at startup with a clear `[startup]` error naming the var, the invalid value, and the accepted range. Unknown env vars are ignored (forward compatibility).
 
