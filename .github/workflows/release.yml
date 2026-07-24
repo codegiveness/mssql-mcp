@@ -85,7 +85,7 @@ jobs:
 
       - name: Generate SBOM
         run: |
-          dotnet tool install --global CycloneDX
+          dotnet tool install --global CycloneDX --version 6.2.0
           ~/.dotnet/tools/cyclonedx mssql-mcp.sln --output artifacts/sbom
 
       # GitHub Release FIRST so the shim self-heal can fetch archives before npm publish lands.
