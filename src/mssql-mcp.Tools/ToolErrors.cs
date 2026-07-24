@@ -53,6 +53,7 @@ internal static class ToolErrors
 
     // ---------- Success ----------
 
+    /// <summary>Wraps a JSON string as a non-error CallToolResult with a single TextContentBlock.</summary>
     public static CallToolResult Success(string json) => Text(json, isError: false);
 
     /// <summary>

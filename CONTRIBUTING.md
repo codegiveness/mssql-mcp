@@ -46,7 +46,7 @@ The dependency graph is `Core ← Tools ← App`. Cross-project references enfor
 dotnet test --filter Category!=Integration
 ```
 
-This is what CI runs. ~50-80 tests, completes in seconds.
+This is what CI runs. ~414 tests, completes in seconds.
 
 ### Integration tests (requires live SQL Server)
 
@@ -73,7 +73,9 @@ Run these checks before pushing or opening a PR. If any check fails, the push is
 | Help command | `mssql-mcp --help` (or `dotnet run --project src/mssql-mcp -- --help`) | Prints usage block, exit 0 |
 | Unknown-arg error | `mssql-mcp upgrade` (or `dotnet run --project src/mssql-mcp -- upgrade`) | `mssql-mcp: unknown argument 'upgrade'.` to stderr, exit 1 |
 | npm smoke test | `node npm/test.js` (if applicable) | All smoke tests pass |
+| README linter | `node scripts/lint-readme-snippets.js` | All snippets valid + badge URLs well-formed |
 | LSP diagnostics | Run LSP diagnostics on changed files | 0 errors |
+| Format check | `dotnet format mssql-mcp.sln --verify-no-changes --no-restore` | Clean (no changes needed) |
 | MCP stdio smoke test | `./scripts/mcp-smoke.sh` (with `.env` loaded) | `[PASS] tools/list: 9 tools found` + `[PASS] list_databases: returned N databases` + `ALL CHECKS PASSED` |
 
 ## Coding Standards
@@ -153,8 +155,8 @@ No strict convention — just use descriptive names:
 ### Merge strategy
 
 - **Squash-merge** all PRs — clean main history, one commit per PR, conventional-commit message becomes the squashed commit message
-- All PRs require review before merge (even from the maintainer — use a second account or a trusted contributor)
-- Force-push to `main` is disabled
+- **Force-push to `main` is disabled.** Direct push to `main` is blocked for everyone, including admins; all changes go through PR.
+- **External contributor PRs require a maintainer review** through CODEOWNERS enforcement. Because the project is currently solo-maintained, `required_approving_review_count` is deliberately set to `0`, so the maintainer's own PRs can be self-merged. See [ADR-0033](docs/adr/0033-branch-protection-posture-for-solo-maintained-project.md). When a second maintainer joins, this will flip to 1 required review.
 
 ### No CLA / DCO required
 

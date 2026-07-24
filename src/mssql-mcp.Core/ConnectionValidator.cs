@@ -12,7 +12,9 @@ namespace mssql_mcp.Core;
 /// </summary>
 public static class ConnectionValidator
 {
+    /// <summary>Success message printed by --validate on a successful connection.</summary>
     public const string SuccessMessage = "[startup] Connection validated successfully.";
+    /// <summary>Prefix for --validate failure messages, followed by [tag]: obfuscated error.</summary>
     public const string FailurePrefix = "[startup] Connection validation failed ";
 
     /// <summary>

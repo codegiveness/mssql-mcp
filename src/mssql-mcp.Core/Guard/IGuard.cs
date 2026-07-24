@@ -16,7 +16,9 @@ public sealed record GuardResult
     /// <summary>Structured rejection detail, populated when <see cref="Accepted"/> is false.</summary>
     public GuardRejection? Rejection { get; init; }
 
+    /// <summary>Creates an accepted result with the wrapped SQL ready for execution.</summary>
     public static GuardResult Accept(string wrappedSql) => new() { Accepted = true, WrappedSql = wrappedSql };
+    /// <summary>Creates a rejected result with the structured rejection detail.</summary>
     public static GuardResult Reject(GuardRejection rejection) => new() { Accepted = false, Rejection = rejection };
 }
 

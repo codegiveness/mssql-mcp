@@ -3,6 +3,18 @@
   "version": "0.4.2",
   "description": "A Model Context Protocol (MCP) server for Microsoft SQL Server, built in C#/.NET 10",
   "license": "MIT",
+  "homepage": "https://github.com/codegiveness/mssql-mcp#readme",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "sql-server",
+    "mssql",
+    "database",
+    "ai-agent",
+    "claude",
+    "cursor"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/codegiveness/mssql-mcp"
@@ -15,11 +27,11 @@
     "bin/mssql-mcp.js"
   ],
   "optionalDependencies": {
-    "@codegiveness/mssql-mcp-linux-x64": "0.4.1",
-    "@codegiveness/mssql-mcp-linux-arm64": "0.4.1",
-    "@codegiveness/mssql-mcp-osx-x64": "0.4.1",
-    "@codegiveness/mssql-mcp-osx-arm64": "0.4.1",
-    "@codegiveness/mssql-mcp-win-x64": "0.4.1"
+    "@codegiveness/mssql-mcp-linux-x64": "0.4.2",
+    "@codegiveness/mssql-mcp-linux-arm64": "0.4.2",
+    "@codegiveness/mssql-mcp-osx-x64": "0.4.2",
+    "@codegiveness/mssql-mcp-osx-arm64": "0.4.2",
+    "@codegiveness/mssql-mcp-win-x64": "0.4.2"
   },
   "engines": {
     "node": ">=18"

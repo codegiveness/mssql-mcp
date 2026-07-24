@@ -70,7 +70,9 @@ public static class LoggingSetup
 
         private sealed class NullDisposable : IDisposable
         {
+            /// <summary>Singleton instance — NullDisposable has no state to dispose.</summary>
             public static NullDisposable Instance { get; } = new();
+            /// <summary>No-op — NullDisposable holds no resources.</summary>
             public void Dispose() { }
         }
     }
