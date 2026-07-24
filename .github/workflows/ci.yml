@@ -25,11 +25,17 @@ jobs:
         run: node scripts/lint-readme-snippets.js
       - name: Pack
         run: dotnet pack src/mssql-mcp/mssql-mcp.csproj -c Release -o artifacts
+      - name: Generate SBOM
+        run: |
+          dotnet tool install --global CycloneDX
+          ~/.dotnet/tools/cyclonedx mssql-mcp.sln --output artifacts/sbom
       - name: Upload artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: nupkg
-          path: artifacts/*.nupkg
+          path: |
+            artifacts/*.nupkg
+            artifacts/sbom/*.json
 
   smoke:
     runs-on: ubuntu-latest
@@ -150,3 +156,13 @@ jobs:
         with:
           name: npm-packs
           path: npm/*.tgz
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build Docker image
+        run: docker build -t mssql-mcp-test .
+      - name: Verify --version exits 0
+        run: docker run --rm mssql-mcp-test --version
