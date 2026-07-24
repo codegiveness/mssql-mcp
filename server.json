@@ -1,0 +1,28 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.codegiveness/mssql-mcp",
+  "title": "MSSQL MCP",
+  "description": "Securely query and manage Microsoft SQL Server databases through MCP.",
+  "repository": {
+    "url": "https://github.com/codegiveness/mssql-mcp",
+    "source": "github"
+  },
+  "version": "0.4.1",
+  "packages": [
+    {
+      "registryType": "nuget",
+      "identifier": "codegiveness.mssql-mcp",
+      "version": "0.4.1",
+      "runtimeHint": "dnx",
+      "runtimeArguments": [
+        {
+          "type": "positional",
+          "value": "--yes"
+        }
+      ],
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

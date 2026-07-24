@@ -1,5 +1,7 @@
 # mssql-mcp
 
+<!-- mcp-name: io.github.codegiveness/mssql-mcp -->
+
 [![CI](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/codegiveness.mssql-mcp)](https://www.nuget.org/packages/codegiveness.mssql-mcp)
 [![npm (scoped)](https://img.shields.io/npm/v/@codegiveness/mssql-mcp)](https://www.npmjs.com/package/@codegiveness/mssql-mcp)
