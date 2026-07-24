@@ -1,6 +1,12 @@
 # Every runtime parameter is configurable via environment variable
 
-Every runtime-tunable parameter in mssql-mcp is overridable via an environment variable. CLI flags exist for the startup-shape decisions an operator makes interactively (`--access-mode`, `--connection-string`, `--query-timeout`, `--log-level`, `--validate`, `--version`, `--help`); env vars exist for *every* tunable, including the ones without a CLI flag, because containerized and MCP-client-hosted deployments pass config via env vars far more easily than via argv.
+## Context
+
+Containerized and MCP-client-hosted deployments pass config via environment variables far more easily than via argv. Every runtime-tunable parameter needs an env var escape hatch.
+
+## Decision
+
+Every runtime-tunable parameter in mssql-mcp is overridable via an environment variable. CLI flags exist for the startup-shape decisions an operator makes interactively (`--access-mode`, `--connection-string`, `--query-timeout`, `--log-level`, `--validate`, `--version`, `--help`); env vars exist for *every* tunable, including the ones without a CLI flag.
 
 **Precedence**: CLI flag (if present) > env var > hardcoded default. The single exception is `MSSQL_CONNECTION_STRING`, which takes precedence over the `--connection-string` flag (env-secret-over-flag) — this matches the principle that secrets live in env, not argv.
 
@@ -24,3 +30,13 @@ Every runtime-tunable parameter in mssql-mcp is overridable via an environment v
 - **Invalid env var values** fail fast at startup with a clear `[startup]` error naming the var, the invalid value, and the accepted range. The process exits non-zero. This is the same contract as `--validate`.
 - **Unknown env vars** are ignored, not errors — forward compatibility for future flags.
 - **Boolean env vars** accept `1`/`true`/`yes`/`on` (case-insensitive) as true; anything else is false. Numeric env vars accept integers only.
+
+## Considered Options
+
+No alternatives were seriously considered for this decision — the env-var-first approach is the standard pattern for MCP server deployments and containerized workloads.
+
+## Consequences
+
+- CLI flags cover only the startup-shape decisions (access mode, connection string, query timeout, log level, validate, version, help). All other tunables are env-only.
+- The `MSSQL_` prefix is reserved for this project's env vars to avoid collisions.
+- Invalid values fail fast at startup with a clear `[startup]` message, matching the `--validate` contract.

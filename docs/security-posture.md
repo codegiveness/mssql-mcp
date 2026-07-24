@@ -71,3 +71,23 @@ See [ADR-0033: Branch protection posture for solo-maintained project](adr/0033-b
 ## OpenSSF Best Practices
 
 Self-assessment at [bestpractices.dev](https://bestpractices.dev/) is pending. This is a manual human task tracked in [issue #68](https://github.com/codegiveness/mssql-mcp/issues/68).
+
+## Threat model
+
+mssql-mcp sits between an AI agent and a SQL Server. The trust boundaries are:
+
+1. **Agent → Server** (MCP stdio) — the agent sends tool calls as JSON-RPC over stdin/stdout.
+2. **Server → SQL Server** (SqlClient TCP) — the server opens a pooled connection using the operator-provided connection string.
+3. **Operator → Server** (CLI/env config) — the operator configures the server via environment variables and CLI flags at startup.
+
+| Threat | Mitigation | Residual risk |
+|--------|------------|---------------|
+| Destructive SQL by agent | Guard AST allowlist + `BEGIN TRAN ... ROLLBACK` (Restricted mode) | Guard bypass (mitigated by read-only transaction backstop per ADR-0007) |
+| Credential leak to agent | `PasswordObfuscator` at every error boundary (ConnectionError, Internal, SqlError, ConnectionValidator) | None — all error paths obfuscated post-hardening (AHD-2, AHD-3) |
+| Cross-DB read by agent | Least-privilege SQL login (operator responsibility); `database` param validated via 3-check rule (exists, online, multi-user) | Operator grants excessive permissions (out of scope — see SECURITY.md Restricted mode scope clarification) |
+| Supply-chain tampering | SHA256 checksums on release archives, provenance attestation (npm + NuGet), SHA-pinned Actions, SBOM (CycloneDX) | None — all distribution channels attested |
+| Unrestricted mode misuse | Opt-in only via `--access-mode unrestricted`; destructive operations carry `destructiveHint=true`; operator must explicitly authorize | Operator misconfiguration (documented in README Access modes section) |
+| Result size DoS (agent context window) | Byte-size safety net (default 10 MB, configurable via `MSSQL_MAX_RESULT_BYTES`) | None — truncation notice sent to agent |
+| Query timeout DoS | Per-query command timeout (default 30s in Restricted, configurable via `MSSQL_QUERY_TIMEOUT`) | None |
+
+See the [security audit reports](security-audits/) for detailed findings (AHD-1 through AHD-3) and their resolutions.

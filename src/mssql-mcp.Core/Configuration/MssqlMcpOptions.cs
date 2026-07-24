@@ -9,34 +9,56 @@ namespace mssql_mcp.Core.Configuration;
 /// </summary>
 public sealed class MssqlMcpOptions
 {
+    /// <summary>Environment variable name for the SQL Server connection string.</summary>
     public const string EnvConnectionString = "MSSQL_CONNECTION_STRING";
+    /// <summary>Environment variable name for the access mode (restricted/unrestricted).</summary>
     public const string EnvAccessMode = "MSSQL_ACCESS_MODE";
+    /// <summary>Environment variable name for the per-query command timeout in seconds.</summary>
     public const string EnvQueryTimeout = "MSSQL_QUERY_TIMEOUT";
+    /// <summary>Environment variable name for the log level.</summary>
     public const string EnvLogLevel = "MSSQL_LOG_LEVEL";
+    /// <summary>Environment variable name for the optional log file path.</summary>
     public const string EnvLogFile = "MSSQL_LOG_FILE";
+    /// <summary>Environment variable name for the log file rotation byte threshold.</summary>
     public const string EnvLogFileMaxBytes = "MSSQL_LOG_FILE_MAX_BYTES";
+    /// <summary>Environment variable name for the number of archived log files retained.</summary>
     public const string EnvLogFileMaxRolls = "MSSQL_LOG_FILE_MAX_ROLLS";
+    /// <summary>Environment variable name for the result byte-size safety net.</summary>
     public const string EnvMaxResultBytes = "MSSQL_MAX_RESULT_BYTES";
+    /// <summary>Environment variable name for the transient-failure retry count.</summary>
     public const string EnvRetryCount = "MSSQL_RETRY_COUNT";
+    /// <summary>Environment variable name for the minimum transient retry backoff interval.</summary>
     public const string EnvRetryIntervalMin = "MSSQL_RETRY_INTERVAL";
+    /// <summary>Environment variable name for the maximum transient retry backoff interval.</summary>
     public const string EnvRetryIntervalMax = "MSSQL_RETRY_INTERVAL_MAX";
 
     // Defaults per ADR-0004 and ADR-0015. Exposed as constants so tests and SqlExecutor
     // can reference the same source of truth instead of hardcoding literals.
+    /// <summary>Default retry count after first attempt (per ADR-0004).</summary>
     public const int DefaultRetryCount = 3;
+    /// <summary>Default minimum retry backoff in seconds (per ADR-0004).</summary>
     public const int DefaultRetryIntervalMin = 2;
+    /// <summary>Default maximum retry backoff in seconds (per ADR-0004).</summary>
     public const int DefaultRetryIntervalMax = 10;
 
     // Default rotation thresholds per ADR-0030. 50 MB active file cap, 3 archived rolls.
+    /// <summary>Default byte threshold for active log file rotation (50 MB, per ADR-0030).</summary>
     public const long DefaultLogFileMaxBytes = 50 * 1024 * 1024;
+    /// <summary>Default number of archived log files retained (per ADR-0030).</summary>
     public const int DefaultLogFileMaxRolls = 3;
 
+    /// <summary>CLI flag for the SQL Server connection string.</summary>
     public const string CliConnectionString = "--connection-string";
+    /// <summary>CLI flag for the access mode.</summary>
     public const string CliAccessMode = "--access-mode";
+    /// <summary>CLI flag for the per-query command timeout.</summary>
     public const string CliQueryTimeout = "--query-timeout";
+    /// <summary>CLI flag for the log level.</summary>
     public const string CliLogLevel = "--log-level";
+    /// <summary>CLI flag for the pre-flight connection validation.</summary>
     public const string CliValidate = "--validate";
 
+    /// <summary>SQL Server connection string (env wins over CLI per ADR-0015).</summary>
     public string ConnectionString { get; set; } = string.Empty;
 
     /// <summary>
@@ -45,15 +67,25 @@ public sealed class MssqlMcpOptions
     /// CLI-only: no env var, since validate is a one-shot operator action, not runtime config.
     /// </summary>
     public bool Validate { get; set; }
+    /// <summary>Access mode: Restricted (default, read-only) or Unrestricted (opt-in, DML/DDL).</summary>
     public AccessMode AccessMode { get; set; } = AccessMode.Restricted;
+    /// <summary>Per-query command timeout in seconds. 0 = unlimited (per ADR-0007).</summary>
     public int QueryTimeout { get; set; } = 30;
+    /// <summary>Log level: trace, debug, info, warning, error, critical (per ADR-0011).</summary>
     public string LogLevel { get; set; } = "info";
+    /// <summary>Optional file path for log output. Null = stderr only (per ADR-0011).</summary>
     public string? LogFile { get; set; }
+    /// <summary>Byte threshold for active log file rotation (per ADR-0030). 0 disables rotation.</summary>
     public long LogFileMaxBytes { get; set; } = DefaultLogFileMaxBytes;
+    /// <summary>Number of archived log files retained (per ADR-0030).</summary>
     public int LogFileMaxRolls { get; set; } = DefaultLogFileMaxRolls;
+    /// <summary>Result byte-size safety net in bytes (per ADR-0003). 0 disables the cap.</summary>
     public long MaxResultBytes { get; set; } = 10 * 1024 * 1024; // 10 MB per ADR-0003
+    /// <summary>Transient-failure retry count after first attempt (per ADR-0004).</summary>
     public int RetryCount { get; set; } = DefaultRetryCount;
+    /// <summary>Minimum transient retry backoff in seconds (per ADR-0004).</summary>
     public int RetryIntervalMin { get; set; } = DefaultRetryIntervalMin;
+    /// <summary>Maximum transient retry backoff in seconds (per ADR-0004).</summary>
     public int RetryIntervalMax { get; set; } = DefaultRetryIntervalMax;
 
     /// <summary>

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-07-24
+
+### Added
+
+- **Security hardening (post-audit).** Credential leak fixes (AHD-2, AHD-3) — `PasswordObfuscator` now applied at every error boundary, including `ConnectionError`, `Internal`, and `ConnectionValidator` paths. See [docs/security-audits/2026-07-24-post-hardening.md](docs/security-audits/2026-07-24-post-hardening.md) for the full audit.
+- **SBOM (CycloneDX).** Generated in CI, attested via `actions/attest@v4`, and attached to GitHub Releases.
+- **`server.json`** — MCP server manifest for discoverability by MCP registries.
+- **`docs/security-posture.md`** — consolidated security evidence page (OpenSSF Scorecard, SBOM, branch protection, supply-chain attestation, threat model).
+- **README badges** — OpenSSF Scorecard, SBOM, Security Policy.
+- **`Dockerfile`** — containerized deployment for Linux x64 (self-contained).
+
+### Fixed
+
+- **Scorecard badge URL** — corrected to `api.scorecard.dev` endpoint.
+- **Scorecard CI** — dereferenced commit SHA for `scorecard-action`, scoped write permissions to job level.
+
 ## [0.4.1] - 2026-07-24
 
 ### Added

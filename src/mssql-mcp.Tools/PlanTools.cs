@@ -277,9 +277,13 @@ public sealed class PlanTools
 
     private sealed record RelOpSummary
     {
+        /// <summary>Physical operator name (e.g. Index Seek, Hash Match).</summary>
         public string Operation { get; init; } = string.Empty;
+        /// <summary>Estimated cost (CPU + IO) for this operator.</summary>
         public double EstimatedCost { get; init; }
+        /// <summary>Estimated number of rows produced by this operator.</summary>
         public double EstimatedRows { get; init; }
+        /// <summary>Object reference (database.schema.table.index) when the operator accesses a physical object.</summary>
         public string? Object { get; init; }
     }
 }

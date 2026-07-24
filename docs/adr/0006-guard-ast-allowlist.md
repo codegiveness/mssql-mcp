@@ -1,5 +1,7 @@
 # Guard AST allowlist: Visitor-based statement-type allowlist (SELECT + WITH) with targeted intra-statement blocklist
 
+## Context
+
 Restricted mode's Guard uses a two-layer AST validation strategy using Microsoft.SqlServer.TransactSql.ScriptDom (Microsoft's own T-SQL parser, MIT-licensed).
 
 **Parsing entry point**: `TSql160Parser.Parse(TextReader, out IList<ParseError>)` — returns `TSqlScript` (NOT `ParseStatementList()`, which returns a flat `StatementList` and does not model `GO` batch separators). `Parse()` is the only entry point that correctly models the `TSqlScript → TSqlBatch → TSqlStatement` hierarchy, where `GO` creates new batches and `;` separates statements *within* a batch.
@@ -40,13 +42,19 @@ Even within an allowed `SelectStatement`, reject a small, targeted set of danger
 
 On rejection, the agent receives an MCP error result naming the rejecting layer and the reason: `[guard] Restricted mode: only SELECT and WITH statements are allowed. Got: {StatementType}` or `[guard] Restricted mode: SELECT ... INTO is not permitted.`
 
-**Considered Options**:
+## Decision
+
+The Guard applies Layer 1 (statement-type allowlist via Visitor) and Layer 2 (targeted intra-statement blocklist via Visitor overrides) as described in Context above.
+
+## Considered Options
+
 - **Strategy 1 — allowlist statement types, denylist node types**. Rejected: a node-type denylist is a known anti-pattern — you can never enumerate every dangerous node type, and new SQL Server versions add new ones. The list drifts stale.
 - **Strategy 3 — full node-type allowlist via ScriptDom Visitor**. Most secure but highest maintenance cost for v1. ScriptDom has hundreds of node types; whitelisting every one is a maintenance liability. Deferred to v2 if Strategy 2 proves too restrictive.
 - **No intra-statement blocklist (trust statement-type + read-only transaction)**. Rejected: `SELECT ... INTO` is DDL disguised as SELECT, and `OPENROWSET(BULK ...)` reads arbitrary files. The read-only transaction backstop doesn't catch every intra-SELECT danger.
 - **Manual `batch.Statements` iteration instead of Visitor**. Rejected: misses nested statements inside `BEGIN...END`, `IF`, `WHILE` without explicit recursion into every compound statement type. The Visitor handles recursion automatically.
 
-**Consequences**:
+## Consequences
+
 - `DECLARE @t TABLE` patterns are not permitted in Restricted mode. Agents must refactor to a single CTE. This is a real ergonomics loss for complex analytical queries, accepted in exchange for a simpler, safer surface.
 - `EXECUTE` of read-only system SPs (`sp_help`, `sp_columns`, etc.) is not permitted in Restricted mode. The structured discovery tools (`list_databases`, `list_schemas`, `list_objects`, `get_object_details`) replace them.
 - The blocklist is small and targeted — it covers real T-SQL dangers without making the Guard unmaintainable. If a new dangerous construct emerges in a future SQL Server version, adding it to the blocklist is a one-line `Visit` override.

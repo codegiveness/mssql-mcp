@@ -180,7 +180,9 @@ public sealed class FileLoggerProvider : ILoggerProvider
 
     private sealed class NullScope : IDisposable
     {
+        /// <summary>Singleton instance — NullScope has no state to dispose.</summary>
         public static NullScope Instance { get; } = new();
+        /// <summary>No-op — NullScope holds no resources.</summary>
         public void Dispose() { }
     }
 }

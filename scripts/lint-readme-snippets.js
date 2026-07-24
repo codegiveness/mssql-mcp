@@ -2,8 +2,11 @@
 
 // Lints fenced JSON code blocks in README.md:
 //   1. Each block parses as valid JSON (strips // line comments and trailing commas).
-//   2. Each block has an "mcpServers" key.
-//   3. Each mcpServers entry has "command" and at least one of "args" or "env".
+//   2. Blocks containing an "mcpServers" key (standard MCP clients) OR an "mcp" key
+//      (opencode's native config shape) are validated as MCP server configs.
+//   3. Each validated server entry has "command" and at least one of "args" or "env".
+//   4. JSON blocks without "mcpServers"/"mcp" keys are documentation examples
+//      (tool I/O, return shapes) and are validated for JSON syntax only.
 //
 // Also validates that README badge image URLs are well-formed HTTP(S) URLs
 // (syntax check only, no network fetch).
@@ -45,19 +48,35 @@ blocks.forEach((raw, i) => {
     return;
   }
 
-  if (!json.mcpServers || typeof json.mcpServers !== 'object') {
-    fail(i, 'missing "mcpServers" key');
+  // Standard MCP client shape.
+  if (json.mcpServers && typeof json.mcpServers === 'object') {
+    for (const [name, cfg] of Object.entries(json.mcpServers)) {
+      if (!cfg.command) {
+        fail(i, 'server "' + name + '" missing "command"');
+      }
+      if (!cfg.args && !cfg.env) {
+        fail(i, 'server "' + name + '" needs "args" or "env"');
+      }
+    }
     return;
   }
 
-  for (const [name, cfg] of Object.entries(json.mcpServers)) {
-    if (!cfg.command) {
-      fail(i, 'server "' + name + '" missing "command"');
+  // opencode native shape: { "mcp": { "mssql-mcp": { "type": "local", "command": [...], "enabled": true } } }
+  if (json.mcp && typeof json.mcp === 'object') {
+    for (const [name, cfg] of Object.entries(json.mcp)) {
+      if (!cfg.command) {
+        fail(i, 'server "' + name + '" missing "command"');
+      }
+      if (!cfg.args && !cfg.env) {
+        fail(i, 'server "' + name + '" needs "args" or "env"');
+      }
     }
-    if (!cfg.args && !cfg.env) {
-      fail(i, 'server "' + name + '" needs "args" or "env"');
-    }
+    return;
   }
+
+  // JSON blocks without mcpServers/mcp keys are documentation examples (tool I/O,
+  // return shapes). Validated for JSON syntax only — no config structure to check.
+  return;
 });
 
 function validateBadgeImageUrls() {
