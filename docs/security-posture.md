@@ -62,7 +62,7 @@ See [ADR-0033: Branch protection posture for solo-maintained project](adr/0033-b
 | Date | Type | Report |
 |---|---|---|
 | 2026-07-22 | Pre-public | [docs/security-audits/2026-07-22-pre-public.md](security-audits/2026-07-22-pre-public.md) |
-| 2026-07-24 | Post-hardening | Pending — see [issue #69](https://github.com/codegiveness/mssql-mcp/issues/69) |
+| 2026-07-24 | Post-hardening | [docs/security-audits/2026-07-24-post-hardening.md](security-audits/2026-07-24-post-hardening.md) |
 
 ## CODEOWNERS
 

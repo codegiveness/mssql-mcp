@@ -258,7 +258,7 @@ internal static class ToolErrors
     {
         if (IsTransient(ex))
         {
-            return ConnectionError($"{ex.Message} Retries exhausted.");
+            return ConnectionError($"{PasswordObfuscator.Obfuscate(ex.Message)} Retries exhausted.");
         }
         return SqlError(ex);
     }
@@ -291,7 +291,7 @@ internal static class ToolErrors
         {
             Error = "INTERNAL",
             ExceptionType = ex.GetType().Name,
-            Detail = ex.Message,
+            Detail = PasswordObfuscator.Obfuscate(ex.Message),
         };
         return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.InternalErrorPayload), isError: true);
     }

@@ -15,6 +15,10 @@ These issues are in scope:
 - **`bin/mssql-mcp.js` tampering**: checksum bypass, binary substitution, or archive extraction path traversal in the shim's self-heal download path.
 - **Authentication bypass**: connection string manipulation that bypasses intended auth restrictions.
 
+### Restricted mode scope clarification
+
+Restricted mode is **statement-type safety**, not **data-scope safety**. The Guard allows `SELECT` against any database the connection's SQL login can access — including 3-part cross-database names like `OtherDb.dbo.Users`. The `BEGIN TRAN ... ROLLBACK` wrapper prevents writes but does not prevent reads; the resultset is returned to the Agent before the rollback fires. To enforce tenant isolation, grant the SQL login least-privilege permissions scoped to a single database. See [docs/security-audits/2026-07-24-post-hardening.md](docs/security-audits/2026-07-24-post-hardening.md) finding AHD-1.
+
 These issues are **out of scope** — report them upstream:
 
 - SQL Server product vulnerabilities → [Microsoft Security Response Center (MSRC)](https://msrc.microsoft.com/)
