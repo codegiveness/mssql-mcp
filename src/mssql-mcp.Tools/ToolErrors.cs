@@ -258,7 +258,7 @@ internal static class ToolErrors
     {
         if (IsTransient(ex))
         {
-            return ConnectionError($"{PasswordObfuscator.Obfuscate(ex.Message)} Retries exhausted.");
+            return ConnectionError($"{ex.Message} Retries exhausted.");
         }
         return SqlError(ex);
     }
@@ -302,10 +302,12 @@ internal static class ToolErrors
     /// </summary>
     public static CallToolResult ConnectionError(string detail)
     {
+        // Defense-in-depth: obfuscate at the boundary so all callers are uniformly protected,
+        // even if a future validation message contains a connection-string fragment.
         ConnectionErrorPayload payload = new()
         {
             Error = "CONNECTION",
-            Detail = detail,
+            Detail = PasswordObfuscator.Obfuscate(detail),
         };
         return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.ConnectionErrorPayload), isError: true);
     }
