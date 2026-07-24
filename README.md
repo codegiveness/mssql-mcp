@@ -6,7 +6,7 @@
 [![npm (scoped)](https://img.shields.io/npm/v/@codegiveness/mssql-mcp)](https://www.npmjs.com/package/@codegiveness/mssql-mcp)
 [![.NET](https://img.shields.io/badge/.NET-10-blue)](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/github/license/codegiveness/mssql-mcp)](./LICENSE)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/github.com/codegiveness/mssql-mcp/badge.svg)](https://securityscorecards.dev/viewer/?raw=github.com/codegiveness/mssql-mcp)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/codegiveness/mssql-mcp/badge)](https://scorecard.dev/viewer/?uri=github.com/codegiveness/mssql-mcp)
 [![OpenSSF Best Practices](https://img.shields.io/badge/OpenSSF_Best_Practices-Pending-yellow)](https://bestpractices.dev/)
 [![SBOM](https://img.shields.io/badge/SBOM-CycloneDX-blue)](./docs/security-posture.md#supply-chain-attestation)
 [![Security Policy](https://img.shields.io/badge/Security-Policy-blue)](./SECURITY.md)
