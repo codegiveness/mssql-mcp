@@ -14,8 +14,8 @@ LABEL maintainer="codegiveness" \
 WORKDIR /app
 COPY --from=build /app/mssql-mcp .
 RUN chmod +x ./mssql-mcp && \
-    addgroup --system --gid 1001 app && \
-    adduser --system --uid 1001 --ingroup app --no-create-home app && \
-    chown -R app:app /app
-USER app
+    addgroup --system --gid 1001 mssqlmcp && \
+    adduser --system --uid 1001 --ingroup mssqlmcp --no-create-home mssqlmcp && \
+    chown -R mssqlmcp:mssqlmcp /app
+USER mssqlmcp
 ENTRYPOINT ["./mssql-mcp"]
