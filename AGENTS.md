@@ -49,6 +49,7 @@ These controls run automatically in CI or GitHub repo settings — not per-push.
 | SBOM (CycloneDX) | CI build step + GitHub Release attestation | `artifacts/sbom/*.bom.json` generated, attested via `actions/attest@v4` |
 | Branch protection | GitHub repo settings (verified via `gh api repos/codegiveness/mssql-mcp/branches/main/protection`) | Enforce admins, code owners, dismiss stale reviews, 0 required reviews (solo — see ADR-0033) |
 | Secret scanning | GitHub repo settings (verified via `gh api repos/codegiveness/mssql-mcp --jq '.security_and_analysis'`) | Secret scanning + push protection enabled |
+| Dockerfile build | `.github/workflows/ci.yml` `docker` job | `docker build` + `docker run --rm mssql-mcp-test --version` passes |
 | Security audits | `docs/security-audits/` | Pre-public (2026-07-22) + post-hardening (2026-07-24) reports present |
 
 See [docs/security-posture.md](docs/security-posture.md) for the consolidated evidence page.

@@ -287,6 +287,7 @@ internal static class ToolErrors
     {
         // ADR-0010 INTERNAL shape: {"error":"INTERNAL","exception_type":"...","detail":"..."}
         // Never include stack traces — those go to logs per ADR-0011.
+        // Defense-in-depth: obfuscate at the boundary (same pattern as ConnectionError).
         InternalErrorPayload payload = new()
         {
             Error = "INTERNAL",
