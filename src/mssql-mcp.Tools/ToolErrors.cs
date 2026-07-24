@@ -287,11 +287,12 @@ internal static class ToolErrors
     {
         // ADR-0010 INTERNAL shape: {"error":"INTERNAL","exception_type":"...","detail":"..."}
         // Never include stack traces — those go to logs per ADR-0011.
+        // Defense-in-depth: obfuscate at the boundary (same pattern as ConnectionError).
         InternalErrorPayload payload = new()
         {
             Error = "INTERNAL",
             ExceptionType = ex.GetType().Name,
-            Detail = ex.Message,
+            Detail = PasswordObfuscator.Obfuscate(ex.Message),
         };
         return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.InternalErrorPayload), isError: true);
     }
@@ -302,10 +303,12 @@ internal static class ToolErrors
     /// </summary>
     public static CallToolResult ConnectionError(string detail)
     {
+        // Defense-in-depth: obfuscate at the boundary so all callers are uniformly protected,
+        // even if a future validation message contains a connection-string fragment.
         ConnectionErrorPayload payload = new()
         {
             Error = "CONNECTION",
-            Detail = detail,
+            Detail = PasswordObfuscator.Obfuscate(detail),
         };
         return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.ConnectionErrorPayload), isError: true);
     }

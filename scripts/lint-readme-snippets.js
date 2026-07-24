@@ -5,6 +5,9 @@
 //   2. Each block has an "mcpServers" key.
 //   3. Each mcpServers entry has "command" and at least one of "args" or "env".
 //
+// Also validates that README badge image URLs are well-formed HTTP(S) URLs
+// (syntax check only, no network fetch).
+//
 // Run: node scripts/lint-readme-snippets.js
 // Exits non-zero on any failure.
 
@@ -57,9 +60,24 @@ blocks.forEach((raw, i) => {
   }
 });
 
+function validateBadgeImageUrls() {
+  const badgeRegex = /!\[[^\]]*\]\(([^)]+)\)/g;
+  let match;
+  while ((match = badgeRegex.exec(readme)) !== null) {
+    const url = match[1];
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      failures++;
+      console.error('FAIL - README badge image URL is malformed: ' + url);
+    }
+  }
+}
+
+validateBadgeImageUrls();
+
 if (failures > 0) {
-  console.error('\n' + failures + ' snippet lint(s) failed.');
+  console.error('\n' + failures + ' lint(s) failed.');
   process.exit(1);
 } else {
   console.log('All ' + blocks.length + ' README JSON snippet(s) valid.');
+  console.log('All README badge image URLs are well-formed.');
 }

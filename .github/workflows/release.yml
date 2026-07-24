@@ -83,10 +83,15 @@ jobs:
             sha256sum "$f" > "$f.sha256"
           done
 
+      - name: Generate SBOM
+        run: |
+          dotnet tool install --global CycloneDX --version 6.2.0
+          ~/.dotnet/tools/dotnet-CycloneDX mssql-mcp.sln --output-format json --output artifacts/sbom
+
       # GitHub Release FIRST so the shim self-heal can fetch archives before npm publish lands.
       # Conventional Commits auto-notes (titles enforced by semantic.yml from #16).
       - name: Create GitHub Release
-        run: gh release create ${{ steps.tag.outputs.name }} --generate-notes --title ${{ steps.tag.outputs.name }} artifacts/mssql-mcp-*.tar.gz artifacts/mssql-mcp-*.zip artifacts/mssql-mcp-*.sha256 || gh release upload ${{ steps.tag.outputs.name }} artifacts/mssql-mcp-*.tar.gz artifacts/mssql-mcp-*.zip artifacts/mssql-mcp-*.sha256 --clobber
+        run: gh release create ${{ steps.tag.outputs.name }} --generate-notes --title ${{ steps.tag.outputs.name }} artifacts/mssql-mcp-*.tar.gz artifacts/mssql-mcp-*.zip artifacts/mssql-mcp-*.sha256 artifacts/sbom/*.json || gh release upload ${{ steps.tag.outputs.name }} artifacts/mssql-mcp-*.tar.gz artifacts/mssql-mcp-*.zip artifacts/mssql-mcp-*.sha256 artifacts/sbom/*.json --clobber
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -100,6 +105,7 @@ jobs:
             artifacts/mssql-mcp-*.tar.gz
             artifacts/mssql-mcp-*.zip
             artifacts/mssql-mcp-*.sha256
+            artifacts/sbom/*.json
 
       # Sync NuGet version to the tag (like npm — prevents VersionPrefix drift).
       # The .csproj's <VersionPrefix> is a floor; the tag is the source of truth.

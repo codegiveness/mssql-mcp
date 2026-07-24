@@ -1,10 +1,15 @@
 # mssql-mcp
 
+<!-- mcp-name: io.github.codegiveness/mssql-mcp -->
 [![CI](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/codegiveness.mssql-mcp)](https://www.nuget.org/packages/codegiveness.mssql-mcp)
 [![npm (scoped)](https://img.shields.io/npm/v/@codegiveness/mssql-mcp)](https://www.npmjs.com/package/@codegiveness/mssql-mcp)
 [![.NET](https://img.shields.io/badge/.NET-10-blue)](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/github/license/codegiveness/mssql-mcp)](./LICENSE)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/github.com/codegiveness/mssql-mcp/badge.svg)](https://securityscorecards.dev/viewer/?raw=github.com/codegiveness/mssql-mcp)
+[![OpenSSF Best Practices](https://img.shields.io/badge/OpenSSF_Best_Practices-Pending-yellow)](https://bestpractices.dev/)
+[![SBOM](https://img.shields.io/badge/SBOM-CycloneDX-blue)](./docs/security-posture.md#supply-chain-attestation)
+[![Security Policy](https://img.shields.io/badge/Security-Policy-blue)](./SECURITY.md)
 
 A Model Context Protocol (MCP) server for Microsoft SQL Server, built in C#/.NET 10. Lets AI agents (Claude Desktop, Cursor, etc.) safely query and interact with SQL Server through a controlled tool surface.
 
@@ -313,6 +318,17 @@ The shim (`npm/bin/mssql-mcp.js`) runs on every invocation:
 3. If not cached, downloads the flat archive from the matching GitHub Release, verifies the `.sha256` sidecar, extracts, `chmod 755` (Unix), caches, and execs. Set `MSSQL_MCP_NO_DOWNLOAD=1` to skip the download attempt.
 
 Every failure mode prints the RID, the GitHub Releases URL for manual download, and the `dotnet tool install -g codegiveness.mssql-mcp` fallback. See [ADR-0028](./docs/adr/0028-binary-delivery-via-optional-dependencies-and-shim-self-heal.md) for the full design.
+
+### Docker
+
+A `Dockerfile` is included for containerized deployments (Linux x64, self-contained):
+
+```bash
+docker build -t mssql-mcp .
+docker run --rm -e MSSQL_CONNECTION_STRING="Server=...;Database=...;User Id=...;Password=...;Encrypt=True;TrustServerCertificate=True;" mssql-mcp --validate
+```
+
+Then point your MCP client at the Docker image instead of `npx`.
 
 ### Windows note
 

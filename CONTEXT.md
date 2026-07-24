@@ -59,3 +59,11 @@ _Avoid_: harness test, client checklist
 **Unknown-Argument Dispatch**:
 The `Program.cs` code path that runs before `MssqlMcpOptions.Parse()` and handles commands that do not need a connection string: `--version` (print version, exit 0), `--help`/`-h` (print usage, exit 0), and any unrecognized argument (print usage with error prefix, exit 1). Without this dispatch, unknown arguments fall through to `Parse()`, which throws a connection-string error — confusing because the user wasn't trying to start the server. See ADR-0031.
 _Avoid_: arg parser, command router, CLI dispatcher
+
+**Security Posture**:
+The consolidated supply-chain and process evidence that proves the server is safe to adopt, distinct from the runtime Guard mechanics (which are described in the README's Security section and the Guard glossary entry). The posture is collected in `docs/security-posture.md` and links to: OpenSSF Scorecard (live score + badge), OpenSSF Best Practices (self-assessed checklist badge), SBOM (CycloneDX artifact on each Release), security audit reports (`docs/security-audits/`), SECURITY.md (vulnerability reporting process), branch protection + CODEOWNERS enforcement, and Trusted Publishing + provenance attestation. An adopter doing due diligence reads the posture doc; an agent using the server relies on the Guard.
+_Avoid_: security policy, security section, security audit (use "Security Posture" for the consolidated evidence page; "SECURITY.md" for the vulnerability reporting policy; "security audit" for a point-in-time audit report)
+
+**SBOM**:
+Software Bill of Materials — a machine-readable inventory of every dependency in the build, produced as a CycloneDX `.bom.json` artifact. Generated in CI by `cyclonedx-dotnet` from `mssql-mcp.sln`, attested via `actions/attest@v4` on each GitHub Release, and attached as a Release asset. Adopters feed it into vulnerability scanners (Dependency-Track, Grype). Distinct from GitHub's dependency graph (which is UI-only and not an artifact). See ADR-0032.
+_Avoid_: dependency list, dependency graph, manifest
