@@ -13,7 +13,7 @@ public static class SqlHelpers
         """
         SELECT state_desc, user_access_desc
         FROM sys.databases
-        WHERE name = @database
+        WHERE name = @database AND HAS_DBACCESS(name) = 1
         """;
 
     /// <summary>
