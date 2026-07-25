@@ -37,3 +37,4 @@ ADRs document every significant design choice in mssql-mcp. They are numbered se
 | [ADR-0031](0031-unknown-argument-dispatch-and-pre-push-discipline.md) | Unknown-argument dispatch and pre-push discipline | Active |
 | [ADR-0032](0032-security-signaling-and-supply-chain-attestation.md) | Security signaling and supply-chain attestation | Active |
 | [ADR-0033](0033-branch-protection-posture-for-solo-maintained-project.md) | Branch protection posture for solo-maintained project | Active |
+| [ADR-0034](0034-release-please-version-stamping.md) | Release-please for automated version stamping and CHANGELOG generation | Active |

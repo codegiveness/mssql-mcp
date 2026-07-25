@@ -1,0 +1,11 @@
+{
+  "name": "@codegiveness/mssql-mcp",
+  "version": "0.4.2",
+  "optionalDependencies": {
+    "@codegiveness/mssql-mcp-linux-x64": "0.5.0",
+    "@codegiveness/mssql-mcp-linux-arm64": "0.5.0",
+    "@codegiveness/mssql-mcp-osx-x64": "0.5.0",
+    "@codegiveness/mssql-mcp-osx-arm64": "0.5.0",
+    "@codegiveness/mssql-mcp-win-x64": "0.5.0"
+  }
+}

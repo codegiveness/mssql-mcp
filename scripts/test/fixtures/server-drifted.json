@@ -1,0 +1,22 @@
+{
+  "name": "io.github.codegiveness/mssql-mcp",
+  "version": "0.4.2",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@codegiveness/mssql-mcp",
+      "version": "0.5.0",
+      "transport": {
+        "type": "stdio"
+      }
+    },
+    {
+      "registryType": "nuget",
+      "identifier": "codegiveness.mssql-mcp",
+      "version": "0.5.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

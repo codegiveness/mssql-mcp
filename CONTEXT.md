@@ -67,3 +67,33 @@ _Avoid_: security policy, security section, security audit (use "Security Postur
 **SBOM**:
 Software Bill of Materials — a machine-readable inventory of every dependency in the build, produced as a CycloneDX `.bom.json` artifact. Generated in CI by `cyclonedx-dotnet` from `mssql-mcp.sln`, attested via `actions/attest@v4` on each GitHub Release, and attached as a Release asset. Adopters feed it into vulnerability scanners (Dependency-Track, Grype). Distinct from GitHub's dependency graph (which is UI-only and not an artifact). See ADR-0032.
 _Avoid_: dependency list, dependency graph, manifest
+
+## Release Workflow
+
+**Release**:
+A versioned cut of the repo, tagged `vX.Y.Z`, published to NuGet, npm, and GitHub Releases.
+_Avoid_: deploy, ship (as a noun), publish (use for the per-registry push)
+
+**Manifest**:
+The single file `.release-please-manifest.json` holding the canonical version string. All other version references derive from it.
+_Avoid_: version file, config (too generic)
+
+**Version stamp**:
+A literal version string embedded in a tracked file (`mssql-mcp.csproj`, `npm/package.json`, `server.json`). Stamps are derivatives of the Manifest; they must always match it.
+_Avoid_: version literal, version marker
+
+**Stamp** (verb):
+To write the version into a file. Performed by release-please (for standard formats) and by `scripts/sync-server-json.js` (for `server.json`'s three version fields).
+_Avoid_: bump (reserved for the act of incrementing the version), write (too generic)
+
+**Release PR**:
+The auto-generated pull request from release-please that bumps the Manifest, all version stamps, and `CHANGELOG.md` in a single commit. Merging it creates the tag.
+_Avoid_: version PR, bump PR
+
+**Consistency check**:
+The CI workflow (`version-consistency.yml`) and local script (`scripts/check-version-consistency.js`) that verifies every version stamp matches the Manifest. Runs on every PR and every push to `main`.
+_Avoid_: version lint, version validation (too vague)
+
+**Bootstrap SHA**:
+The commit hash (`2458379`) after which release-please begins scanning for release-relevant commits. Set in `.github/release-please-config.json`. All commits at or before this SHA are treated as already released.
+_Avoid_: starting commit, baseline

@@ -57,7 +57,7 @@ dotnet tool install -g codegiveness.mssql-mcp
 mssql-mcp --version
 ```
 
-You should see `mssql-mcp 0.4.2`. If the version prints, the install is good. If it fails, see [Troubleshooting](#troubleshooting).
+You should see the mssql-mcp version printed. If it prints, the install is good. If it fails, see [Troubleshooting](#troubleshooting).
 
 **2. Add the server to your MCP client.**
 
