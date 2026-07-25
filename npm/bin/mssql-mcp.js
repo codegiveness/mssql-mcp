@@ -224,15 +224,32 @@ async function main() {
 }
 
 // Check if a cached binary exists at ~/.mssql-mcp/bin/<version>/<rid>/mssql-mcp[.exe]
-function resolveCachedBinary(rid) {
+// and re-verify its SHA256 against a sidecar file before trusting it. Prevents
+// cache poisoning: a tampered binary (or a tampered/missing sidecar) is treated
+// as a cache miss and re-downloaded.
+function resolveCachedBinary(rid, cacheRoot) {
+  const root = cacheRoot || CACHE_ROOT;
   const pkg = require('../package.json');
   const version = pkg.version;
   const binaryName = process.platform === 'win32' ? 'mssql-mcp.exe' : 'mssql-mcp';
-  const cachedPath = path.join(CACHE_ROOT, version, rid, binaryName);
-  if (fs.existsSync(cachedPath)) {
-    return cachedPath;
+  const cachedPath = path.join(root, version, rid, binaryName);
+  if (!fs.existsSync(cachedPath)) {
+    return null;
   }
-  return null;
+  const sidecarPath = cachedPath + '.sha256';
+  if (!fs.existsSync(sidecarPath)) {
+    // No recorded checksum — cannot trust the cached binary. Treat as miss.
+    return null;
+  }
+  const expected = parseChecksumFile(fs.readFileSync(sidecarPath, 'utf8'));
+  const actual = sha256Hex(fs.readFileSync(cachedPath));
+  if (expected !== actual) {
+    // Tampered or corrupted cache. Purge and re-download.
+    try { fs.rmSync(cachedPath, { force: true }); } catch (_) { /* best effort */ }
+    try { fs.rmSync(sidecarPath, { force: true }); } catch (_) { /* best effort */ }
+    return null;
+  }
+  return cachedPath;
 }
 
 // Attempt self-heal download. Returns the binary path on success, or exits
@@ -314,6 +331,10 @@ async function selfHealOrDie(rid) {
     if (process.platform !== 'win32') {
       fs.chmodSync(cachedBinaryPath, 0o755);
     }
+
+    // Record the verified binary's checksum alongside it so future cache hits
+    // can re-verify integrity (resolveCachedBinary reads this sidecar).
+    fs.writeFileSync(cachedBinaryPath + '.sha256', sha256Hex(fs.readFileSync(cachedBinaryPath)));
 
     console.error('mssql-mcp: cached binary to ' + cachedBinaryPath);
   } finally {
@@ -411,7 +432,7 @@ function failWindowsDotNetMissing(spawnError) {
 }
 
 // Exposed for smoke tests (npm/test.js). Not part of the public API.
-module.exports = { ridFor, archiveExt, parseChecksumFile, classifyDownloadError, sha256Hex, extractTarGz, fetchUrl, isAllowedRedirectHost };
+module.exports = { ridFor, archiveExt, parseChecksumFile, classifyDownloadError, sha256Hex, extractTarGz, fetchUrl, isAllowedRedirectHost, resolveCachedBinary };
 
 // Run main() only when invoked directly (not when required by test.js).
 if (require.main === module) {

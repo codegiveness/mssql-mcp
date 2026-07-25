@@ -175,6 +175,89 @@ check('PB4: fetchUrl respects MAX_REDIRECTS depth limit (mitigation present)', (
   console.log('  -> Depth limit (3) caps redirect chains.');
 });
 
+// ---------- PB5: cache poisoning — re-verify sha256 on cache hit ----------
+
+// Setup helper: build a fake cache dir at <cacheRoot>/<version>/<rid>/ containing
+// the binary + (optional) sidecar. Returns { cacheDir, binaryPath, sidecarPath }.
+function buildFakeCache(cacheRoot, version, rid, binaryContent, sidecarHash) {
+  const binaryName = process.platform === 'win32' ? 'mssql-mcp.exe' : 'mssql-mcp';
+  const cacheDir = path.join(cacheRoot, version, rid);
+  fs.mkdirSync(cacheDir, { recursive: true });
+  const binaryPath = path.join(cacheDir, binaryName);
+  fs.writeFileSync(binaryPath, binaryContent);
+  const sidecarPath = binaryPath + '.sha256';
+  if (sidecarHash !== undefined) {
+    fs.writeFileSync(sidecarPath, sidecarHash + '\n');
+  }
+  return { cacheDir, binaryPath, sidecarPath };
+}
+
+const PB5_VERSION = require('./package.json').version;
+const PB5_RID = shim.ridFor(process.platform, process.arch) || 'linux-x64';
+
+check('PB5: mismatched sha256 sidecar triggers cache miss + purges binary and sidecar', () => {
+  assert.strictEqual(typeof shim.resolveCachedBinary, 'function',
+    'resolveCachedBinary must be exported for testability');
+  const cacheRoot = makeTempDir();
+  try {
+    const binaryContent = Buffer.from('fake-binary-bytes');
+    const wrongHash = '0'.repeat(64);
+    const { binaryPath, sidecarPath } = buildFakeCache(cacheRoot, PB5_VERSION, PB5_RID, binaryContent, wrongHash);
+    assert.strictEqual(fs.existsSync(binaryPath), true);
+    assert.strictEqual(fs.existsSync(sidecarPath), true);
+
+    const result = shim.resolveCachedBinary(PB5_RID, cacheRoot);
+    assert.strictEqual(result, null, 'mismatched sha256 must return null (cache miss)');
+    assert.strictEqual(fs.existsSync(binaryPath), false,
+      'tampered binary must be deleted on mismatch');
+    assert.strictEqual(fs.existsSync(sidecarPath), false,
+      'mismatched sidecar must be deleted on mismatch');
+  } finally {
+    rmrf(cacheRoot);
+  }
+});
+
+check('PB5: missing sha256 sidecar triggers cache miss (no trust without recorded checksum)', () => {
+  const cacheRoot = makeTempDir();
+  try {
+    const { binaryPath, sidecarPath } = buildFakeCache(cacheRoot, PB5_VERSION, PB5_RID, Buffer.from('x'), undefined);
+    assert.strictEqual(fs.existsSync(binaryPath), true);
+    assert.strictEqual(fs.existsSync(sidecarPath), false);
+
+    const result = shim.resolveCachedBinary(PB5_RID, cacheRoot);
+    assert.strictEqual(result, null, 'missing sidecar must return null (cache miss)');
+    assert.strictEqual(fs.existsSync(binaryPath), true,
+      'binary is NOT deleted when sidecar is merely missing (no tampering proven)');
+  } finally {
+    rmrf(cacheRoot);
+  }
+});
+
+check('PB5: matching sha256 sidecar returns cached path (verified cache hit)', () => {
+  const cacheRoot = makeTempDir();
+  try {
+    const binaryContent = Buffer.from('legit-binary-bytes');
+    const correctHash = shim.sha256Hex(binaryContent);
+    const { binaryPath } = buildFakeCache(cacheRoot, PB5_VERSION, PB5_RID, binaryContent, correctHash);
+
+    const result = shim.resolveCachedBinary(PB5_RID, cacheRoot);
+    assert.strictEqual(result, binaryPath, 'matching sha256 must return the cached binary path');
+    assert.strictEqual(fs.existsSync(binaryPath), true, 'verified binary must remain in place');
+  } finally {
+    rmrf(cacheRoot);
+  }
+});
+
+check('PB5: no cached binary returns null (baseline cache miss)', () => {
+  const cacheRoot = makeTempDir();
+  try {
+    const result = shim.resolveCachedBinary(PB5_RID, cacheRoot);
+    assert.strictEqual(result, null, 'empty cache must return null');
+  } finally {
+    rmrf(cacheRoot);
+  }
+});
+
 if (failures > 0) {
   console.error('\n' + failures + ' test(s) failed.');
   process.exit(1);
