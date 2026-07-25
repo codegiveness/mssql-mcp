@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3](https://github.com/codegiveness/mssql-mcp/compare/v0.5.2...v0.5.3) (2026-07-25)
+
+
+### Bug Fixes
+
+* sync version stamps to 0.5.2 (manifest was ahead of csproj/npm/server.json) ([#107](https://github.com/codegiveness/mssql-mcp/issues/107)) ([88f6f11](https://github.com/codegiveness/mssql-mcp/commit/88f6f11ad276059c0c46dbafef684852cff6b82d)), closes [#106](https://github.com/codegiveness/mssql-mcp/issues/106)
+* update stale docs to reflect current code (ADRs, versions, test counts) ([#109](https://github.com/codegiveness/mssql-mcp/issues/109)) ([665e145](https://github.com/codegiveness/mssql-mcp/commit/665e145d765fd6de512d3d8fb8fa33db5bc3aad2))
+
 ## [0.5.2](https://github.com/codegiveness/mssql-mcp/compare/v0.5.1...v0.5.2) (2026-07-25)
 
 
