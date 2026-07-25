@@ -29,10 +29,10 @@ jobs:
           target-branch: main
 
       - name: Trigger release.yml on new tag
-        if: steps.release-please.outputs.release-created == 'true'
+        if: steps.release-please.outputs.releases_created == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          tag="${{ steps.release-please.outputs.tag-name }}"
+          tag="v${{ steps.release-please.outputs.version }}"
           echo "Release created with tag $tag, triggering release.yml"
           gh workflow run release.yml -f tag="$tag"
