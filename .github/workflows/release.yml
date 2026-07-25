@@ -116,6 +116,9 @@ jobs:
           echo "Synced VersionPrefix to ${version}"
           grep VersionPrefix src/mssql-mcp/mssql-mcp.csproj
 
+      - name: Sync server.json version
+        run: node scripts/sync-all-stamps.js
+
       # NuGet pack + Trusted Publishing push (OIDC, no long-lived API key; see ADR-0019).
       - name: Pack NuGet
         run: dotnet pack src/mssql-mcp -c Release -o artifacts

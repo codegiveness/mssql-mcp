@@ -40,9 +40,9 @@ function readJson(filePath, label) {
 //   output:  the serialized server.json (2-space indent, trailing newline).
 function syncServerJson({ manifestPath, serverJsonPath }) {
   const manifest = readJson(manifestPath, 'manifest');
-  const manifestVersion = manifest.version;
+  const manifestVersion = manifest['.'];
   if (typeof manifestVersion !== 'string' || manifestVersion.length === 0) {
-    throw new Error('manifest at ' + manifestPath + ' has no "version" string');
+    throw new Error('manifest at ' + manifestPath + ' has no "." version string');
   }
 
   const server = readJson(serverJsonPath, 'server.json');

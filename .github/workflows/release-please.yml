@@ -26,11 +26,3 @@ jobs:
           config-file: .github/release-please-config.json
           manifest-file: .release-please-manifest.json
           target-branch: main
-
-      # After release-please creates the release PR, sync server.json's
-      # non-standard 3 version fields from the manifest (ADR-0034).
-      # release-please handles csproj <VersionPrefix> and npm package.json
-      # natively via extra-files; server.json needs the sync script.
-      - name: Sync server.json version fields
-        if: steps.release-please.outputs.release-pr == 'true'
-        run: node scripts/sync-server-json.js

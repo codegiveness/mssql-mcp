@@ -224,10 +224,9 @@ check('malformed manifest JSON -> ok false with parse error', () => {
   assert.ok(!result.errors[0].match(/failed to parse JSON: failed to parse JSON:/), 'should not duplicate "failed to parse JSON" phrase: ' + result.errors[0]);
 });
 
-// --- MANIFEST MISSING VERSION FIELD ---
+// --- MANIFEST MISSING VERSION KEY ---
 
-check('manifest without version field -> ok false with missing version error', () => {
-  // Use a fixture with no version key.
+check('manifest without "." version key -> ok false with missing version error', () => {
   const noVersionManifest = path.join(FIXTURES, 'manifest-no-version.json');
   const result = mod.checkVersionConsistency({
     ...alignedPaths(),
