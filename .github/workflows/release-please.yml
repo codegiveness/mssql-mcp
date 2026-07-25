@@ -13,6 +13,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      actions: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -26,4 +27,12 @@ jobs:
           config-file: .github/release-please-config.json
           manifest-file: .release-please-manifest.json
           target-branch: main
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+      - name: Trigger release.yml on new tag
+        if: steps.release-please.outputs.release-created == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ steps.release-please.outputs.tag-name }}"
+          echo "Release created with tag $tag, triggering release.yml"
+          gh workflow run release.yml -f tag="$tag"
