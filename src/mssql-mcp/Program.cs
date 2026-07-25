@@ -112,7 +112,7 @@ builder.Services.AddSingleton<IGuard>(sp =>
 // provider per invocation via ActivatorUtilities.CreateInstance.
 bool unrestricted = options.AccessMode == AccessMode.Unrestricted;
 
-static void AddTool<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicConstructors)] TTool>(IServiceCollection services, string methodName, bool? readOnly, bool? destructive)
+static void AddTool<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicConstructors)] TTool>(IServiceCollection services, string methodName, bool? readOnly, bool? destructive, bool idempotent = true)
     where TTool : class
 {
     MethodInfo method = typeof(TTool).GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance)
@@ -125,7 +125,7 @@ static void AddTool<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.P
             Services = sp,
             ReadOnly = readOnly,
             Destructive = destructive,
-            Idempotent = false,
+            Idempotent = idempotent,
             OpenWorld = false,
         }));
 }
@@ -138,7 +138,8 @@ AddTool<DatabaseTools>(builder.Services, nameof(DatabaseTools.GetObjectDetails),
 // SQL (2) — execute_sql varies by mode; explain_query is always read-only.
 AddTool<SqlTools>(builder.Services, nameof(SqlTools.ExecuteSql),
     readOnly: !unrestricted,
-    destructive: unrestricted);
+    destructive: unrestricted,
+    idempotent: false);
 AddTool<PlanTools>(builder.Services, nameof(PlanTools.ExplainQuery), readOnly: true, destructive: false);
 // Ops (3) — read-only in both modes.
 AddTool<OpsTools>(builder.Services, nameof(OpsTools.AnalyzeIndexes), readOnly: true, destructive: false);

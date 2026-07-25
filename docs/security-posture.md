@@ -70,7 +70,7 @@ See [ADR-0033: Branch protection posture for solo-maintained project](adr/0033-b
 
 ## OpenSSF Best Practices
 
-Self-assessment at [bestpractices.dev](https://bestpractices.dev/) is pending. This is a manual human task tracked in [issue #68](https://github.com/codegiveness/mssql-mcp/issues/68).
+Self-assessment at [bestpractices.dev](https://bestpractices.dev/) is pending. This is a manual human task tracked in [issue #68](https://github.com/codegiveness/mssql-mcp/issues/68). See [OpenSSF Best Practices self-assessment](./ossf-best-practices-self-assessment.md) for the filled-in checklist (badge stays Pending until human submits to bestpractices.dev).
 
 ## Threat model
 

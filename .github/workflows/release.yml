@@ -14,6 +14,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
@@ -85,8 +89,8 @@ jobs:
 
       - name: Generate SBOM
         run: |
-          dotnet tool install --global CycloneDX --version 6.2.0
-          ~/.dotnet/tools/dotnet-CycloneDX mssql-mcp.sln --output-format json --output artifacts/sbom
+          dotnet tool restore
+          dotnet dotnet-CycloneDX mssql-mcp.sln --output-format json --output artifacts/sbom
 
       # GitHub Release FIRST so the shim self-heal can fetch archives before npm publish lands.
       # Conventional Commits auto-notes (titles enforced by semantic.yml from #16).

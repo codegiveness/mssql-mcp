@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,8 +31,8 @@ jobs:
         run: dotnet pack src/mssql-mcp/mssql-mcp.csproj -c Release -o artifacts
       - name: Generate SBOM
         run: |
-          dotnet tool install --global CycloneDX --version 6.2.0
-          ~/.dotnet/tools/dotnet-CycloneDX mssql-mcp.sln --output-format json --output artifacts/sbom
+          dotnet tool restore
+          dotnet dotnet-CycloneDX mssql-mcp.sln --output-format json --output artifacts/sbom
       - name: Upload artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
