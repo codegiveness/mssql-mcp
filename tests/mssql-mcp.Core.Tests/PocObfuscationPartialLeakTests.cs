@@ -122,4 +122,23 @@ public class PocObfuscationPartialLeakTests
         Assert.DoesNotContain("abc123", result);
         Assert.Contains("Password=***;", result);
     }
+
+    /// <summary>
+    /// Regression: quoted password value containing a semicolon must be fully obfuscated.
+    /// Input: Password="a;b";tail=4;
+    /// The quoted value "a;b" contains a semicolon. The regex must consume the FULL
+    /// quoted value (including the semicolon inside the quotes) before the closing "
+    /// and trailing chars. The `tail=4` is a separate key-value, NOT part of the password.
+    /// </summary>
+    [Fact]
+    public void PA6_QuotedValueWithSemicolon_FullyObfuscated()
+    {
+        const string input = "Password=\"a;b\";tail=4;";
+        string result = PasswordObfuscator.Obfuscate(input);
+        Assert.Contains("Password=***;", result);
+        // The password value "a;b" must NOT leak — the semicolon inside quotes is part of the value
+        Assert.DoesNotContain("a;b", result);
+        // The tail key is a separate value and should be preserved
+        Assert.Contains("tail=4", result);
+    }
 }
