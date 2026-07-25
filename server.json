@@ -3,7 +3,7 @@
   "name": "io.github.codegiveness/mssql-mcp",
   "title": "mssql-mcp",
   "description": "MCP server for SQL Server. Lets AI agents safely query SQL Server via a controlled tool surface.",
-  "version": "0.4.2",
+  "version": "1.0.0",
   "repository": {
     "url": "https://github.com/codegiveness/mssql-mcp",
     "source": "github"
