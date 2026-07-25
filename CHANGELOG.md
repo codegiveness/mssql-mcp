@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0](https://github.com/codegiveness/mssql-mcp/compare/v0.4.2...v0.5.0) (2026-07-25)
+
+
+### Features
+
+* release-please automated version stamping + consistency guard ([#86](https://github.com/codegiveness/mssql-mcp/issues/86)) ([7f660a8](https://github.com/codegiveness/mssql-mcp/commit/7f660a8842099079ea91969e74a53e21e63f887b)), closes [#78](https://github.com/codegiveness/mssql-mcp/issues/78)
+
+
+### Bug Fixes
+
+* **ci:** scope Scorecard write permissions to job level ([#73](https://github.com/codegiveness/mssql-mcp/issues/73)) ([79368ce](https://github.com/codegiveness/mssql-mcp/commit/79368ce927d880dd0e47a9380634bb1204d83b1f))
+* **ci:** use dereferenced commit SHA for scorecard-action ([#74](https://github.com/codegiveness/mssql-mcp/issues/74)) ([d3a4467](https://github.com/codegiveness/mssql-mcp/commit/d3a4467410b41c83db0ab612d2524857effa8359))
+* correct release-please manifest format + unified stamp sync ([#88](https://github.com/codegiveness/mssql-mcp/issues/88)) ([2f674cf](https://github.com/codegiveness/mssql-mcp/commit/2f674cf715aa46ea627890b2d20e8ac8c497517f)), closes [#78](https://github.com/codegiveness/mssql-mcp/issues/78)
+* **readme:** update Scorecard badge URL to api.scorecard.dev ([#76](https://github.com/codegiveness/mssql-mcp/issues/76)) ([d00adef](https://github.com/codegiveness/mssql-mcp/commit/d00adef96d504078367166aa91cce92e871f09cb))
+* skip version-consistency check for bot PRs ([#90](https://github.com/codegiveness/mssql-mcp/issues/90)) ([01dba32](https://github.com/codegiveness/mssql-mcp/commit/01dba32967a5c1e38a4407fb28d0d78e1cd2890c)), closes [#78](https://github.com/codegiveness/mssql-mcp/issues/78)
+
 ## [Unreleased]
 
 ## [0.4.2] - 2026-07-24
