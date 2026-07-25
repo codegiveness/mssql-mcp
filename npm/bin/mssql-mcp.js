@@ -95,6 +95,39 @@ function fetchUrl(url, depth) {
 }
 
 function extractTarGz(archivePath, outDir) {
+  // Validate entry names before extraction to prevent path traversal (Tar Slip).
+  // `tar -xzf` alone may strip leading ../ on modern GNU tar but does not provide
+  // a portable app-level guarantee — defense-in-depth requires the application
+  // reject traversal entries explicitly. Mirrors extractZip's prefix check and
+  // additionally rejects symlink/hardlink entries, which tar can write outside
+  // the target dir (a vector zip does not have).
+  const list = spawnSync('tar', ['-tzf', archivePath], { encoding: 'utf8' });
+  if (list.status !== 0) {
+    throw new Error('tar -tzf failed with status ' + list.status);
+  }
+  for (const name of list.stdout.split('\n')) {
+    const entry = name.trim();
+    if (!entry) continue;
+    if (entry.startsWith('/') || entry.indexOf('..') !== -1) {
+      throw new Error('Refusing to extract tar entry outside target directory: ' + entry);
+    }
+  }
+
+  // Inspect entry metadata (permissions field) to reject symlinks/hardlinks.
+  // GNU tar `--test-label`/`-tv` first column: `lrwxrwxrwx` symlink, `hrwxr-xr-x`
+  // hardlink, `-rw-r--r--` regular file. The first char is the type flag.
+  const verbose = spawnSync('tar', ['-tvf', archivePath], { encoding: 'utf8' });
+  if (verbose.status !== 0) {
+    throw new Error('tar -tvf failed with status ' + verbose.status);
+  }
+  for (const line of verbose.stdout.split('\n')) {
+    if (!line) continue;
+    const typeFlag = line[0];
+    if (typeFlag === 'l' || typeFlag === 'h') {
+      throw new Error('Refusing to extract tar entry of type ' + typeFlag + ': ' + line.trim());
+    }
+  }
+
   const r = spawnSync('tar', ['-xzf', archivePath, '-C', outDir], { stdio: 'inherit' });
   if (r.status !== 0) {
     throw new Error('tar exited with status ' + r.status);
@@ -359,7 +392,7 @@ function failWindowsDotNetMissing(spawnError) {
 }
 
 // Exposed for smoke tests (npm/test.js). Not part of the public API.
-module.exports = { ridFor, archiveExt, parseChecksumFile, classifyDownloadError, sha256Hex };
+module.exports = { ridFor, archiveExt, parseChecksumFile, classifyDownloadError, sha256Hex, extractTarGz, fetchUrl };
 
 // Run main() only when invoked directly (not when required by test.js).
 if (require.main === module) {
