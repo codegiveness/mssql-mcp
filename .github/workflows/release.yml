@@ -53,6 +53,22 @@ jobs:
           version="${tag#v}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
+      # Sync ALL version stamps to the tag BEFORE any build step.
+      # The native binary embeds <VersionPrefix> at compile time — if the sync
+      # runs after `dotnet publish`, the shipped binary reports the stale version
+      # (issue: 0.5.3 npm package shipped a binary reporting 0.5.2.0).
+      # sync-all-stamps.js writes csproj, npm/package.json, and server.json from
+      # the manifest; the sed is defense-in-depth re-asserting csproj from the tag.
+      - name: Sync NuGet version
+        run: |
+          version="${{ steps.ver.outputs.version }}"
+          sed -i "s|<VersionPrefix>[^<]*</VersionPrefix>|<VersionPrefix>${version}</VersionPrefix>|" src/mssql-mcp/mssql-mcp.csproj
+          echo "Synced VersionPrefix to ${version}"
+          grep VersionPrefix src/mssql-mcp/mssql-mcp.csproj
+
+      - name: Sync server.json version
+        run: node scripts/sync-all-stamps.js
+
       # CI gate: build + test before producing any artifacts.
       - run: dotnet restore mssql-mcp.sln
       - run: dotnet build mssql-mcp.sln --no-restore
@@ -110,18 +126,6 @@ jobs:
             artifacts/mssql-mcp-*.zip
             artifacts/mssql-mcp-*.sha256
             artifacts/sbom/*.json
-
-      # Sync NuGet version to the tag (like npm — prevents VersionPrefix drift).
-      # The .csproj's <VersionPrefix> is a floor; the tag is the source of truth.
-      - name: Sync NuGet version
-        run: |
-          version="${{ steps.ver.outputs.version }}"
-          sed -i "s|<VersionPrefix>[^<]*</VersionPrefix>|<VersionPrefix>${version}</VersionPrefix>|" src/mssql-mcp/mssql-mcp.csproj
-          echo "Synced VersionPrefix to ${version}"
-          grep VersionPrefix src/mssql-mcp/mssql-mcp.csproj
-
-      - name: Sync server.json version
-        run: node scripts/sync-all-stamps.js
 
       # NuGet pack + Trusted Publishing push (OIDC, no long-lived API key; see ADR-0019).
       - name: Pack NuGet
