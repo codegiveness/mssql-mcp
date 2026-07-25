@@ -101,6 +101,10 @@ azure-sql-edge-data/
 opencode.json
 opencode.jsonc
 
+# Git worktrees (local-only isolated checkouts created by the
+# using-git-worktrees skill). Never commit worktree contents.
+.worktrees/
+
 # Other AI coding assistants (defensive — none are used in this repo today,
 # but if a contributor opens it with one, their private state stays private).
 # Per-assistant instruction files (AGENTS.md, CLAUDE.md, .cursorrules) are
