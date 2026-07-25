@@ -108,51 +108,71 @@ check('PB3: contrast — extractZip validates entries (Zip Slip fix present)', (
     'contrast is the structural proof of the gap.');
 });
 
-// ---------- PB-4: fetchUrl follows redirects to any host ----------
+// ---------- PB-4: fetchUrl pins redirect hosts to github.com and *.githubusercontent.com ----------
 
-// This is a static proof: fetchUrl (bin/mssql-mcp.js:68-95) follows 3xx redirects
-// by calling fetchUrl(res.headers.location, depth+1) with NO host validation. The
-// only constraint is depth <= MAX_REDIRECTS (3). A redirect to any https URL is
-// followed, including attacker-controlled hosts.
-//
-// Dynamic proof would require a live redirect server. We verify structurally by
-// asserting the function is exported and the redirect branch has no host check.
-// The attack scenario: GitHub releases redirect to S3/CDN (legitimate), but a MITM
-// or DNS-rebinding attack could redirect to an attacker host serving a malicious
-// binary. The sha256 checksum (downloaded separately from the same GitHub origin)
-// would fail to catch this only if the attacker also controls the checksum file —
-// but since both come from github.com over HTTPS, the risk is bounded to GitHub
-// compromise or CA/transport-level attacks (lower severity).
-check('PB4: fetchUrl is exported and follows redirects without host validation (static proof)', () => {
+// Static proof: fetchUrl (bin/mssql-mcp.js) follows 3xx redirects only after
+// validating the Location host against REDIRECT_HOST_ALLOWLIST. A redirect to
+// any host outside {github.com, objects.githubusercontent.com,
+// github-releases.githubusercontent.com, *.githubusercontent.com} is refused.
+check('PB4: fetchUrl pins redirect hosts to github.com and *.githubusercontent.com', () => {
   assert.strictEqual(typeof shim.fetchUrl, 'function', 'fetchUrl must be exported for testability');
 
-  // Read the source and assert the redirect branch exists with no host check.
   const src = fs.readFileSync(path.join(__dirname, 'bin/mssql-mcp.js'), 'utf8');
 
-  // The redirect-following branch:
-  assert.ok(src.indexOf('fetchUrl(res.headers.location, depth + 1)') !== -1,
-    'fetchUrl should follow Location header redirects');
+  assert.ok(src.indexOf('isAllowedRedirectHost') !== -1,
+    'fetchUrl redirect branch should call a host validation helper');
 
-  // No host allowlist or pinning to github.com in the redirect path:
   const redirectSection = src.substring(
     src.indexOf('function fetchUrl'),
     src.indexOf('function fetchUrl') + 1500
   );
-  assert.ok(redirectSection.indexOf('github.com') === -1 || redirectSection.indexOf('allowlist') !== -1,
-    'fetchUrl redirect branch should have no github.com host pinning (confirms the gap)');
+  assert.ok(redirectSection.indexOf('githubusercontent.com') !== -1 ||
+            redirectSection.indexOf('isAllowedRedirectHost') !== -1,
+    'fetchUrl redirect section must reference the githubusercontent.com allowlist');
+  assert.ok(src.indexOf('REDIRECT_HOST_ALLOWLIST') !== -1 && src.indexOf("'github.com'") !== -1,
+    'module must define REDIRECT_HOST_ALLOWLIST containing github.com');
+  assert.ok(redirectSection.indexOf('Refusing to follow redirect to untrusted host') !== -1,
+    'fetchUrl must reject untrusted redirect hosts with the documented message');
 
-  console.log('  -> Static proof: fetchUrl follows up to 3 redirects to any https host. No host pinning to github.com.');
+  console.log('  -> Static proof: fetchUrl follows redirects only to github.com and *.githubusercontent.com.');
+});
+
+check('PB4: fetchUrl rejects redirect to untrusted host', () => {
+  assert.strictEqual(typeof shim.fetchUrl, 'function', 'fetchUrl must be exported for testability');
+  assert.strictEqual(typeof shim.isAllowedRedirectHost, 'function',
+    'isAllowedRedirectHost must be exported for testability');
+
+  // Allowed hosts:
+  assert.strictEqual(shim.isAllowedRedirectHost('github.com'), true);
+  assert.strictEqual(shim.isAllowedRedirectHost('objects.githubusercontent.com'), true);
+  assert.strictEqual(shim.isAllowedRedirectHost('github-releases.githubusercontent.com'), true);
+  assert.strictEqual(shim.isAllowedRedirectHost('raw.githubusercontent.com'), true,
+    'any *.githubusercontent.com host is allowed');
+
+  // Untrusted hosts rejected:
+  assert.strictEqual(shim.isAllowedRedirectHost('evil.example.com'), false,
+    'arbitrary host must be rejected');
+  assert.strictEqual(shim.isAllowedRedirectHost('github.com.evil.example.com'), false,
+    'host with github.com as substring-prefix of suffix must not bypass the allowlist');
+
+  const src = fs.readFileSync(path.join(__dirname, 'bin/mssql-mcp.js'), 'utf8');
+  const redirectSection = src.substring(
+    src.indexOf('function fetchUrl'),
+    src.indexOf('function fetchUrl') + 1500
+  );
+  assert.ok(redirectSection.indexOf('Refusing to follow redirect to untrusted host') !== -1,
+    'fetchUrl must reject untrusted redirect hosts with the documented message');
+
+  console.log('  -> isAllowedRedirectHost allowlist enforced; untrusted hosts refused.');
 });
 
 check('PB4: fetchUrl respects MAX_REDIRECTS depth limit (mitigation present)', () => {
-  // This is a partial mitigation: the depth limit prevents infinite redirect loops
-  // but does NOT prevent redirect to an attacker-controlled host within 3 hops.
   const src = fs.readFileSync(path.join(__dirname, 'bin/mssql-mcp.js'), 'utf8');
   assert.ok(src.indexOf('MAX_REDIRECTS = 3') !== -1,
     'MAX_REDIRECTS should be 3 to cap redirect chains');
   assert.ok(src.indexOf('too many redirects') !== -1,
     'fetchUrl should reject with "too many redirects" past the limit');
-  console.log('  -> Depth limit (3) caps redirect chains but does not pin hosts.');
+  console.log('  -> Depth limit (3) caps redirect chains.');
 });
 
 if (failures > 0) {

@@ -63,7 +63,21 @@ function parseChecksumFile(text) {
 
 // Follow up to 3 HTTP redirects (GitHub releases redirect to S3/CDN).
 // Hard depth limit prevents redirect loops from hanging or stack-overflowing.
+// Redirect hosts are pinned to GitHub infrastructure: a MITM/DNS-rebind that
+// redirects to an attacker host is refused before the connection is opened.
 const MAX_REDIRECTS = 3;
+const REDIRECT_HOST_ALLOWLIST = [
+  'github.com',
+  'objects.githubusercontent.com',
+  'github-releases.githubusercontent.com',
+];
+
+function isAllowedRedirectHost(host) {
+  if (!host) return false;
+  const h = host.toLowerCase();
+  if (REDIRECT_HOST_ALLOWLIST.indexOf(h) !== -1) return true;
+  return h.endsWith('.githubusercontent.com');
+}
 
 function fetchUrl(url, depth) {
   if (depth === undefined) depth = 0;
@@ -75,7 +89,12 @@ function fetchUrl(url, depth) {
     const req = https.get(url, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         res.resume();
-        fetchUrl(res.headers.location, depth + 1).then(resolve, reject);
+        const next = new URL(res.headers.location, url);
+        if (!isAllowedRedirectHost(next.hostname)) {
+          reject(new Error('Refusing to follow redirect to untrusted host: ' + next.hostname));
+          return;
+        }
+        fetchUrl(next.href, depth + 1).then(resolve, reject);
         return;
       }
       if (res.statusCode !== 200) {
@@ -392,7 +411,7 @@ function failWindowsDotNetMissing(spawnError) {
 }
 
 // Exposed for smoke tests (npm/test.js). Not part of the public API.
-module.exports = { ridFor, archiveExt, parseChecksumFile, classifyDownloadError, sha256Hex, extractTarGz, fetchUrl };
+module.exports = { ridFor, archiveExt, parseChecksumFile, classifyDownloadError, sha256Hex, extractTarGz, fetchUrl, isAllowedRedirectHost };
 
 // Run main() only when invoked directly (not when required by test.js).
 if (require.main === module) {
