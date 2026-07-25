@@ -54,6 +54,8 @@ public sealed class FileLoggerProvider : ILoggerProvider
             throw new ArgumentOutOfRangeException(nameof(maxRolls), "Must be non-negative.");
         }
 
+        ValidatePath(path);
+
         _path = path;
         _maxBytes = maxBytes;
         _maxRolls = maxRolls;
@@ -136,8 +138,52 @@ public sealed class FileLoggerProvider : ILoggerProvider
         _writer = CreateWriter(_path);
     }
 
+    /// <summary>
+    /// Defense-in-depth path validation (PB-2 hardening). Rejects paths containing
+    /// <c>..</c> traversal segments and rejects symlinks whose resolved target differs
+    /// from the configured path. Absolute paths are permitted — operators may use
+    /// <c>/var/log/</c> or similar; no allowlist root is imposed.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="path"/> contains <c>..</c> or resolves via symlink to
+    /// a different path than the one configured.
+    /// </exception>
+    private static void ValidatePath(string path)
+    {
+        // Reject traversal segments. Path.GetFullPath collapses them after the fact, so
+        // we inspect the raw string — this catches both relative (../foo) and absolute
+        // (/etc/../../foo) traversal shapes regardless of platform separator.
+        if (path.Contains("..", StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "Log file path must not contain '..' traversal segments.",
+                nameof(path));
+        }
+
+        // Resolve to absolute so the symlink check compares apples to apples. GetFullPath
+        // normalizes separators and resolves relative segments against the CWD; traversal
+        // was already rejected above, so this is safe.
+        string resolved = Path.GetFullPath(path);
+
+        // If the path is an existing symlink, reject when its target differs from the
+        // configured path. FileInfo.LinkTarget returns the stored link target string for
+        // symlinks (null for regular files or non-existent paths). We resolve the link
+        // target to absolute and compare — a mismatch means the path points elsewhere.
+        if (File.Exists(resolved) && new FileInfo(resolved).LinkTarget is { } linkTarget)
+        {
+            string resolvedLink = Path.GetFullPath(linkTarget);
+            if (!string.Equals(resolvedLink, resolved, StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    $"Log file path '{path}' is a symlink pointing to '{linkTarget}', which differs from the configured path. Symlinks are rejected.",
+                    nameof(path));
+            }
+        }
+    }
+
     private static StreamWriter CreateWriter(string path)
     {
+        ValidatePath(path);
         var stream = new FileStream(
             path,
             FileMode.Append,
