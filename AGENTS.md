@@ -35,6 +35,7 @@ If any check fails, the push is blocked — no exceptions.
 | Unknown-arg error | `mssql-mcp upgrade` (or `dotnet run --project src/mssql-mcp -- upgrade`) | `mssql-mcp: unknown argument 'upgrade'.` to stderr, exit 1 |
 | npm smoke test | `node npm/test.js` (if applicable) | All smoke tests pass |
 | README linter | `node scripts/lint-readme-snippets.js` | All snippets valid + badge URLs well-formed |
+| Version consistency | `node scripts/check-version-consistency.js` | `Version consistency: all stamps match.` exit 0 |
 | LSP diagnostics | Run LSP diagnostics on changed files | 0 errors |
 | Format check | `dotnet format mssql-mcp.sln --verify-no-changes --no-restore` | Clean (no changes needed) |
 | MCP stdio smoke test | `./scripts/mcp-smoke.sh` (with `.env` loaded) | `[PASS] tools/list: 9 tools found` + `[PASS] list_databases: returned N databases` + `ALL CHECKS PASSED` |
