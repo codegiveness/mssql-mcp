@@ -46,7 +46,7 @@ The dependency graph is `Core ← Tools ← App`. Cross-project references enfor
 dotnet test --filter Category!=Integration
 ```
 
-This is what CI runs. ~414 tests, completes in seconds.
+This is what CI runs. ~440 tests, completes in seconds.
 
 ### Integration tests (requires live SQL Server)
 
@@ -82,7 +82,7 @@ Run these checks before pushing or opening a PR. If any check fails, the push is
 
 ### C# conventions
 
-- C# 13 / .NET 10 target
+- C# 14 / .NET 10 target
 - `var` only when the type is obvious from the right-hand side; otherwise use explicit types
 - No `!` null-forgiving operator except at trust boundaries (deserialization, CLI parsing)
 - No suppressions of nullable warnings (`#pragma warning disable CS8602`, `!`, etc.)

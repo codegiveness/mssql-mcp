@@ -9,28 +9,36 @@ mssql-mcp/
 ├── mssql-mcp.sln
 ├── src/
 │   ├── mssql-mcp.Core/           # Guard, SqlExecutor, types — no MCP deps
-│   │   ├── Guard/
-│   │   │   ├── AstValidator.cs
-│   │   │   └── ExecutionWrapper.cs
-│   │   ├── Data/
-│   │   │   └── SqlExecutor.cs
-│   │   ├── Options/
+│   │   ├── Configuration/
+│   │   │   ├── AccessMode.cs
+│   │   │   ├── CliDispatch.cs
+│   │   │   ├── CliDispatchResult.cs
 │   │   │   └── MssqlMcpOptions.cs
+│   │   ├── Guard/
+│   │   │   ├── IGuard.cs
+│   │   │   └── SqlGuard.cs
+│   │   ├── Logging/
+│   │   │   ├── FileLoggerProvider.cs
+│   │   │   ├── LoggingSetup.cs
+│   │   │   ├── LogLevelParser.cs
+│   │   │   ├── PasswordObfuscatingLoggerProvider.cs
+│   │   │   └── PasswordObfuscator.cs
+│   │   ├── ConnectionValidator.cs
+│   │   ├── ISqlExecutor.cs
+│   │   ├── SqlExecutor.cs
+│   │   ├── SqlHelpers.cs
+│   │   ├── StatementClassifier.cs
+│   │   ├── TypeCoercion.cs
 │   │   └── mssql-mcp.Core.csproj
 │   ├── mssql-mcp.Tools/          # [McpServerTool] classes — refs Core + MCP SDK
-│   │   ├── Discovery/
-│   │   │   ├── ListDatabasesTool.cs
-│   │   │   ├── ListSchemasTool.cs
-│   │   │   ├── ListObjectsTool.cs
-│   │   │   └── GetObjectDetailsTool.cs
-│   │   ├── Sql/
-│   │   │   ├── ExecuteSqlTool.cs
-│   │   │   └── ExplainQueryTool.cs
-│   │   ├── Ops/
-│   │   │   ├── AnalyzeQueryIndexesTool.cs
-│   │   │   ├── AnalyzeWorkloadIndexesTool.cs
-│   │   │   ├── GetTopQueriesTool.cs
-│   │   │   └── AnalyzeDbHealthTool.cs
+│   │   ├── Json/
+│   │   │   ├── DtoRecords.cs
+│   │   │   └── McpJsonContext.cs
+│   │   ├── DatabaseTools.cs      # list_databases, list_schemas, list_objects, get_object_details
+│   │   ├── SqlTools.cs           # execute_sql, explain_query
+│   │   ├── OpsTools.cs           # analyze_indexes, get_top_queries, analyze_db_health
+│   │   ├── PlanTools.cs          # execution plan parsing helpers
+│   │   ├── ToolErrors.cs         # shared error DTOs
 │   │   └── mssql-mcp.Tools.csproj
 │   └── mssql-mcp/                # Program.cs, DI, npm wrapper entrypoint
 │       ├── Program.cs
@@ -80,8 +88,8 @@ mssql-mcp.Core  ←── mssql-mcp.Tools  ←── mssql-mcp (App)
 
 ## Consequences
 
-- Core tests instantiate `AstValidator` and `SqlExecutor` directly — no MCP transport, no stdio, no hosting. Fastest, highest-signal test loop.
+- Core tests instantiate `SqlGuard` and `SqlExecutor` directly — no MCP transport, no stdio, no hosting. Fastest, highest-signal test loop.
 - Tools tests verify `[McpServerTool]` attribute wiring and input schema shape — can use the SDK's `McpServerTool` introspection without booting a full server.
-- Cross-project references enforce wiring at compile time — if `Validation.cs` isn't referenced by Tools or App, the build fails. Prevents dead-code accumulation structurally.
+- Cross-project references enforce wiring at compile time — if a Core type (e.g., `SqlGuard`) isn't referenced by Tools or App, the build fails. Prevents dead-code accumulation structurally.
 - Three `.csproj` files (~30 lines of XML total) is the cost. Negligible.
 - If we ever swap the MCP SDK (ADR-0008 v2 upgrade), blast radius is one project (Tools).

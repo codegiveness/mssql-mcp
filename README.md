@@ -791,7 +791,7 @@ The shim prints the RID, the GitHub Releases URL, and the fallback command. Manu
 2. Extract it and note the path to the `mssql-mcp` (or `mssql-mcp.exe`) binary.
 3. Option A — cache it where the shim expects:
    ```bash
-   mkdir -p ~/.mssql-mcp/bin/0.4.2/<rid>
+   mkdir -p ~/.mssql-mcp/bin/<version>/<rid>
    # Copy the extracted binary there, then:
    npx -y @codegiveness/mssql-mcp --version
    ```
@@ -864,7 +864,7 @@ dotnet build
 dotnet test --filter Category!=Integration
 ```
 
-This is what CI runs. ~414 tests, completes in seconds.
+This is what CI runs. ~440 tests, completes in seconds.
 
 ### Integration tests (requires live SQL Server)
 
@@ -921,7 +921,7 @@ mssql-mcp is currently `0.x`. The tool surface is stable (tool names, parameter 
 
 ## Architecture & decisions
 
-Architectural Decision Records (ADRs) document every significant design choice. They live in [`docs/adr/`](./docs/adr/). See the [ADR index](./docs/adr/README.md) for all 33 ADRs. Key decisions:
+Architectural Decision Records (ADRs) document every significant design choice. They live in [`docs/adr/`](./docs/adr/). See the [ADR index](./docs/adr/README.md) for all 35 ADRs. Key decisions:
 
 - [ADR-0006](./docs/adr/0006-guard-ast-allowlist.md) — Guard AST allowlist
 - [ADR-0015](./docs/adr/0015-configuration-via-env-vars.md) — Configuration via env vars (secrets in env, not argv)
