@@ -76,10 +76,11 @@ function checkVersionConsistency(opts) {
   let manifestVersion = null;
   try {
     const manifest = readJson(manifestPath);
-    if (typeof manifest.version !== 'string' || manifest.version.length === 0) {
-      errors.push('manifest: missing "version" field in ' + manifestPath);
+    const v = manifest['.'];
+    if (typeof v !== 'string' || v.length === 0) {
+      errors.push('manifest: missing "." version key in ' + manifestPath);
     } else {
-      manifestVersion = manifest.version;
+      manifestVersion = v;
     }
   } catch (e) {
     if (e.kind === 'missing') {

@@ -12,11 +12,11 @@ The repo already enforced Conventional Commits PR titles via `semantic.yml` (the
 
 ## Decision
 
-1. **release-please with a custom manifest as the single source of truth.** A `.release-please-manifest.json` at the repo root holds the canonical version (starting at `0.4.2`). release-please's `simple` strategy bumps it. All other version carriers are derivatives.
+1. **release-please with a custom manifest as the single source of truth.** A `.release-please-manifest.json` at the repo root holds the canonical version (starting at `0.4.2`) in release-please's path-keyed format (`{".": "0.4.2"}`). release-please's `simple` strategy bumps it. All other version carriers are derivatives.
 
-2. **`extra-files` stamps the standard formats.** release-please natively bumps `mssql-mcp.csproj`'s `<VersionPrefix>` and `npm/package.json`'s `version` field (the five `optionalDependencies` entries are version-pinned to the package version and bumped in lockstep).
+2. **release-please manages only the manifest + CHANGELOG.** release-please cannot natively update XML (`<VersionPrefix>`) or nested JSON (`optionalDependencies`), so `extra-files` is not used. The manifest and `CHANGELOG.md` are the only files release-please touches in its Release PR.
 
-3. **`scripts/sync-server-json.js` stamps `server.json`.** The MCP `server.json` schema has three `version` fields (top-level, npm package, NuGet package) in a non-standard layout. A 20-line Node script reads the manifest version and writes all three. The same script is invoked by the consistency check, so there is one code path for writing and verifying `server.json`.
+3. **`scripts/sync-all-stamps.js` syncs all stamps at tag time.** The existing `release.yml` (tag-triggered) already synced csproj and npm/package.json to the tag version at build time via `sed` and `node -e`. A new step invokes `sync-all-stamps.js`, which reads the manifest version and writes all stamps: csproj `<VersionPrefix>`, npm/package.json `version` + 5 `optionalDependencies`, and server.json's 3 `version` fields. This replaces the ad-hoc sed/node-e syncs with one idempotent script.
 
 4. **`CHANGELOG.md` is auto-generated.** release-please assembles it from Conventional Commit titles since the last release. No manual changelog entries.
 
