@@ -28,7 +28,7 @@ The repo already enforced Conventional Commits PR titles via `semantic.yml` (the
 
 8. **Bootstrap with `bootstrap-sha: 2458379`.** This is the commit of "chore(release): bump version to 0.4.2" — the last manual release. release-please scans only commits after this SHA, so the first Release PR targets `v0.5.0` (triggered by this setup commit, which is itself a `feat:`).
 
-9. **`GITHUB_TOKEN`, no PAT.** release-please creates the tag with the built-in `GITHUB_TOKEN`. This works because `release.yml` is triggered by tag pushes, not branch pushes — the well-known limitation that `GITHUB_TOKEN`-created events don't trigger downstream workflows does not apply. No additional secrets to manage.
+9. **`GITHUB_TOKEN`, no PAT.** release-please creates the tag with the built-in `GITHUB_TOKEN`. The well-known limitation that `GITHUB_TOKEN`-created events don't trigger downstream workflows applies to all event types, including tag pushes (see issue #105). To work around this, the "Trigger release.yml on new tag" step in `.github/workflows/release-please.yml:35-42` runs `gh workflow run release.yml -f tag="$tag"` via `workflow_dispatch`, explicitly dispatching the build/publish workflow with the tag name. This preserves the tag-push trigger for manual tags while avoiding PAT secret-management overhead. No additional secrets to manage.
 
 ## Considered Options
 
@@ -46,7 +46,7 @@ The repo already enforced Conventional Commits PR titles via `semantic.yml` (the
 
 - **G. Keep literal version in README.md, rely on consistency check (option P3)** — rejected. Keeps a stamp that exists only for version advertising. `--version` and the dynamic badges already serve that purpose. Removing it eliminates a whole class of drift.
 
-- **H. Use a PAT for release-please (option T2)** — rejected. No functional gain: `release.yml` fires on tag push, not branch push, so the `GITHUB_TOKEN` limitation doesn't apply. A PAT adds secret management overhead.
+- **H. Use a PAT for release-please (option T2)** — rejected. The dispatch workaround (`gh workflow run release.yml -f tag="$tag"` in `release-please.yml:35-42`) avoids PAT secret-management overhead while preserving the tag-push trigger for manual tags. A PAT would add secret management overhead with no functional gain over the `workflow_dispatch` dispatch.
 
 ## Consequences
 
