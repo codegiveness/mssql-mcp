@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1](https://github.com/codegiveness/mssql-mcp/compare/v0.5.0...v0.5.1) (2026-07-25)
+
+
+### Bug Fixes
+
+* dispatch release.yml on release-please tag creation ([#99](https://github.com/codegiveness/mssql-mcp/issues/99)) ([02663d1](https://github.com/codegiveness/mssql-mcp/commit/02663d144f2caaa155535fc1f36dc1db9216e025))
+* sync version stamps to 0.5.0 + skip consistency on release merges ([#96](https://github.com/codegiveness/mssql-mcp/issues/96)) ([a73c277](https://github.com/codegiveness/mssql-mcp/commit/a73c27726e5bc7a20c168fd0ece90d5a8576c159))
+* use PAT for release-please to trigger downstream workflows ([#98](https://github.com/codegiveness/mssql-mcp/issues/98)) ([5302979](https://github.com/codegiveness/mssql-mcp/commit/5302979c4e254466cb07701a5b7a89a6790a45e6))
+
 ## [0.5.0](https://github.com/codegiveness/mssql-mcp/compare/v0.4.2...v0.5.0) (2026-07-25)
 
 
