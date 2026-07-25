@@ -73,7 +73,13 @@ public sealed class MssqlMcpOptions
     public int QueryTimeout { get; set; } = 30;
     /// <summary>Log level: trace, debug, info, warning, error, critical (per ADR-0011).</summary>
     public string LogLevel { get; set; } = "info";
-    /// <summary>Optional file path for log output. Null = stderr only (per ADR-0011).</summary>
+    /// <summary>
+    /// Optional file path for log output. Null = stderr only (per ADR-0011).
+    /// Absolute paths are permitted (e.g. <c>/var/log/mssql-mcp.log</c>); relative paths
+    /// resolve against the process working directory. Paths containing <c>..</c> traversal
+    /// segments and symlinks pointing outside the configured path are rejected by
+    /// <see cref="Logging.FileLoggerProvider"/> at construction time.
+    /// </summary>
     public string? LogFile { get; set; }
     /// <summary>Byte threshold for active log file rotation (per ADR-0030). 0 disables rotation.</summary>
     public long LogFileMaxBytes { get; set; } = DefaultLogFileMaxBytes;

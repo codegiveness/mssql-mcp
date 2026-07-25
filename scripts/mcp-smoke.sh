@@ -94,6 +94,47 @@ else
   bad "list_databases: returned 0 databases"
 fi
 
+# [3] idempotentHint annotations
+echo "=== [3] idempotentHint annotations ==="
+IDEMPOTENT_OK=true
+IDEMPOTENT_RESULT=$(echo "$TOOLS_JSON" | python3 -c "
+import sys, json
+expected_true = {
+    'list_databases', 'list_schemas', 'list_objects', 'get_object_details',
+    'explain_query', 'analyze_indexes', 'get_top_queries', 'analyze_db_health',
+}
+expected_false = {'execute_sql'}
+resp = json.load(sys.stdin)
+tools = resp.get('tools', [])
+mismatches = []
+for tool in tools:
+    name = tool.get('name', '')
+    ann = tool.get('annotations', {}) or {}
+    hint = ann.get('idempotentHint')
+    if name in expected_true:
+        want = True
+    elif name in expected_false:
+        want = False
+    else:
+        continue
+    if hint != want:
+        mismatches.append(f'{name}: expected {want}, got {hint}')
+if mismatches:
+    print('\n'.join(mismatches))
+    sys.exit(1)
+else:
+    print('8 read-only=true, execute_sql=false')
+    sys.exit(0)
+" 2>/dev/null) || IDEMPOTENT_OK=false
+
+if $IDEMPOTENT_OK; then
+  ok "idempotentHint: $IDEMPOTENT_RESULT"
+else
+  while IFS= read -r line; do
+    bad "idempotentHint: $line"
+  done <<< "$IDEMPOTENT_RESULT"
+fi
+
 # Summary
 echo ""
 echo "================================"

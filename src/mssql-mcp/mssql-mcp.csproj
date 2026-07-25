@@ -5,10 +5,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.10" />
-    <PackageReference Include="ModelContextProtocol" Version="1.4.1" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+    <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -22,6 +22,12 @@
     <VersionPrefix>0.5.1</VersionPrefix>
     <PackAsTool>true</PackAsTool>
     <PackageId>codegiveness.mssql-mcp</PackageId>
+    <Authors>codegiveness</Authors>
+    <Copyright>Copyright (c) 2026 codegiveness</Copyright>
+    <Description>A Model Context Protocol (MCP) server for Microsoft SQL Server, built in C#/.NET 10. Lets AI agents (Claude Desktop, Cursor, etc.) safely query and interact with SQL Server databases through a controlled tool surface.</Description>
+    <PackageTags>mcp;mcp-server;model-context-protocol;sql-server;mssql;database;ai-agent;claude;cursor</PackageTags>
+    <PackageProjectUrl>https://github.com/codegiveness/mssql-mcp</PackageProjectUrl>
+    <PackageReleaseNotes>https://github.com/codegiveness/mssql-mcp/releases</PackageReleaseNotes>
     <ToolCommandName>mssql-mcp</ToolCommandName>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>

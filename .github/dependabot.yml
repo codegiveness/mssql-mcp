@@ -23,3 +23,15 @@ updates:
       - "dependencies"
     commit-message:
       prefix: "chore(deps)"
+
+  # Docker base images referenced by FROM lines in Dockerfile.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"

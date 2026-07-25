@@ -63,6 +63,24 @@ See [ADR-0033: Branch protection posture for solo-maintained project](adr/0033-b
 |---|---|---|
 | 2026-07-22 | Pre-public | [docs/security-audits/2026-07-22-pre-public.md](security-audits/2026-07-22-pre-public.md) |
 | 2026-07-24 | Post-hardening | [docs/security-audits/2026-07-24-post-hardening.md](security-audits/2026-07-24-post-hardening.md) |
+| 2026-07-25 | Hardening batch | [docs/security-audits/2026-07-25-hardening-batch.md](security-audits/2026-07-25-hardening-batch.md) |
+
+## Security hardening batch (2026-07-25)
+
+A focused sprint on the `security-hardening` branch fixed 7 findings spanning the npm shim and the core server. All fixes were verified by inverted PoC tests and the full pre-push suite (437 unit tests, 10 checks).
+
+| Finding | Fix | PoC test |
+|---|---|---|
+| F1: extractTarGz path/symlink traversal | tar entry validation before extraction | `npm/poc-tests.js` PB3 |
+| F2: Cross-DB authz gap | `HAS_DBACCESS(name) = 1` check in `ValidateDatabaseSql` | `tests/mssql-mcp.Tools.Tests/PocCrossDbAuthzTests.cs` CB1-CB4 |
+| F3: FileLoggerProvider path traversal | Path validation (reject `..`, reject symlinks) | `tests/mssql-mcp.Core.Tests/PocLeakTests3.cs` PB2 |
+| F5: npm cache poisoning | sha256 re-verify on cache hit | `npm/poc-tests.js` PB5 |
+| F6: PasswordObfuscator partial leak | Regex rewrite (consume full value) | `tests/mssql-mcp.Core.Tests/PocObfuscationPartialLeakTests.cs` PA2-PA6 |
+| F7: fetchUrl redirect host pinning | Allowlist (`github.com` + `*.githubusercontent.com`) | `npm/poc-tests.js` PB4 |
+
+Behavior change: 6 discovery tools (`list_schemas`, `list_objects`, `get_object_details`, `analyze_indexes`, `get_top_queries`, `analyze_db_health`) now reject databases the SQL login cannot access because `ValidateDatabaseSql` requires `HAS_DBACCESS(name) = 1`. The error message is unchanged, so no client parsing logic needs to change.
+
+See [ADR-0035: Security hardening batch](adr/0035-security-hardening-batch.md) for full details.
 
 ## CODEOWNERS
 
@@ -70,7 +88,7 @@ See [ADR-0033: Branch protection posture for solo-maintained project](adr/0033-b
 
 ## OpenSSF Best Practices
 
-Self-assessment at [bestpractices.dev](https://bestpractices.dev/) is pending. This is a manual human task tracked in [issue #68](https://github.com/codegiveness/mssql-mcp/issues/68).
+Self-assessment at [bestpractices.dev](https://bestpractices.dev/) is pending. This is a manual human task tracked in [issue #68](https://github.com/codegiveness/mssql-mcp/issues/68). See [OpenSSF Best Practices self-assessment](./ossf-best-practices-self-assessment.md) for the filled-in checklist (badge stays Pending until human submits to bestpractices.dev).
 
 ## Threat model
 

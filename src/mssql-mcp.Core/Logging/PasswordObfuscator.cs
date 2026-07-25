@@ -10,13 +10,19 @@ namespace mssql_mcp.Core.Logging;
 public static partial class PasswordObfuscator
 {
     // Match connection-string secrets: Password/PWD, AccessToken, or Token (case-insensitive)
-    // followed by one of three value forms:
-    //   1. Quoted:   Password="...";  — value may contain ;, "" is escaped quote
-    //   2. Braced:   Password={...};  — value may contain ;, no } allowed inside
-    //   3. Plain:    Password=...;  or Password=...  (unterminated at end of string)
-    // AccessToken and Token carry Azure AD credentials and must be obfuscated too.
+    // followed by one of three value forms. Each branch must consume the FULL value,
+    // including any trailing non-`;` chars, so no tail of the value leaks verbatim.
+    //   1. Quoted:   Password="..."[^;]*  — quoted value (may contain "" escapes and ;)
+    //                 followed by any trailing non-`;` chars before the delimiter
+    //   2. Braced:   Password={...}[^;]*  — braced value (may contain ;) followed by
+    //                 any trailing non-`;` chars
+    //   3. Plain:    Password=[^;]*  — up to the next `;` or end of string
+    // Branches (1) and (2) consume the closing delimiter AND any trailing junk so a
+    // malformed input like `Password="x"y";tail=4;` matches the whole `Password="x"y"`
+    // segment instead of stopping at `"x"` and leaking `y"`. AccessToken and Token carry
+    // Azure AD credentials and must be obfuscated too.
     [GeneratedRegex(
-        @"(?:Password|PWD|AccessToken|Token)=(""(?:[^""]|"""")*""|\{[^}]*\}|[^;{}]*);?",
+        @"(?:Password|PWD|AccessToken|Token)=(""(?:[^""]|"""")*""[^;]*|\{[^}]*\}[^;]*|[^;]*);?",
         RegexOptions.IgnoreCase,
         matchTimeoutMilliseconds: 200)]
     private static partial Regex PasswordPattern { get; }
@@ -40,9 +46,9 @@ public static partial class PasswordObfuscator
         }
         catch (RegexMatchTimeoutException)
         {
-            // Defensive: if a pathological input ever exceeds the regex timeout, return the
-            // original rather than dropping the log line. The caller still gets a log entry.
-            return message;
+            // Defensive: if a pathological input ever exceeds the regex timeout, return a
+            // fixed redaction string instead of the raw input — never leak credentials.
+            return "[redacted: regex timeout]";
         }
     }
 }

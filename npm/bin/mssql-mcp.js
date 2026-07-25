@@ -63,7 +63,21 @@ function parseChecksumFile(text) {
 
 // Follow up to 3 HTTP redirects (GitHub releases redirect to S3/CDN).
 // Hard depth limit prevents redirect loops from hanging or stack-overflowing.
+// Redirect hosts are pinned to GitHub infrastructure: a MITM/DNS-rebind that
+// redirects to an attacker host is refused before the connection is opened.
 const MAX_REDIRECTS = 3;
+const REDIRECT_HOST_ALLOWLIST = [
+  'github.com',
+  'objects.githubusercontent.com',
+  'github-releases.githubusercontent.com',
+];
+
+function isAllowedRedirectHost(host) {
+  if (!host) return false;
+  const h = host.toLowerCase();
+  if (REDIRECT_HOST_ALLOWLIST.indexOf(h) !== -1) return true;
+  return h.endsWith('.githubusercontent.com');
+}
 
 function fetchUrl(url, depth) {
   if (depth === undefined) depth = 0;
@@ -75,7 +89,12 @@ function fetchUrl(url, depth) {
     const req = https.get(url, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         res.resume();
-        fetchUrl(res.headers.location, depth + 1).then(resolve, reject);
+        const next = new URL(res.headers.location, url);
+        if (!isAllowedRedirectHost(next.hostname)) {
+          reject(new Error('Refusing to follow redirect to untrusted host: ' + next.hostname));
+          return;
+        }
+        fetchUrl(next.href, depth + 1).then(resolve, reject);
         return;
       }
       if (res.statusCode !== 200) {
@@ -95,6 +114,39 @@ function fetchUrl(url, depth) {
 }
 
 function extractTarGz(archivePath, outDir) {
+  // Validate entry names before extraction to prevent path traversal (Tar Slip).
+  // `tar -xzf` alone may strip leading ../ on modern GNU tar but does not provide
+  // a portable app-level guarantee — defense-in-depth requires the application
+  // reject traversal entries explicitly. Mirrors extractZip's prefix check and
+  // additionally rejects symlink/hardlink entries, which tar can write outside
+  // the target dir (a vector zip does not have).
+  const list = spawnSync('tar', ['-tzf', archivePath], { encoding: 'utf8' });
+  if (list.status !== 0) {
+    throw new Error('tar -tzf failed with status ' + list.status);
+  }
+  for (const name of list.stdout.split('\n')) {
+    const entry = name.trim();
+    if (!entry) continue;
+    if (entry.startsWith('/') || entry.indexOf('..') !== -1) {
+      throw new Error('Refusing to extract tar entry outside target directory: ' + entry);
+    }
+  }
+
+  // Inspect entry metadata (permissions field) to reject symlinks/hardlinks.
+  // GNU tar `--test-label`/`-tv` first column: `lrwxrwxrwx` symlink, `hrwxr-xr-x`
+  // hardlink, `-rw-r--r--` regular file. The first char is the type flag.
+  const verbose = spawnSync('tar', ['-tvf', archivePath], { encoding: 'utf8' });
+  if (verbose.status !== 0) {
+    throw new Error('tar -tvf failed with status ' + verbose.status);
+  }
+  for (const line of verbose.stdout.split('\n')) {
+    if (!line) continue;
+    const typeFlag = line[0];
+    if (typeFlag === 'l' || typeFlag === 'h') {
+      throw new Error('Refusing to extract tar entry of type ' + typeFlag + ': ' + line.trim());
+    }
+  }
+
   const r = spawnSync('tar', ['-xzf', archivePath, '-C', outDir], { stdio: 'inherit' });
   if (r.status !== 0) {
     throw new Error('tar exited with status ' + r.status);
@@ -172,15 +224,32 @@ async function main() {
 }
 
 // Check if a cached binary exists at ~/.mssql-mcp/bin/<version>/<rid>/mssql-mcp[.exe]
-function resolveCachedBinary(rid) {
+// and re-verify its SHA256 against a sidecar file before trusting it. Prevents
+// cache poisoning: a tampered binary (or a tampered/missing sidecar) is treated
+// as a cache miss and re-downloaded.
+function resolveCachedBinary(rid, cacheRoot) {
+  const root = cacheRoot || CACHE_ROOT;
   const pkg = require('../package.json');
   const version = pkg.version;
   const binaryName = process.platform === 'win32' ? 'mssql-mcp.exe' : 'mssql-mcp';
-  const cachedPath = path.join(CACHE_ROOT, version, rid, binaryName);
-  if (fs.existsSync(cachedPath)) {
-    return cachedPath;
+  const cachedPath = path.join(root, version, rid, binaryName);
+  if (!fs.existsSync(cachedPath)) {
+    return null;
   }
-  return null;
+  const sidecarPath = cachedPath + '.sha256';
+  if (!fs.existsSync(sidecarPath)) {
+    // No recorded checksum — cannot trust the cached binary. Treat as miss.
+    return null;
+  }
+  const expected = parseChecksumFile(fs.readFileSync(sidecarPath, 'utf8'));
+  const actual = sha256Hex(fs.readFileSync(cachedPath));
+  if (expected !== actual) {
+    // Tampered or corrupted cache. Purge and re-download.
+    try { fs.rmSync(cachedPath, { force: true }); } catch (_) { /* best effort */ }
+    try { fs.rmSync(sidecarPath, { force: true }); } catch (_) { /* best effort */ }
+    return null;
+  }
+  return cachedPath;
 }
 
 // Attempt self-heal download. Returns the binary path on success, or exits
@@ -262,6 +331,10 @@ async function selfHealOrDie(rid) {
     if (process.platform !== 'win32') {
       fs.chmodSync(cachedBinaryPath, 0o755);
     }
+
+    // Record the verified binary's checksum alongside it so future cache hits
+    // can re-verify integrity (resolveCachedBinary reads this sidecar).
+    fs.writeFileSync(cachedBinaryPath + '.sha256', sha256Hex(fs.readFileSync(cachedBinaryPath)));
 
     console.error('mssql-mcp: cached binary to ' + cachedBinaryPath);
   } finally {
@@ -359,7 +432,7 @@ function failWindowsDotNetMissing(spawnError) {
 }
 
 // Exposed for smoke tests (npm/test.js). Not part of the public API.
-module.exports = { ridFor, archiveExt, parseChecksumFile, classifyDownloadError, sha256Hex };
+module.exports = { ridFor, archiveExt, parseChecksumFile, classifyDownloadError, sha256Hex, extractTarGz, fetchUrl, isAllowedRedirectHost, resolveCachedBinary };
 
 // Run main() only when invoked directly (not when required by test.js).
 if (require.main === module) {
