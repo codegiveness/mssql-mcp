@@ -8,7 +8,7 @@ Unit tests run on every push with zero external dependencies. Integration tests 
 
 | Surface | Cases | How |
 |---|---|---|
-| Guard AST validation | ~30 (every allow/deny: SELECT, WITH...SELECT, UPDATE, INSERT, DELETE, DROP, SELECT INTO, OPENROWSET, four-part names, DECLARE, EXECUTE, etc.) | `AstValidator.Validate(sql)` pure function, no DB |
+| Guard AST validation | ~30 (every allow/deny: SELECT, WITH...SELECT, UPDATE, INSERT, DELETE, DROP, SELECT INTO, OPENROWSET, four-part names, DECLARE, EXECUTE, etc.) | `SqlGuard.Validate(sql)` pure function, no DB |
 | Type coercion | ~15 (bigint→string, decimal→string, dates→ISO 8601, binary→base64, NULL→null, etc.) | Pure coercion function, no DB |
 | Tool attribute wiring | ~10 (all 9 tools: `[McpServerTool]` present, `ReadOnly`/`Destructive` flags correct per mode, input schema shape) | Reflection, no DB |
 | CLI arg parsing | ~5 | Parse args, verify options |

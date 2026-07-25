@@ -11,7 +11,7 @@ This document is a draft self-assessment against the OpenSSF Best Practices pass
 - **floss_license** — Met — LICENSE is MIT; README.md Trademarks & licensing section links to LICENSE
 - **floss_license_osi** — Met — MIT is OSI-approved; LICENSE file contains standard MIT text
 - **license_location** — Met — LICENSE at repository root; README.md and docs/security-posture.md link to it
-- **documentation_basics** — Met — README.md covers install, configuration, tools, examples, troubleshooting, security, development; docs/adr/README.md indexes 34 ADRs
+- **documentation_basics** — Met — README.md covers install, configuration, tools, examples, troubleshooting, security, development; docs/adr/README.md indexes 35 ADRs
 - **documentation_interface** — Met — README.md Tools section and ADR-0016 document the 9 MCP tool schemas and return shapes
 - **sites_https** — Met — All distribution URLs and badge links in README.md use https://github.com, https://nuget.org, https://npmjs.com, https://bestpractices.dev
 - **discussion** — Met — README.md Contributing section points to GitHub Issues for bugs/features; SECURITY.md points to private vuln reporting
@@ -46,7 +46,7 @@ This document is a draft self-assessment against the OpenSSF Best Practices pass
 - **build** — Met — `dotnet build mssql-mcp.sln` builds all src and test projects; CI runs it on every push/PR
 - **build_common_tools** — Met — .NET SDK 10, `dotnet restore`, `dotnet build`, `dotnet pack`, `dotnet test` are standard .NET tooling
 - **build_floss_tools** — Met — Build uses only standard .NET SDK and open-source Node tooling; all build tooling is free/libre
-- **test** — Met — CONTRIBUTING.md:46-47 and CI run `dotnet test --filter Category!=Integration`; ~414 unit tests
+- **test** — Met — CONTRIBUTING.md:46-47 and CI run `dotnet test --filter Category!=Integration`; ~440 unit tests
 - **test_invocation** — Met — CONTRIBUTING.md:46-47 documents how to run unit and integration tests
 - **test_most** — Met — tests/ directory covers Guard AST validation, tool wiring, error handling, type coercion, and regression tests for security findings
 - **test_continuous_integration** — Met — .github/workflows/ci.yml runs build, format check, unit tests, npm smoke, Docker build, and MCP stdio smoke on every push/PR

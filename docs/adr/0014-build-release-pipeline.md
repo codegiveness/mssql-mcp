@@ -21,15 +21,17 @@ Two GitHub Actions workflows. `ci.yml` runs build + test + pack (no publish) on 
 4. Generate SHA256 checksums
 5. Create GitHub Release with archives + checksums
 6. Push `mssql-mcp.<version>.nupkg` to NuGet.org
-7. Sync `npm/package.json` version to tag, `npm publish`
+7. Sync `npm/package.json` version via release-please, `npm publish`
+
+> **Note:** Since ADR-0034, release-please creates the tag and the release PR that bumps all version stamps. The `release.yml` workflow dispatches on tag creation. The manual `git tag && git push --tags` flow is superseded.
 
 Sequential stages prevent partial releases — if NuGet push fails, npm publish doesn't run.
 
 ## Versioning
 
 - Semantic Versioning 2.0 for both NuGet and npm.
-- NuGet `<VersionPrefix>0.3.0</VersionPrefix>` in `mssql-mcp.csproj`.
-- npm `version` synced from tag (drop the `v` prefix).
+- **Version stamping is automated via release-please (ADR-0034).** The canonical version lives in `.release-please-manifest.json`; release-please syncs it into `mssql-mcp.csproj` (`VersionPrefix`), `npm/package.json`, and `server.json` on every release PR. The `scripts/check-version-consistency.js` guard enforces all stamps match.
+- npm `version` synced from the manifest (drop the `v` prefix).
 - Prereleases: `v0.2.0-preview.1` tag → NuGet `-preview.1` suffix, npm `0.2.0-preview.1`.
 - GitHub Release tags use the `v` prefix (`v0.1.0`); the actual version number drops it (`0.1.0`).
 - Bump to `1.0.0` after first wave of public feedback signals stability.
@@ -80,7 +82,7 @@ If any one of these isn't met, stay on `0.x`.
 
 ## Consequences
 
-- `git tag v0.1.0 && git push --tags` is the release command. No other ceremony.
+- ~~`git tag v0.1.0 && git push --tags` is the release command.~~ **Superseded by ADR-0034** — release-please now creates the tag from the merged release PR. Conventional-commit messages on `main` trigger the release PR automatically.
 - `workflow_dispatch` escape hatch lets you re-run a failed release stage without retagging.
 - Windows npm users get a framework-dependent binary (need .NET 10 runtime) — documented in README with `dotnet tool install` as the alternative.
 - NuGet `dotnet tool` install works cross-platform with no SNI license concern (ADR-0002).
