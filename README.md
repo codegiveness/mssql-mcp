@@ -859,9 +859,9 @@ See [SECURITY.md](./SECURITY.md). Do not open a public issue for security vulner
 ```bash
 git clone https://github.com/codegiveness/mssql-mcp.git
 cd mssql-mcp
-dotnet restore
-dotnet build
-dotnet test --filter Category!=Integration
+dotnet restore mssql-mcp.sln
+dotnet build mssql-mcp.sln
+dotnet test --solution mssql-mcp.sln -- --filter-not-trait Category=Integration
 ```
 
 This is what CI runs. ~440 tests, completes in seconds.
@@ -874,7 +874,7 @@ docker run -e "ACCEPT_EULA=1" -e "MSSQL_SA_PASSWORD=YourStrong!Passw0rd" \
   -p 1433:1433 --name mssql-edge -d mcr.microsoft.com/azure-sql-edge:latest
 
 # Run integration tests
-INTEGRATION=true MSSQL_CONNECTION_STRING="Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;" dotnet test
+INTEGRATION=true MSSQL_CONNECTION_STRING="Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;" dotnet test --solution mssql-mcp.sln
 ```
 
 Integration tests are tagged `[Trait("Category", "Integration")]` and skipped by default.

@@ -72,8 +72,8 @@ Before any push to GitHub, all of the following must pass:
 
 | Check | Command | What it proves |
 |---|---|---|
-| Unit tests | `dotnet test --filter Category!=Integration` | Guard AST validation, options parsing, error shapes |
-| Integration tests | `INTEGRATION=true MSSQL_CONNECTION_STRING=... dotnet test` | All 9 tools against a real SQL Server |
+| Unit tests | `dotnet test --solution mssql-mcp.sln -- --filter-not-trait Category=Integration` | Guard AST validation, options parsing, error shapes |
+| Integration tests | `INTEGRATION=true MSSQL_CONNECTION_STRING=... dotnet test --solution mssql-mcp.sln` | All 9 tools against a real SQL Server |
 | Version | `mssql-mcp --version` | Binary resolves and runs |
 | Validate | `MSSQL_CONNECTION_STRING=... mssql-mcp --validate` | Connection works (SELECT 1) |
 | Help (new) | `mssql-mcp --help` | New command works, exits 0 |

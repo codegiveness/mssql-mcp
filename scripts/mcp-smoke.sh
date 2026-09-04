@@ -47,7 +47,21 @@ if [[ ! -x "$BINARY" ]]; then
   }
 fi
 
-INSPECTOR="npx --yes @modelcontextprotocol/inspector --cli"
+INSPECTOR_CONFIG="$(mktemp)"
+trap 'rm -f "$INSPECTOR_CONFIG"' EXIT
+python3 -c '
+import json, os, pathlib, sys
+config = {
+    "mcpServers": {
+        "mssql-mcp": {
+            "command": os.path.abspath(sys.argv[2]),
+            "env": {"MSSQL_CONNECTION_STRING": os.environ["MSSQL_CONNECTION_STRING"]},
+        }
+    }
+}
+pathlib.Path(sys.argv[1]).write_text(json.dumps(config))
+' "$INSPECTOR_CONFIG" "$BINARY"
+INSPECTOR=(npx --yes @modelcontextprotocol/inspector --cli --config "$INSPECTOR_CONFIG" --server mssql-mcp)
 PASS=0
 FAIL=0
 
@@ -56,7 +70,7 @@ bad() { echo "[FAIL] $*" >&2; FAIL=$((FAIL + 1)); }
 
 # [1] initialize + tools/list
 echo "=== [1] initialize + tools/list ==="
-TOOLS_JSON=$($INSPECTOR "$BINARY" --method tools/list 2>/dev/null) || {
+TOOLS_JSON=$("${INSPECTOR[@]}" --method tools/list 2>/dev/null) || {
   bad "tools/list: inspector exited $?"
   exit 1
 }
@@ -73,7 +87,7 @@ fi
 
 # [2] tools/call list_databases
 echo "=== [2] tools/call list_databases ==="
-DB_JSON=$($INSPECTOR "$BINARY" --method tools/call --tool-name list_databases 2>/dev/null) || {
+DB_JSON=$("${INSPECTOR[@]}" --method tools/call --tool-name list_databases 2>/dev/null) || {
   bad "list_databases: inspector exited $?"
   exit 1
 }

@@ -16,3 +16,7 @@ Use the official C# MCP SDK (`ModelContextProtocol` NuGet package v1.4.1, repo `
 - We depend on `Microsoft.Extensions.Hosting` for DI (already a .NET 10 idiom).
 - Bumping the SDK is a deliberate, reviewed action — we read release notes before upgrading.
 - v2.0 protocol features (per-request metadata) remain available as a future additive upgrade with no stdio breakage.
+
+## 2026-09-04 amendment
+
+The pinned SDK is now `ModelContextProtocol` 2.2.0. The original rejection applied to the 2.0 preview; 2.2.0 is stable, retains the stdio server APIs used here, and passed the full unit, integration, and MCP Inspector verification matrix.

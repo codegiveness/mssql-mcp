@@ -46,7 +46,7 @@ This document is a draft self-assessment against the OpenSSF Best Practices pass
 - **build** — Met — `dotnet build mssql-mcp.sln` builds all src and test projects; CI runs it on every push/PR
 - **build_common_tools** — Met — .NET SDK 10, `dotnet restore`, `dotnet build`, `dotnet pack`, `dotnet test` are standard .NET tooling
 - **build_floss_tools** — Met — Build uses only standard .NET SDK and open-source Node tooling; all build tooling is free/libre
-- **test** — Met — CONTRIBUTING.md:46-47 and CI run `dotnet test --filter Category!=Integration`; ~440 unit tests
+- **test** — Met — CONTRIBUTING.md:46-47 and CI run `dotnet test --solution mssql-mcp.sln -- --filter-not-trait Category=Integration`; ~440 unit tests
 - **test_invocation** — Met — CONTRIBUTING.md:46-47 documents how to run unit and integration tests
 - **test_most** — Met — tests/ directory covers Guard AST validation, tool wiring, error handling, type coercion, and regression tests for security findings
 - **test_continuous_integration** — Met — .github/workflows/ci.yml runs build, format check, unit tests, npm smoke, Docker build, and MCP stdio smoke on every push/PR
