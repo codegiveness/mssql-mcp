@@ -45,5 +45,6 @@ Tagged `[Trait("Category", "Integration")]`. Skipped unless `INTEGRATION=true` e
 - The Guard safety claim (ADR-0006) is fully covered by unit tests — AST allow/deny cases prove the validation logic without needing a DB.
 - Transaction rollback (ADR-0007) is a backstop for AST misses, verified manually before each release. Not on every PR.
 - A common failure mode is avoided: tests that require a live DB in `beforeAll`, test dead code, and have zero mocks. Our unit tests have no DB dependency and test the actual shipped code paths.
-- xUnit's `[Trait]` filtering lets CI run `dotnet test --filter Category!=Integration` cleanly.
+- xUnit's `[Trait]` filtering lets CI run `dotnet test --solution mssql-mcp.sln -- --filter-not-trait Category=Integration` cleanly through Microsoft Testing Platform.
+- `global.json` selects Microsoft Testing Platform, required by xUnit.net 4 on the .NET 10 SDK.
 - Test project graph mirrors production: `mssql-mcp.Core.Tests` → tests Core; `mssql-mcp.Tools.Tests` → tests Tools (with Core as transitive dep).

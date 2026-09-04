@@ -43,7 +43,7 @@ The dependency graph is `Core ← Tools ← App`. Cross-project references enfor
 ### Unit tests (fast, no external dependencies)
 
 ```bash
-dotnet test --filter Category!=Integration
+dotnet test --solution mssql-mcp.sln -- --filter-not-trait Category=Integration
 ```
 
 This is what CI runs. ~440 tests, completes in seconds.
@@ -56,7 +56,7 @@ docker run -e "ACCEPT_EULA=1" -e "MSSQL_SA_PASSWORD=YourStrong!Passw0rd" \
   -p 1433:1433 --name mssql-edge -d mcr.microsoft.com/azure-sql-edge:latest
 
 # Run integration tests
-INTEGRATION=true MSSQL_CONNECTION_STRING="Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;" dotnet test
+INTEGRATION=true MSSQL_CONNECTION_STRING="Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;" dotnet test --solution mssql-mcp.sln
 ```
 
 Integration tests are tagged `[Trait("Category", "Integration")]` and skipped by default.
@@ -67,8 +67,8 @@ Run these checks before pushing or opening a PR. If any check fails, the push is
 
 | Check | Command | Expected outcome |
 |-------|---------|------------------|
-| Unit tests | `dotnet test --filter Category!=Integration` | All pass, 0 failed |
-| Integration tests | `INTEGRATION=true MSSQL_CONNECTION_STRING="..." dotnet test` | All pass (requires live SQL Server) |
+| Unit tests | `dotnet test --solution mssql-mcp.sln -- --filter-not-trait Category=Integration` | All pass, 0 failed |
+| Integration tests | `INTEGRATION=true MSSQL_CONNECTION_STRING="..." dotnet test --solution mssql-mcp.sln` | All pass (requires live SQL Server) |
 | Validate connection | `dotnet run --project src/mssql-mcp -- --validate` (with `.env` loaded) | `[startup] Connection validated successfully.` exit 0 |
 | Help command | `mssql-mcp --help` (or `dotnet run --project src/mssql-mcp -- --help`) | Prints usage block, exit 0 |
 | Unknown-arg error | `mssql-mcp upgrade` (or `dotnet run --project src/mssql-mcp -- upgrade`) | `mssql-mcp: unknown argument 'upgrade'.` to stderr, exit 1 |
@@ -144,7 +144,7 @@ No strict convention — just use descriptive names:
 
 ### PR checklist
 
-- [ ] Tests pass (`dotnet test --filter Category!=Integration`)
+- [ ] Tests pass (`dotnet test --solution mssql-mcp.sln -- --filter-not-trait Category=Integration`)
 - [ ] New code has unit tests
 - [ ] No type suppressions or null-forgiving operators added
 - [ ] Public APIs documented with XML comments

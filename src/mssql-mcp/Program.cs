@@ -30,11 +30,10 @@ switch (dispatch)
 }
 
 // CRITICAL: stdout is the MCP JSON-RPC transport — all logging MUST go to stderr.
-HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
-
-// Strip the default console logger so we can install our own (stderr + obfuscation).
-// Host.CreateApplicationBuilder adds a ConsoleLoggerProvider by default.
-builder.Logging.ClearProviders();
+// Configuration is parsed below from CLI args and environment variables; default host
+// configuration would only add unused appsettings file watchers and logging providers.
+HostApplicationBuilder builder = Host.CreateApplicationBuilder(
+    new HostApplicationBuilderSettings { DisableDefaults = true });
 
 // Parse options (env + CLI precedence per ADR-0015). Fail fast on invalid config.
 MssqlMcpOptions options;

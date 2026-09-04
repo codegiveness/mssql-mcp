@@ -28,8 +28,8 @@ If any check fails, the push is blocked — no exceptions.
 
 | Check | Command | Expected outcome |
 |-------|---------|------------------|
-| Unit tests | `dotnet test --filter Category!=Integration` | All pass, 0 failed |
-| Integration tests | `INTEGRATION=true MSSQL_CONNECTION_STRING="..." dotnet test` | All pass (requires live SQL Server) |
+| Unit tests | `dotnet test --solution mssql-mcp.sln -- --filter-not-trait Category=Integration` | All pass, 0 failed |
+| Integration tests | `INTEGRATION=true MSSQL_CONNECTION_STRING="..." dotnet test --solution mssql-mcp.sln` | All pass (requires live SQL Server) |
 | Validate connection | `dotnet run --project src/mssql-mcp -- --validate` (with `.env` loaded) | `[startup] Connection validated successfully.` exit 0 |
 | Help command | `mssql-mcp --help` (or `dotnet run --project src/mssql-mcp -- --help`) | Prints usage block, exit 0 |
 | Unknown-arg error | `mssql-mcp upgrade` (or `dotnet run --project src/mssql-mcp -- upgrade`) | `mssql-mcp: unknown argument 'upgrade'.` to stderr, exit 1 |

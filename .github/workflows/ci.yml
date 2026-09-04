@@ -24,7 +24,7 @@ jobs:
       - run: dotnet restore mssql-mcp.sln
       - run: dotnet build mssql-mcp.sln --no-restore
       - run: dotnet format mssql-mcp.sln --verify-no-changes --no-restore
-      - run: dotnet test mssql-mcp.sln --no-build --filter Category!=Integration
+      - run: dotnet test --solution mssql-mcp.sln --no-build -- --filter-not-trait Category=Integration
       - name: Lint README JSON snippets
         run: node scripts/lint-readme-snippets.js
       - name: Pack

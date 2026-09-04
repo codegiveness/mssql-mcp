@@ -7,7 +7,7 @@ Two GitHub Actions workflows. `ci.yml` runs build + test + pack (no publish) on 
 ### `ci.yml` (push to main, PRs)
 
 1. `dotnet build` (all three projects)
-2. `dotnet test --filter Category!=Integration` (ADR-0013)
+2. `dotnet test --solution mssql-mcp.sln -- --filter-not-trait Category=Integration` (ADR-0013)
 3. `dotnet pack src/mssql-mcp/mssql-mcp.csproj -c Release` (verify nupkg builds, no push)
 4. Upload build artifacts
 
