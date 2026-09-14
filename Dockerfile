@@ -8,7 +8,7 @@ RUN dotnet restore src/mssql-mcp/mssql-mcp.csproj && \
     dotnet publish src/mssql-mcp -c Release -r linux-musl-x64 --self-contained true \
         -p:PublishSingleFile=true -p:PublishTrimmed=true -o /app
 
-FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine-amd64
+FROM mcr.microsoft.com/dotnet/runtime-deps:11.0-alpine-amd64
 LABEL maintainer="codegiveness" \
       source="https://github.com/codegiveness/mssql-mcp"
 WORKDIR /app
