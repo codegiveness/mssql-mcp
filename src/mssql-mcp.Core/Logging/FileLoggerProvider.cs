@@ -81,7 +81,7 @@ public sealed class FileLoggerProvider : ILoggerProvider
         string obfuscated = PasswordObfuscator.Obfuscate(message);
         var sb = new StringBuilder(64 + obfuscated.Length + (exception?.Message.Length ?? 0));
         sb.Append(DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture));
-        sb.Append(" [").Append(logLevel.ToString()).Append("] ");
+        sb.Append(" [").Append(logLevel).Append("] ");
         sb.Append(categoryName).Append(": ");
         sb.Append(obfuscated);
         if (exception is not null)

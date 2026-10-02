@@ -154,19 +154,23 @@ public class PocLeakTests3
     [Fact]
     public void PB2_Constructor_RejectsTraversalPath()
     {
-        string baseDir = Path.Combine(Path.GetTempPath(), "mssql-mcp-poc-pb2-static-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(baseDir);
+        string fixtureDir = Directory.CreateTempSubdirectory("mssql-mcp-poc-pb2-static-").FullName;
+        string baseDir = Path.Combine(fixtureDir, "base");
+        string escapedPath = Path.Combine(fixtureDir, "existing.log");
+        const string originalContent = "pre-existing file must remain unchanged";
         try
         {
-            string traversalPath = Path.Combine(baseDir, "..", "poc-static.log");
+            Directory.CreateDirectory(baseDir);
+            File.WriteAllText(escapedPath, originalContent);
+            string traversalPath = Path.Combine(baseDir, "..", "existing.log");
             // Constructor MUST throw ArgumentException for the traversal path.
             Assert.Throws<ArgumentException>(() =>
                 new FileLoggerProvider(traversalPath, maxBytes: 0, maxRolls: 0));
+            Assert.Equal(originalContent, File.ReadAllText(escapedPath));
         }
         finally
         {
-            try { Directory.Delete(baseDir, recursive: true); } catch { }
-            try { File.Delete(Path.Combine(Path.GetTempPath(), "poc-static.log")); } catch { }
+            Directory.Delete(fixtureDir, recursive: true);
         }
     }
 }

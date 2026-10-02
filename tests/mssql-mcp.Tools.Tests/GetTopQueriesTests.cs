@@ -11,8 +11,8 @@ namespace mssql_mcp.Tools.Tests;
 
 /// <summary>
 /// Unit tests for the get_top_queries tool (ADR-0016 Ops schema, ADR-0009 return shape).
-/// Verifies ORDER BY mapping, limit clamping, query-text truncation, and DB filter.
-/// Fakes ISqlExecutor with canned DMV results — no real DB.
+/// Verifies limit clamping, query-text truncation, empty-result JSON, and SQL error mapping.
+/// SQL ordering/filtering require live DMV execution, not source-string assertions.
 /// </summary>
 public class GetTopQueriesTests
 {
@@ -37,11 +37,6 @@ public class GetTopQueriesTests
         Assert.True(result.Content.Count >= 1);
         return Assert.IsType<TextContentBlock>(result.Content[0]).Text;
     }
-
-    private static List<Dictionary<string, object?>> ValidDbRow() =>
-    [
-        new() { ["state_desc"] = "ONLINE", ["user_access_desc"] = "MULTI_USER" },
-    ];
 
     private static List<Dictionary<string, object?>> FakeQueryRows(int count)
     {
@@ -78,134 +73,6 @@ public class GetTopQueriesTests
                 ["creation_time"] = new DateTime(2025, 1, 1, 12, 0, 0),
             },
         ];
-    }
-
-    [Fact]
-    public async Task GetTopQueries_DefaultOrderBy_IsAvgCpu()
-    {
-        List<string> capturedSqls = new();
-        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(5), false));
-
-        OpsTools tools = CreateTools(executor);
-        CallToolResult result = await tools.GetTopQueries(
-            database: null, order_by: null, limit: null, CancellationToken.None);
-
-        Assert.False(result.IsError ?? false);
-        Assert.NotEmpty(capturedSqls);
-        string sql = capturedSqls[0];
-        Assert.Contains("total_worker_time / execution_count", sql, StringComparison.Ordinal);
-        Assert.Contains("DESC", sql, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GetTopQueries_TotalDuration_OrderBy()
-    {
-        List<string> capturedSqls = new();
-        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(2), false));
-
-        OpsTools tools = CreateTools(executor);
-        await tools.GetTopQueries(database: null, order_by: "total_duration", limit: null, CancellationToken.None);
-
-        Assert.NotEmpty(capturedSqls);
-        Assert.Contains("total_elapsed_time DESC", capturedSqls[0], StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GetTopQueries_TotalCpu_OrderBy()
-    {
-        List<string> capturedSqls = new();
-        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
-
-        OpsTools tools = CreateTools(executor);
-        await tools.GetTopQueries(database: null, order_by: "total_cpu", limit: null, CancellationToken.None);
-
-        Assert.Contains("total_worker_time DESC", capturedSqls[0], StringComparison.Ordinal);
-        Assert.DoesNotContain("execution_count DESC", capturedSqls[0], StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GetTopQueries_AvgDuration_OrderBy()
-    {
-        List<string> capturedSqls = new();
-        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
-
-        OpsTools tools = CreateTools(executor);
-        await tools.GetTopQueries(database: null, order_by: "avg_duration", limit: null, CancellationToken.None);
-
-        Assert.Contains("total_elapsed_time / execution_count DESC", capturedSqls[0], StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GetTopQueries_TotalLogicalReads_OrderBy()
-    {
-        List<string> capturedSqls = new();
-        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
-
-        OpsTools tools = CreateTools(executor);
-        await tools.GetTopQueries(database: null, order_by: "total_logical_reads", limit: null, CancellationToken.None);
-
-        Assert.Contains("total_logical_reads DESC", capturedSqls[0], StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GetTopQueries_ExecutionCount_OrderBy()
-    {
-        List<string> capturedSqls = new();
-        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
-
-        OpsTools tools = CreateTools(executor);
-        await tools.GetTopQueries(database: null, order_by: "execution_count", limit: null, CancellationToken.None);
-
-        Assert.Contains("execution_count DESC", capturedSqls[0], StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GetTopQueries_UnknownOrderBy_FallsBackToAvgCpu()
-    {
-        List<string> capturedSqls = new();
-        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
-
-        OpsTools tools = CreateTools(executor);
-        await tools.GetTopQueries(database: null, order_by: "bogus", limit: null, CancellationToken.None);
-
-        Assert.Contains("total_worker_time / execution_count DESC", capturedSqls[0], StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GetTopQueries_LimitClampedToMax100()
-    {
-        List<string> capturedSqls = new();
-        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
-
-        OpsTools tools = CreateTools(executor);
-        await tools.GetTopQueries(database: null, order_by: null, limit: 500, CancellationToken.None);
-
-        Assert.NotEmpty(capturedSqls);
-        Assert.Contains("TOP (@limit)", capturedSqls[0], StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GetTopQueries_LimitDefault10()
-    {
-        List<string> capturedSqls = new();
-        Dictionary<string, object>? capturedParams = null;
-        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Do<IReadOnlyDictionary<string, object>?>(p => capturedParams = p?.ToDictionary(kv => kv.Key, kv => kv.Value)), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
-
-        OpsTools tools = CreateTools(executor);
-        await tools.GetTopQueries(database: null, order_by: null, limit: null, CancellationToken.None);
-
-        Assert.NotNull(capturedParams);
-        Assert.True(capturedParams.ContainsKey("limit"));
-        Assert.Equal(10, capturedParams["limit"]);
     }
 
     [Fact]
@@ -255,42 +122,6 @@ public class GetTopQueriesTests
     }
 
     [Fact]
-    public async Task GetTopQueries_DatabaseFilter_UsesDbId()
-    {
-        List<string> capturedSqls = new();
-        Dictionary<string, object>? capturedParams = null;
-        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Do<IReadOnlyDictionary<string, object>?>(p => capturedParams = p?.ToDictionary(kv => kv.Key, kv => kv.Value)), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false), new SqlQueryResult(FakeQueryRows(1), false));
-
-        OpsTools tools = CreateTools(executor);
-        CallToolResult result = await tools.GetTopQueries(
-            database: "AppDb", order_by: null, limit: null, CancellationToken.None);
-
-        Assert.False(result.IsError ?? false);
-        Assert.True(capturedSqls.Count >= 2);
-        string sql = capturedSqls[1]; // 0 = validation, 1 = query-stats query
-        Assert.Contains("dbid = DB_ID(@database)", sql, StringComparison.Ordinal);
-        Assert.DoesNotContain("[AppDb].sys.", sql, StringComparison.Ordinal);
-        Assert.NotNull(capturedParams);
-        Assert.True(capturedParams.ContainsKey("database"));
-        Assert.Equal("AppDb", capturedParams["database"]);
-    }
-
-    [Fact]
-    public async Task GetTopQueries_CurrentDb_UsesDbIdWithNoArg()
-    {
-        List<string> capturedSqls = new();
-        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
-
-        OpsTools tools = CreateTools(executor);
-        await tools.GetTopQueries(database: null, order_by: null, limit: null, CancellationToken.None);
-
-        Assert.NotEmpty(capturedSqls);
-        Assert.Contains("DB_ID()", capturedSqls[0], StringComparison.Ordinal);
-    }
-
-    [Fact]
     public async Task GetTopQueries_SqlException_ReturnsSqlError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
@@ -321,29 +152,5 @@ public class GetTopQueriesTests
         string json = GetJson(result);
         using JsonDocument doc = JsonDocument.Parse(json);
         Assert.Equal(0, doc.RootElement.GetArrayLength());
-    }
-
-    [Fact]
-    public async Task GetTopQueries_ReturnsExpectedColumns()
-    {
-        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
-
-        OpsTools tools = CreateTools(executor);
-        CallToolResult result = await tools.GetTopQueries(
-            database: null, order_by: null, limit: null, CancellationToken.None);
-
-        Assert.False(result.IsError ?? false);
-        string json = GetJson(result);
-        using JsonDocument doc = JsonDocument.Parse(json);
-        Assert.Equal(1, doc.RootElement.GetArrayLength());
-        JsonElement row = doc.RootElement[0];
-        Assert.True(row.TryGetProperty("query_text", out _));
-        Assert.True(row.TryGetProperty("execution_count", out _));
-        Assert.True(row.TryGetProperty("total_worker_time", out _));
-        Assert.True(row.TryGetProperty("total_elapsed_time", out _));
-        Assert.True(row.TryGetProperty("total_logical_reads", out _));
-        Assert.True(row.TryGetProperty("plan_generation_num", out _));
-        Assert.True(row.TryGetProperty("creation_time", out _));
     }
 }

@@ -61,7 +61,7 @@ public sealed class SqlGuard : IGuard
         }
 
         TSql160Parser parser = new(initialQuotedIdentifiers: false);
-        IList<ParseError> errors = new List<ParseError>();
+        IList<ParseError> errors;
         TSqlFragment? fragment;
         try
         {

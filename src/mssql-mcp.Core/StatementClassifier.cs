@@ -22,7 +22,7 @@ public static class StatementClassifier
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);
 
         TSql160Parser parser = new(initialQuotedIdentifiers: false);
-        IList<ParseError> errors = new List<ParseError>();
+        IList<ParseError> errors;
         TSqlFragment? fragment;
         try
         {
@@ -31,10 +31,8 @@ public static class StatementClassifier
         }
         catch (Exception)
         {
-            // Parse failure is not an exception for classification — the caller already decided
-            // to execute the SQL (Unrestricted mode bypasses the Guard). Returning an empty list
-            // lets the caller proceed with the raw-SQL path. The Guard's strict path is the
-            // source of parse-error rejections; classification is best-effort type detection.
+            // Classification failures return no statements. ExecuteSql rejects that result
+            // with parse_error before execution, including in Unrestricted mode.
             return Array.Empty<StatementInfo>();
         }
 
