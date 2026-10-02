@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Register logging providers through DI factories so host disposal closes the file sink and console worker; use one resolved configuration instance for both options injection shapes.
 - Dispose SQL resources asynchronously where supported, bound SHOWPLAN cleanup independently of request cancellation and an unlimited query timeout, and preserve cancellation when SqlClient reports it during metadata reads.
 - Serialize SQL `decimal`/`numeric` values from `SqlDecimal` directly, preserving 38-digit precision without CLR decimal overflow.
+- Require encryption in synthetic connection-validation failure fixtures without changing their error-classification and password-obfuscation assertions.
 
 ### Security
 
