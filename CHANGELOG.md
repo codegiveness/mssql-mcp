@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6](https://github.com/codegiveness/mssql-mcp/compare/v0.5.5...v0.5.6) (2026-10-02)
+
+
+### Bug Fixes
+
+* isolate mutable test fixtures from shared temporary paths ([#146](https://github.com/codegiveness/mssql-mcp/issues/146)) ([2003a61](https://github.com/codegiveness/mssql-mcp/commit/2003a61e1b715f4335919173e9efffd929859e06))
+* settle 0.x memory hardening and security backlog ([#139](https://github.com/codegiveness/mssql-mcp/issues/139)) ([194be9b](https://github.com/codegiveness/mssql-mcp/commit/194be9b8c29cd6392aff9efa169cd5dd0722886e))
+
 ## [0.5.5](https://github.com/codegiveness/mssql-mcp/compare/v0.5.4...v0.5.5) (2026-09-04)
 
 
