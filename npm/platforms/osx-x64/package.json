@@ -1,13 +1,19 @@
 {
   "name": "@codegiveness/mssql-mcp-osx-x64",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "mssql-mcp native binary for osx-x64",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/codegiveness/mssql-mcp"
   },
-  "os": ["darwin"],
-  "cpu": ["x64"],
-  "files": ["mssql-mcp"]
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "mssql-mcp"
+  ]
 }

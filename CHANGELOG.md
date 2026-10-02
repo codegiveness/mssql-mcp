@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * isolate mutable test fixtures from shared temporary paths ([#146](https://github.com/codegiveness/mssql-mcp/issues/146)) ([2003a61](https://github.com/codegiveness/mssql-mcp/commit/2003a61e1b715f4335919173e9efffd929859e06))
 * settle 0.x memory hardening and security backlog ([#139](https://github.com/codegiveness/mssql-mcp/issues/139)) ([194be9b](https://github.com/codegiveness/mssql-mcp/commit/194be9b8c29cd6392aff9efa169cd5dd0722886e))
+* synchronize all compiled, npm/platform and MCP registry version stamps to 0.5.6 before merging the Release PR.
+* make the mandatory `scripts/mcp-smoke.sh` entrypoint executable in native Linux checkouts; a clean worktree reproduced `Permission denied` before the mode fix and passed all three checks afterward.
 
 ## [0.5.5](https://github.com/codegiveness/mssql-mcp/compare/v0.5.4...v0.5.5) (2026-09-04)
 
