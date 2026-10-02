@@ -9,12 +9,6 @@ namespace mssql_mcp.Tools.Json;
 /// <see cref="System.Text.Json.JsonSerializerDefaults.Web"/> (camelCase, case-insensitive)
 /// with <c>WriteIndented = false</c>.
 /// </summary>
-/// <remarks>
-/// This context is the expand-phase foundation (ticket #47): DTO records and primitive types
-/// are registered here so that a later contract phase can swap reflection-based serialization
-/// for source-generated serialization without changing call sites. No production code references
-/// this context yet.
-/// </remarks>
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web, WriteIndented = false)]
 [JsonSerializable(typeof(Dictionary<string, object?>))]
 [JsonSerializable(typeof(object))]
@@ -36,6 +30,7 @@ namespace mssql_mcp.Tools.Json;
 [JsonSerializable(typeof(InternalErrorPayload))]
 [JsonSerializable(typeof(ConnectionErrorPayload))]
 [JsonSerializable(typeof(ObjectNotFoundPayload))]
+[JsonSerializable(typeof(PlanTooLargePayload))]
 [JsonSerializable(typeof(QueryPlanSummary))]
 [JsonSerializable(typeof(QueryPlanOperation))]
 [JsonSerializable(typeof(MissingIndexPayload))]

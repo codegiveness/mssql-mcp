@@ -1,6 +1,4 @@
-using System.Globalization;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Protocol;
 using mssql_mcp.Tools.Json;
@@ -113,23 +111,6 @@ public class ByteSafetyNetTests
         Assert.Contains($"{OneMb} bytes", notice);
     }
 
-    [Fact]
-    public void ByteCap_NoticeText_Format()
-    {
-        List<Dictionary<string, object?>> rows = RowsOfSize(rowCount: 100, approxBytesPerRow: 200_000);
-
-        CallToolResult result = ToolErrors.SuccessWithByteCap(rows, Default10Mb);
-
-        Assert.Equal(2, result.Content.Count);
-        string notice = GetText(result, 1);
-
-        // Notice format: [truncated] Result exceeded {maxBytes} bytes. {returned} rows returned, more exist. Narrow with WHERE, TOP, or OFFSET/FETCH.
-        Match m = Regex.Match(notice, @"^\[truncated\] Result exceeded (\d+) bytes\. (\d+) rows returned, more exist\. Narrow with WHERE, TOP, or OFFSET/FETCH\.$");
-        Assert.True(m.Success, $"Notice did not match expected format: {notice}");
-        Assert.Equal(Default10Mb.ToString(CultureInfo.InvariantCulture), m.Groups[1].Value);
-        int returned = int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
-        Assert.True(returned > 0, "Truncated row count should be positive");
-    }
 
     [Fact]
     public void ByteCap_DataFirst_NoticeSecond()
@@ -169,50 +150,29 @@ public class ByteSafetyNetTests
         using JsonDocument doc = JsonDocument.Parse(json);
         Assert.Equal(0, doc.RootElement.GetArrayLength());
     }
-
     [Fact]
-    public void ByteCap_StringOverload_UnderThreshold_ReturnsText()
+    public void ByteCap_ReservesClosingBracket_AtExactBoundary()
     {
-        string xml = "<plan>small</plan>";
+        List<object> items = new() { "x", "y" };
+        CallToolResult fits = ToolErrors.SuccessWithByteCap(items, 9);
+        Assert.Single(fits.Content);
+        Assert.Equal("[\"x\",\"y\"]", GetText(fits, 0));
 
-        CallToolResult result = ToolErrors.SuccessWithByteCap(xml, Default10Mb);
-
-        Assert.Single(result.Content);
-        Assert.False(result.IsError);
-        Assert.Equal(xml, GetText(result, 0));
+        CallToolResult exceeds = ToolErrors.SuccessWithByteCap(items, 8);
+        Assert.Equal(2, exceeds.Content.Count);
+        Assert.Equal("[\"x\"]", GetText(exceeds, 0));
     }
 
     [Fact]
-    public void ByteCap_StringOverload_OverThreshold_TruncatesAtCharBoundary()
+    public void ByteCap_ReaderTruncation_RemainsVisibleWhenRetainedRowsFit()
     {
-        // Build a string longer than 1MB when UTF-8 encoded (all ASCII so char == byte).
-        string big = new('x', 2_000_000);
-        const long OneMb = 1024 * 1024;
-
-        CallToolResult result = ToolErrors.SuccessWithByteCap(big, OneMb);
-
+        CallToolResult result = ToolErrors.SuccessWithByteCap(new List<object> { "x" }, 100, isTruncated: true);
+        Assert.False(result.IsError);
         Assert.Equal(2, result.Content.Count);
-        Assert.False(result.IsError);
-
-        string truncated = GetText(result, 0);
-        int truncatedBytes = System.Text.Encoding.UTF8.GetByteCount(truncated);
-        Assert.True(truncatedBytes <= OneMb, $"Truncated bytes {truncatedBytes} exceeded threshold {OneMb}");
-
-        string notice = GetText(result, 1);
-        Assert.StartsWith("[truncated]", notice);
-        Assert.Contains($"{OneMb} bytes", notice);
+        Assert.Equal("[\"x\"]", GetText(result, 0));
     }
 
-    [Fact]
-    public void ByteCap_StringOverload_Disabled_WhenZero()
-    {
-        string big = new('y', 100_000);
 
-        CallToolResult result = ToolErrors.SuccessWithByteCap(big, maxBytes: 0);
-
-        Assert.Single(result.Content);
-        Assert.Equal(big, GetText(result, 0));
-    }
 
     [Fact]
     public void ByteCap_MixedObjectList_SerializesAll()

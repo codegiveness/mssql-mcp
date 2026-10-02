@@ -72,11 +72,10 @@ public class ExecuteSqlTests
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // SELECT 1 produces a single column with empty name → key "" per ADR-0009.
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>
-            {
-                new() { [""] = 1 },
-            });
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>
+        {
+            new() { [""] = 1 },
+        }, false));
 
         SqlTools tools = CreateTools(executor, RestrictedOptions());
         CallToolResult result = await tools.ExecuteSql("SELECT 1", CancellationToken.None);
@@ -93,28 +92,24 @@ public class ExecuteSqlTests
     public async Task ExecuteSql_GuardAccept_PassesWrappedSqlToExecutor()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
 
         SqlTools tools = CreateTools(executor, RestrictedOptions());
         await tools.ExecuteSql("SELECT 1", CancellationToken.None);
 
         // The wrapped SQL must contain the sentinel + BEGIN TRAN / ROLLBACK per ADR-0007.
-        await executor.Received(1).ExecuteQueryAsync(
-            Arg.Is<string>(s => s != null
-                                && s.Contains("/* mssql-mcp */", StringComparison.Ordinal)
-                                && s.Contains("BEGIN TRANSACTION", StringComparison.Ordinal)
-                                && s.Contains("ROLLBACK TRANSACTION", StringComparison.Ordinal)
-                                && s.Contains("SELECT 1", StringComparison.Ordinal)),
-            Arg.Any<CancellationToken>());
+        await executor.Received(1).ExecuteQueryAsync(Arg.Is<string>(s => s != null
+                            && s.Contains("/* mssql-mcp */", StringComparison.Ordinal)
+                            && s.Contains("BEGIN TRANSACTION", StringComparison.Ordinal)
+                            && s.Contains("ROLLBACK TRANSACTION", StringComparison.Ordinal)
+                            && s.Contains("SELECT 1", StringComparison.Ordinal)), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ExecuteSql_EmptyResult_ReturnsEmptyArray_AndIsErrorFalse()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
 
         SqlTools tools = CreateTools(executor, RestrictedOptions());
         CallToolResult result = await tools.ExecuteSql("SELECT TOP 0 * FROM sys.objects", CancellationToken.None);
@@ -141,7 +136,7 @@ public class ExecuteSqlTests
         Assert.NotNull(doc.RootElement.GetProperty("detail").GetString());
 
         // Guard rejection must never reach the executor.
-        await executor.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await executor.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -157,7 +152,7 @@ public class ExecuteSqlTests
         using JsonDocument doc = JsonDocument.Parse(json);
         Assert.Equal("GUARD_REJECTION", doc.RootElement.GetProperty("error").GetString());
         Assert.Equal("select_into", doc.RootElement.GetProperty("rule").GetString());
-        await executor.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await executor.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     // ---------- SQL error path ----------
@@ -166,7 +161,7 @@ public class ExecuteSqlTests
     public async Task ExecuteSql_SqlException_ReturnsSqlError_AndIsErrorTrue()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(SqlExceptionFactory.Create(number: 208, message: "Invalid object name 'users'.", severity: 16, line: 1));
 
         SqlTools tools = CreateTools(executor, RestrictedOptions());
@@ -188,7 +183,7 @@ public class ExecuteSqlTests
     public async Task ExecuteSql_OperationCanceled_ReturnsTimeoutError_AndIsErrorTrue()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(new OperationCanceledException());
 
         SqlTools tools = CreateTools(executor, RestrictedOptions());
@@ -208,11 +203,10 @@ public class ExecuteSqlTests
     public async Task ExecuteSql_UnrestrictedMode_Select_SkipsGuard_ExecutesRawSql()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>
-            {
-                new() { ["x"] = 42 },
-            });
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>
+        {
+            new() { ["x"] = 42 },
+        }, false));
 
         // Use a fake IGuard that throws if called — proves Unrestricted skips it.
         IGuard guard = Substitute.For<IGuard>();
@@ -229,9 +223,7 @@ public class ExecuteSqlTests
         Assert.Equal(42, doc.RootElement[0].GetProperty("x").GetInt32());
 
         // Unrestricted mode executes SQL as-is (no BEGIN TRAN / ROLLBACK wrapper).
-        await executor.Received(1).ExecuteQueryAsync(
-            Arg.Is<string>(s => s == "SELECT 42 AS x"),
-            Arg.Any<CancellationToken>());
+        await executor.Received(1).ExecuteQueryAsync(Arg.Is<string>(s => s == "SELECT 42 AS x"), Arg.Any<long>(), Arg.Any<CancellationToken>());
 
         guard.DidNotReceive().Validate(Arg.Any<string>());
     }
@@ -251,7 +243,7 @@ public class ExecuteSqlTests
         using JsonDocument doc = JsonDocument.Parse(json);
         Assert.Equal("GUARD_REJECTION", doc.RootElement.GetProperty("error").GetString());
         Assert.Equal("empty_batch", doc.RootElement.GetProperty("rule").GetString());
-        await executor.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await executor.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     // ---------- Null column value preserved (ADR-0009: NULL → JSON null) ----------
@@ -260,11 +252,10 @@ public class ExecuteSqlTests
     public async Task ExecuteSql_NullColumn_PreservedInJson()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>
-            {
-                new() { ["a"] = 1, ["b"] = null },
-            });
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>
+        {
+            new() { ["a"] = 1, ["b"] = null },
+        }, false));
 
         SqlTools tools = CreateTools(executor, RestrictedOptions());
         CallToolResult result = await tools.ExecuteSql("SELECT 1 AS a, NULL AS b", CancellationToken.None);
@@ -285,7 +276,7 @@ public class ExecuteSqlTests
     public async Task ExecuteSql_UnexpectedException_ReturnsInternalError_AndIsErrorTrue()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(new InvalidOperationException("Something went wrong inside the executor"));
 
         SqlTools tools = CreateTools(executor, RestrictedOptions());
@@ -307,7 +298,7 @@ public class ExecuteSqlTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         using var cts = new CancellationTokenSource();
         cts.Cancel();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(new OperationCanceledException(cts.Token));
 
         SqlTools tools = CreateTools(executor, RestrictedOptions());
@@ -322,7 +313,7 @@ public class ExecuteSqlTests
     public async Task ExecuteSql_SqlException_UsesFirstErrorProperties()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(SqlExceptionFactory.Create(number: 208, message: "Invalid object name 'users'.", severity: 16, line: 1));
 
         SqlTools tools = CreateTools(executor, RestrictedOptions());
@@ -334,6 +325,19 @@ public class ExecuteSqlTests
         Assert.Equal("SQL", doc.RootElement.GetProperty("error").GetString());
         Assert.Equal("SQL208", doc.RootElement.GetProperty("code").GetString());
     }
+    [Fact]
+    public async Task ExecuteSql_EarlyReaderStop_ReturnsRetainedDataAndNotice()
+    {
+        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
+            .Returns(new SqlQueryResult(new() { new() { ["v"] = null } }, true));
+        CallToolResult result = await CreateTools(executor, RestrictedOptions()).ExecuteSql("SELECT NULL AS v", CancellationToken.None);
+        Assert.False(result.IsError);
+        Assert.Equal(2, result.Content.Count);
+        using JsonDocument doc = JsonDocument.Parse(GetText(result));
+        Assert.Equal(JsonValueKind.Null, doc.RootElement[0].GetProperty("v").ValueKind);
+    }
+
 }
 
 /// <summary>

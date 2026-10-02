@@ -166,11 +166,10 @@ public class ExecuteSqlUnrestrictedTests
     public async Task Unrestricted_Select_ReturnsRowsNotStatus()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>
-            {
-                new() { ["x"] = 42 },
-            });
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>
+        {
+            new() { ["x"] = 42 },
+        }, false));
 
         SqlTools tools = CreateTools(executor);
         CallToolResult result = await tools.ExecuteSql("SELECT 42 AS x", CancellationToken.None);
@@ -294,7 +293,7 @@ public class ExecuteSqlUnrestrictedTests
         Assert.Equal("GUARD_REJECTION", doc.RootElement.GetProperty("error").GetString());
         Assert.Equal("empty_batch", doc.RootElement.GetProperty("rule").GetString());
         await executor.DidNotReceive().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await executor.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await executor.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     // ---------- explain_query remains Guarded in Unrestricted mode (no bypass) ----------
@@ -315,6 +314,6 @@ public class ExecuteSqlUnrestrictedTests
         using JsonDocument doc = JsonDocument.Parse(json);
         Assert.Equal("GUARD_REJECTION", doc.RootElement.GetProperty("error").GetString());
         Assert.Equal("non_select_statement", doc.RootElement.GetProperty("rule").GetString());
-        await executor.DidNotReceive().ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await executor.DidNotReceive().ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 }

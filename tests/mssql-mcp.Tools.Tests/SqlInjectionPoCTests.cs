@@ -66,8 +66,7 @@ public class SqlInjectionPoCTests
 
         // Capture the SQL sent to ExecuteQueryAsync (non-parameterized overload).
         string capturedSql = string.Empty;
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSql = s ?? string.Empty), Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>> { new() { ["name"] = "AppDb", ["database_id"] = 5L, ["state_desc"] = "ONLINE", ["is_current"] = true } });
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSql = s ?? string.Empty), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>> { new() { ["name"] = "AppDb", ["database_id"] = 5L, ["state_desc"] = "ONLINE", ["is_current"] = true } }, false));
 
         DatabaseTools tools = CreateTools(executor);
         // ListDatabases signature is (CancellationToken) — no database param exists.
@@ -86,11 +85,7 @@ public class SqlInjectionPoCTests
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // Validation query returns zero rows (no DB named "x]; DROP TABLE y; --" exists).
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(EmptyRows());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(EmptyRows(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListSchemas(database: malicious, CancellationToken.None);
@@ -102,13 +97,8 @@ public class SqlInjectionPoCTests
 
         // CRITICAL: the parameterized-overload (used for validation) was called exactly once,
         // and the NON-parameterized overload (used for the actual schema query) was NEVER called.
-        await executor.Received(1).ExecuteQueryAsync(
-            Arg.Any<string>(),
-            Arg.Any<IReadOnlyDictionary<string, object>?>(),
-            Arg.Any<CancellationToken>());
-        await executor.DidNotReceive().ExecuteQueryAsync(
-            Arg.Any<string>(),
-            Arg.Any<CancellationToken>());
+        await executor.Received(1).ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
+        await executor.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     // ---------- (3) Even IF validation somehow passed, QuoteIdentifier neutralizes the input ----------
@@ -118,11 +108,7 @@ public class SqlInjectionPoCTests
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // Validation succeeds (pretend the malicious name is a "valid" DB).
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ValidDbRow());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false));
 
         List<Dictionary<string, object?>> schemas =
         [
@@ -130,8 +116,7 @@ public class SqlInjectionPoCTests
         ];
         // Capture the SQL that actually gets executed.
         string capturedSql = string.Empty;
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSql = s ?? string.Empty), Arg.Any<CancellationToken>())
-            .Returns(schemas);
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSql = s ?? string.Empty), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(schemas, false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListSchemas(database: malicious, CancellationToken.None);

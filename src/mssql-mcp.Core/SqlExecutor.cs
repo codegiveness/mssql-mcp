@@ -91,17 +91,19 @@ public sealed class SqlExecutor : ISqlExecutor
         return provider;
     }
 
-    public async Task<List<Dictionary<string, object?>>> ExecuteQueryAsync(string sql, CancellationToken ct)
+    public async Task<SqlQueryResult> ExecuteQueryAsync(string sql, long maxResultBytes, CancellationToken ct)
     {
-        return await ExecuteQueryAsync(sql, parameters: null, ct).ConfigureAwait(false);
+        return await ExecuteQueryAsync(sql, parameters: null, maxResultBytes, ct).ConfigureAwait(false);
     }
 
-    public async Task<List<Dictionary<string, object?>>> ExecuteQueryAsync(
+    public async Task<SqlQueryResult> ExecuteQueryAsync(
         string sql,
         IReadOnlyDictionary<string, object>? parameters,
+        long maxResultBytes,
         CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxResultBytes);
 
         using SqlConnection connection = new(_connectionString) { RetryLogicProvider = _retryProvider };
         await connection.OpenAsync(ct).ConfigureAwait(false);
@@ -129,13 +131,25 @@ public sealed class SqlExecutor : ISqlExecutor
         }
 
         List<Dictionary<string, object?>> rows = new();
+        long retainedBytes = 2; // Reserve both array brackets, even for an empty result.
+        long rowStructureBytes = maxResultBytes > 0 ? ResultByteBudget.RowStructureBytes(columnNames) : 0;
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             Dictionary<string, object?> row = TypeCoercion.CoerceRow(reader, columnNames);
+            if (maxResultBytes > 0)
+            {
+                long nextBytes = ResultByteBudget.Add(ResultByteBudget.RowBytes(row, rowStructureBytes), rows.Count == 0 ? 0 : 1);
+                if (retainedBytes > maxResultBytes || nextBytes > maxResultBytes - retainedBytes)
+                {
+                    command.Cancel();
+                    return new SqlQueryResult(rows, IsTruncated: true);
+                }
+                retainedBytes += nextBytes;
+            }
             rows.Add(row);
         }
 
-        return rows;
+        return new SqlQueryResult(rows, IsTruncated: false);
     }
 
     public async Task<int> ExecuteNonQueryAsync(string sql, CancellationToken ct)
@@ -159,13 +173,14 @@ public sealed class SqlExecutor : ISqlExecutor
     /// SHOWPLAN_XML string. The query is not actually executed — SQL Server returns the
     /// estimated plan as a single-row, single-column XML result set. <c>SET SHOWPLAN_XML OFF</c>
     /// is always run in a finally block so the session-scoped setting cannot leak onto a
-    /// pooled connection (ADR-0016 Oracle watch-out-for #2). The connection string default
-    /// <c>Connection Reset=true</c> (Microsoft.Data.SqlClient) ALSO clears session state
-    /// when the connection returns to the pool, providing a second layer of safety.
+    /// pooled connection. Cleanup ignores request cancellation and discards the pool if OFF
+    /// fails. A positive raw XML budget refuses oversized plans while reading; summary callers
+    /// pass zero and retain the full plan.
     /// </summary>
-    public async Task<string> ExecuteShowPlanXmlAsync(string sql, CancellationToken ct)
+    public async Task<string> ExecuteShowPlanXmlAsync(string sql, long maxResultBytes, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxResultBytes);
 
         using SqlConnection connection = new(_connectionString) { RetryLogicProvider = _retryProvider };
         await connection.OpenAsync(ct).ConfigureAwait(false);
@@ -186,24 +201,62 @@ public sealed class SqlExecutor : ISqlExecutor
                 CommandTimeout = _commandTimeout,
                 RetryLogicProvider = _retryProvider,
             };
-            using SqlDataReader reader = await planCommand.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            using CancellationTokenRegistration cancellation = ct.Register(static state => ((SqlCommand)state!).Cancel(), planCommand);
+            using SqlDataReader reader = await planCommand.ExecuteReaderAsync(System.Data.CommandBehavior.SequentialAccess, ct).ConfigureAwait(false);
 
             if (!await reader.ReadAsync(ct).ConfigureAwait(false))
             {
                 throw new InvalidOperationException("SHOWPLAN_XML returned no rows.");
             }
 
-            // SHOWPLAN_XML returns a single column; reader.GetXmlReader(n) is the documented way
-            // to read it without hitting string-length limits on GetFieldValue<string>.
-            return reader.IsDBNull(0) ? string.Empty : reader.GetString(0);
+            if (reader.IsDBNull(0))
+            {
+                return string.Empty;
+            }
+            using BoundedPlanWriter buffer = new(maxResultBytes, ct);
+            try
+            {
+                if (string.Equals(reader.GetDataTypeName(0), "xml", StringComparison.OrdinalIgnoreCase))
+                {
+                    using System.Xml.XmlReader xml = reader.GetXmlReader(0);
+                    using System.Xml.XmlWriter writer = System.Xml.XmlWriter.Create(buffer, new System.Xml.XmlWriterSettings
+                    {
+                        OmitXmlDeclaration = true,
+                        ConformanceLevel = System.Xml.ConformanceLevel.Fragment,
+                    });
+                    writer.WriteNode(xml, defattr: true);
+                    writer.Flush();
+                }
+                else
+                {
+                    using TextReader text = reader.GetTextReader(0);
+                    char[] chunk = new char[4096];
+                    int count;
+                    while ((count = await text.ReadAsync(chunk.AsMemory(), ct).ConfigureAwait(false)) != 0)
+                    {
+                        buffer.Write(chunk, 0, count);
+                    }
+                }
+                ct.ThrowIfCancellationRequested();
+                return buffer.ToString();
+            }
+            catch (Exception) when (ct.IsCancellationRequested)
+            {
+                planCommand.Cancel();
+                throw new OperationCanceledException(ct);
+            }
+            catch
+            {
+                planCommand.Cancel();
+                throw;
+            }
         }
         finally
         {
             // Always reset SHOWPLAN_XML off — leaving it ON corrupts every subsequent query on
             // the pooled connection (they would return plan XML instead of rows).
-            // Swallow exceptions here so we don't mask the original exception from the try block;
-            // Connection Reset=true (Microsoft.Data.SqlClient default) clears session state when
-            // the connection returns to the pool, so SHOWPLAN_XML is cleared even if this fails.
+            // Do not mask the original failure. Cleanup ignores request cancellation; if OFF
+            // fails, discard the pool rather than relying on session-reset configuration.
             try
             {
                 using SqlCommand offCommand = new(SetShowPlanOff, connection)
@@ -211,11 +264,12 @@ public sealed class SqlExecutor : ISqlExecutor
                     CommandTimeout = _commandTimeout,
                     RetryLogicProvider = _retryProvider,
                 };
-                await offCommand.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                await offCommand.ExecuteNonQueryAsync(CancellationToken.None).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {
-                _logger.LogWarning(ex, "[showplan] SET SHOWPLAN_XML OFF failed; relying on Connection Reset=true backstop");
+                SqlConnection.ClearPool(connection);
+                _logger.LogWarning(ex, "[showplan] SET SHOWPLAN_XML OFF failed; discarding connection pool");
             }
         }
     }

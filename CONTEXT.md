@@ -29,7 +29,7 @@ A single MCP method the Agent can call. Each tool has a name, input schema (JSON
 _Avoid_: function, method, endpoint, action
 
 **Content**:
-One item inside a `CallToolResult`. The MCP spec defines `TextContent`, `ImageContent`, `AudioContent`, and `EmbeddedResource`. We use `TextContent` exclusively in v1 — structured data is JSON-encoded inside the text.
+One item inside a `CallToolResult`. The MCP spec defines `TextContent`, `ImageContent`, `AudioContent`, and `EmbeddedResource`. We use `TextContent` exclusively in the current 0.x tool surface — structured data is JSON-encoded inside the text.
 _Avoid_: payload, response body, message
 
 **Configuration Precedence**:
@@ -53,7 +53,7 @@ An install path that produces a working binary even when npm's `postinstall` lif
 _Avoid_: reliable install, robust install
 
 **Harness Verification Record**:
-The per-harness artifact produced by the manual verification step (ADR-0022). For each of the 6 documented harnesses, records three things: (1) config file path per OS, (2) log file location, (3) what a successful MCP connection looks like in that harness's UI/logs. Feeds the Troubleshooting section's per-harness "where to look" table. A harness snippet cannot be published until its Verification Record is complete.
+The historical per-harness artifact required by ADR-0022: config file paths per OS, log locations, and successful MCP connection indicators. The mandatory six-record publication gate is retired by [ADR-0036](docs/adr/0036-continue-zero-major-releases.md). A record is evidence only when actually collected; current snippets and troubleshooting paths are examples, not claims that those records exist. User-reported production use with Oh My Pi and OpenCode is distinct from automated stdio proof and does not certify six other harnesses, dated usage logs, or specific client/OS/configuration versions.
 _Avoid_: harness test, client checklist
 
 **Unknown-Argument Dispatch**:
@@ -71,7 +71,7 @@ _Avoid_: dependency list, dependency graph, manifest
 ## Release Workflow
 
 **Release**:
-A versioned cut of the repo, tagged `vX.Y.Z`, published to NuGet, npm, and GitHub Releases.
+A versioned cut of the repo, tagged `v0.Y.Z` (optionally with a SemVer prerelease suffix), published to NuGet, npm, and GitHub Releases. Releases continue in 0.x; major versions >= 1 are blocked for both automatic and manual publication by `scripts/check-release-policy.js`. ADR-0036 retires the v1 RC/promotion path and 30-day calendar, not the Guard, security, distribution, or pre-push controls. Old launch issues #1/#11/#20/#22/#34 are retired milestones, not completed original tests.
 _Avoid_: deploy, ship (as a noun), publish (use for the per-registry push)
 
 **Manifest**:
@@ -79,15 +79,15 @@ The single file `.release-please-manifest.json` holding the canonical version st
 _Avoid_: version file, config (too generic)
 
 **Version stamp**:
-A literal version string embedded in a tracked file (`mssql-mcp.csproj`, `npm/package.json`, `server.json`). Stamps are derivatives of the Manifest; they must always match it.
+A literal version string embedded in a tracked file (`mssql-mcp.csproj`, `npm/package.json`, all five `npm/platforms/<rid>/package.json` files, or `server.json`). Stamps are derivatives of the Manifest; they must always match it.
 _Avoid_: version literal, version marker
 
 **Stamp** (verb):
-To write the version into a file. Performed by release-please (for standard formats) and by `scripts/sync-server-json.js` (for `server.json`'s three version fields).
+To write the canonical version into tracked files. `scripts/sync-all-stamps.js` synchronizes the csproj, main npm version and optional dependencies, all five platform npm versions, and server.json before a release build. Run it after a manifest change when preparing committed stamps as well.
 _Avoid_: bump (reserved for the act of incrementing the version), write (too generic)
 
 **Release PR**:
-The auto-generated pull request from release-please that bumps the Manifest, all version stamps, and `CHANGELOG.md` in a single commit. Merging it creates the tag.
+The auto-generated pull request from release-please that bumps the Manifest and `CHANGELOG.md`. Merging it creates the tag; `scripts/sync-all-stamps.js` synchronizes derivative stamps before release builds. A manifest/stamp mismatch in a working branch must be settled before the normal consistency/pre-push check passes.
 _Avoid_: version PR, bump PR
 
 **Consistency check**:
@@ -97,3 +97,7 @@ _Avoid_: version lint, version validation (too vague)
 **Bootstrap SHA**:
 The commit hash (`2458379`) after which release-please begins scanning for release-relevant commits. Set in `.github/release-please-config.json`. All commits at or before this SHA are treated as already released.
 _Avoid_: starting commit, baseline
+
+**Release policy check**:
+The reusable `scripts/check-release-policy.js` gate: validate the manifest before release-please, validate generated tags before dispatch, and validate the manifest plus selected pushed/manual tag before artifact production or publication. The policy CI job also checks bot-generated release PRs. `bump-minor-pre-major: true` steers normal automatic bumps within 0.x but is not the security boundary; the validator rejects forced majors and malformed input. See [ADR-0036](docs/adr/0036-continue-zero-major-releases.md).
+_Avoid_: graduation gate, promotion clock (retired requirements)

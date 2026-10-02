@@ -75,9 +75,10 @@ public sealed class PlanTools
         }
 
         string planXml;
+        bool rawXml = string.Equals(format, "xml", StringComparison.OrdinalIgnoreCase);
         try
         {
-            planXml = await _executor.ExecuteShowPlanXmlAsync(guardResult.WrappedSql, ct).ConfigureAwait(false);
+            planXml = await _executor.ExecuteShowPlanXmlAsync(guardResult.WrappedSql, rawXml ? _options.MaxResultBytes : 0, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -93,6 +94,10 @@ public sealed class PlanTools
             _logger.LogError("[sql] explain_query failed: {Message} (code {Number}, severity {Severity})", ex.Message, ex.Number, ex.Class);
             return ToolErrors.SqlErrorOrConnection(ex);
         }
+        catch (PlanTooLargeException ex)
+        {
+            return ToolErrors.PlanTooLarge(ex.MaxBytes);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[internal] explain_query unhandled exception: {Type}: {Message}", ex.GetType().Name, ex.Message);
@@ -100,10 +105,12 @@ public sealed class PlanTools
         }
 
         // format: "xml" returns raw SHOWPLAN_XML; anything else (null, "summary", unknown) → summary.
-        if (string.Equals(format, "xml", StringComparison.OrdinalIgnoreCase))
+        if (rawXml)
         {
             _logger.LogInformation("[tool] explain_query returned xml plan ({Bytes} bytes)", Encoding.UTF8.GetByteCount(planXml));
-            return ToolErrors.SuccessWithByteCap(planXml, _options.MaxResultBytes, _logger);
+            return _options.MaxResultBytes > 0 && Encoding.UTF8.GetByteCount(planXml) > _options.MaxResultBytes
+                ? ToolErrors.PlanTooLarge(_options.MaxResultBytes)
+                : ToolErrors.Success(planXml);
         }
 
         QueryPlanSummary summary = BuildSummary(planXml);

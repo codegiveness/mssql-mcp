@@ -103,11 +103,7 @@ public class AnalyzeDbHealthTests
     {
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(canned[0], canned[1], canned[2], canned[3], canned[4]);
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: null, CancellationToken.None);
@@ -133,11 +129,7 @@ public class AnalyzeDbHealthTests
     {
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks(sizeMb: 4096, logMb: 128);
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(canned[0], canned[1], canned[2], canned[3], canned[4]);
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: null, CancellationToken.None);
@@ -155,11 +147,7 @@ public class AnalyzeDbHealthTests
     {
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks(vlfCount: 12);
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(canned[0], canned[1], canned[2], canned[3], canned[4]);
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: null, CancellationToken.None);
@@ -177,11 +165,7 @@ public class AnalyzeDbHealthTests
     {
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks(vlfCount: 200);
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(canned[0], canned[1], canned[2], canned[3], canned[4]);
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: null, CancellationToken.None);
@@ -198,11 +182,7 @@ public class AnalyzeDbHealthTests
     {
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks(vlfCount: 2000);
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(canned[0], canned[1], canned[2], canned[3], canned[4]);
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: null, CancellationToken.None);
@@ -220,11 +200,7 @@ public class AnalyzeDbHealthTests
     {
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks(vlfCount: 50);
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(canned[0], canned[1], canned[2], canned[3], canned[4]);
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: null, CancellationToken.None);
@@ -241,11 +217,7 @@ public class AnalyzeDbHealthTests
     {
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks(vlfCount: 1000);
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(canned[0], canned[1], canned[2], canned[3], canned[4]);
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: null, CancellationToken.None);
@@ -262,11 +234,7 @@ public class AnalyzeDbHealthTests
     {
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks(worst: "dbo.Orders (87%)");
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(canned[0], canned[1], canned[2], canned[3], canned[4]);
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: null, CancellationToken.None);
@@ -287,11 +255,7 @@ public class AnalyzeDbHealthTests
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks(
             fragmentedGt30: 0, maxFrag: 0.0, worst: null);
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(canned[0], canned[1], canned[2], canned[3], canned[4]);
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: null, CancellationToken.None);
@@ -310,11 +274,7 @@ public class AnalyzeDbHealthTests
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks(
             totalStats: 150, staleGt7d: 5, maxStalenessDays: 30);
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(canned[0], canned[1], canned[2], canned[3], canned[4]);
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: null, CancellationToken.None);
@@ -333,11 +293,7 @@ public class AnalyzeDbHealthTests
     {
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks(blockedSessions: 0);
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(canned[0], canned[1], canned[2], canned[3], canned[4]);
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: null, CancellationToken.None);
@@ -354,11 +310,7 @@ public class AnalyzeDbHealthTests
     {
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks(blockedSessions: 3);
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(canned[0], canned[1], canned[2], canned[3], canned[4]);
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: null, CancellationToken.None);
@@ -376,11 +328,7 @@ public class AnalyzeDbHealthTests
         List<string> capturedSqls = new();
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ValidDbRow(), canned[0], canned[1], canned[2], canned[3], canned[4]);
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false), new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: "AppDb", CancellationToken.None);
@@ -401,11 +349,7 @@ public class AnalyzeDbHealthTests
         List<string> capturedSqls = new();
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(canned[0], canned[1], canned[2], canned[3], canned[4]);
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         await tools.AnalyzeDbHealth(database: null, CancellationToken.None);
@@ -421,10 +365,7 @@ public class AnalyzeDbHealthTests
     public async Task AnalyzeDbHealth_SqlException_ReturnsSqlError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(SqlExceptionFactory.Create(number: 208, message: "Invalid object.", severity: 16, line: 1));
 
         OpsTools tools = CreateTools(executor);
@@ -440,11 +381,7 @@ public class AnalyzeDbHealthTests
     public async Task AnalyzeDbHealth_CrossDb_NotFound_ReturnsConnectionError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: "DoesNotExist", CancellationToken.None);
@@ -461,14 +398,27 @@ public class AnalyzeDbHealthTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         using CancellationTokenSource cts = new();
         cts.Cancel();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(new OperationCanceledException(cts.Token));
 
         OpsTools tools = CreateTools(executor);
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
             await tools.AnalyzeDbHealth(database: null, cts.Token));
     }
+    [Fact]
+    public async Task AnalyzeDbHealth_IncompleteInput_OmitsMisleadingSummaryAndReportsNotice()
+    {
+        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
+        List<List<Dictionary<string, object?>>> canned = CannedAllChecks();
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
+            .Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(new(), true),
+                new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
+        CallToolResult result = await CreateTools(executor).AnalyzeDbHealth(null, CancellationToken.None);
+        Assert.False(result.IsError);
+        Assert.Equal(2, result.Content.Count);
+        using JsonDocument doc = JsonDocument.Parse(GetJson(result));
+        Assert.Equal(4, doc.RootElement.GetArrayLength());
+        Assert.DoesNotContain(doc.RootElement.EnumerateArray(), item => item.GetProperty("check").GetString() == "vlf_count");
+    }
+
 }

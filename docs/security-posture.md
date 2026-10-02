@@ -1,61 +1,53 @@
 # Security Posture
 
-This page consolidates all security evidence and controls for mssql-mcp in one place. For vulnerability reporting, see [SECURITY.md](../SECURITY.md).
+This page describes configured controls and their limits for mssql-mcp. Configuration is not proof that a workflow has run successfully or that a distribution artifact was attested. For vulnerability reporting, see [SECURITY.md](../SECURITY.md). For the current twelve Scorecard findings, evidence requirements, dependency-lock maintenance, and unresolved prerequisites, see [Security and quality follow-up](security-quality-follow-up.md).
 
 ## Runtime Guard
 
-Restricted mode applies four layers of defense so an AI agent can query SQL Server without a human in the loop:
+Restricted mode combines application-level checks with database permissions; it is not a substitute for a least-privilege SQL login:
 
-1. **AST allowlist** — T-SQL is parsed by Microsoft.SqlServer.TransactSql.ScriptDom, then walked by a Visitor that allows only `SelectStatement` (including CTEs). Nested statements inside `BEGIN...END`, `IF`, and `WHILE` are also inspected. `INTO`, `OPENROWSET`, `EXECUTE AS`, DDL, and DML are rejected.
-2. **Read-only transactions** — every `execute_sql` runs inside `BEGIN TRAN ... ROLLBACK`, so even an allowlist bypass cannot commit changes.
-3. **Command timeout** — the default 30-second timeout in Restricted mode kills runaway queries.
-4. **Byte-size safety net** — results over `MSSQL_MAX_RESULT_BYTES` (default 10 MB) are truncated with a notice, protecting the agent's context window.
+1. **AST allowlist** — T-SQL is parsed by Microsoft.SqlServer.TransactSql.ScriptDom and inspected before execution. Non-SELECT statements and selected dangerous constructs inside SELECT are rejected. Parser or policy defects remain possible.
+2. **Rollback wrapper** — Guard-accepted SQL is wrapped in `BEGIN TRANSACTION ... ROLLBACK TRANSACTION`. This is defense in depth for transactional effects, not a SQL Server read-only authorization boundary. It cannot guarantee that arbitrary SQL, external side effects, or a Guard bypass are harmless. The operator must restrict the login's grants.
+3. **Command timeout** — the default 30-second Restricted-mode command timeout limits command execution; it is not an end-to-end request deadline or a CPU/memory quota. Retries, network delays, and cleanup can extend elapsed time.
+4. **Result budget** — `MSSQL_MAX_RESULT_BYTES` defaults to 10 MB; zero disables it. Query readers stop retaining rows using a conservative JSON byte estimate, and truncated results carry a notice. Oversized raw plans are refused with `PLAN_TOO_LARGE` instead of returning broken partial XML. The budget is not a strict process RSS ceiling: a single cell, provider buffers, metadata, plan acquisition, and serialization still allocate.
 
 See [ADR-0006: Guard AST allowlist](adr/0006-guard-ast-allowlist.md) for the full design.
 
-## Supply chain attestation
+## Supply chain controls
 
-| Control | Status | Evidence |
-|---|---|---|
-| GitHub Actions SHA-pinned | ✅ | All `uses:` in workflows are pinned to 40-char commit SHAs |
-| npm provenance | ✅ | `npm publish --provenance` in release.yml |
-| NuGet Trusted Publishing | ✅ | OIDC-based, no long-lived API key (ADR-0019) |
-| Release archive attestation | ✅ | `actions/attest@v4` on release archives + checksums |
-| SBOM (CycloneDX) | ✅ | Generated in CI, attested and attached to GitHub Releases |
-| OpenSSF Scorecard | ✅ | Weekly scan, results in Security tab, [live badge](https://securityscorecards.dev/viewer/?raw=github.com/codegiveness/mssql-mcp) |
+| Control | Configuration and limits |
+|---|---|
+| GitHub Actions pinning | Workflow actions use full commit SHAs; updates still require review of the selected commit. |
+| Container pinning | Docker SDK/runtime images and the CI SQL Edge image use registry digests; pinning does not establish that the image is vulnerability-free. |
+| npm provenance | Release publishing requests provenance with `npm publish --provenance`; consumers must verify the provenance of the actual published version. |
+| NuGet Trusted Publishing | Release uses OIDC login to obtain a short-lived publishing credential. The NuGet.org trusted-publisher configuration is an external prerequisite. This is publishing authentication, **not package provenance**. |
+| NuGet provenance | Deliberately unavailable for `.nupkg` under ADR-0019: NuGet.org repository signing changes the uploaded bytes. Do not describe this channel as provenance-attested. |
+| Release archive and SBOM attestation | The release workflow requests attestations for archives, checksums, and the generated CycloneDX SBOM. A successful release run and verification of downloaded artifacts are required evidence. Checksums alone do not authenticate a compromised publisher. |
+| OpenSSF Scorecard | The workflow uploads findings on `main` and weekly; the [live report](https://securityscorecards.dev/viewer/?raw=github.com/codegiveness/mssql-mcp) measures repository practices, not an absence of vulnerabilities. |
 
-See [ADR-0019: NuGet Trusted Publishing](adr/0019-nuget-provenance-skip-attestation-adopt-trusted-publishing.md) and [ADR-0032: Security signaling and supply-chain attestation](adr/0032-security-signaling-and-supply-chain-attestation.md).
+See [ADR-0019](adr/0019-nuget-provenance-skip-attestation-adopt-trusted-publishing.md) and [ADR-0032](adr/0032-security-signaling-and-supply-chain-attestation.md).
 
 ## Branch protection
 
-| Control | Status |
-|---|---|
-| Required status checks (build, validate) | ✅ strict |
-| Enforce admins | ✅ |
-| Code owner reviews required | ✅ |
-| Dismiss stale reviews | ✅ |
-| Required approving reviews | 0 (deliberate — solo maintainer, see ADR-0033) |
-| Linear history | ✅ |
-| Force pushes blocked | ✅ |
-| Branch deletion blocked | ✅ |
-| Signed commits required | ❌ Deferred (see ADR-0033) |
+ADR-0033 records required `build`/`validate` checks, admin enforcement, CODEOWNERS, stale-review dismissal, linear history, and blocked force pushes/deletion. These are repository settings and must be inspected in GitHub when assessing enforcement; source files alone cannot prove their live state.
 
-See [ADR-0033: Branch protection posture for solo-maintained project](adr/0033-branch-protection-posture-for-solo-maintained-project.md).
+The required approving-review count remains **0**, deliberately, for a solo-maintained repository. CODEOWNERS is not proof of independent review and a maintainer cannot independently approve their own change. Signed-commit enforcement is deferred. The Scorecard Code-Review finding remains a real limitation until a separate qualified reviewer participates and actual review history accumulates; no second-account rubber stamp is a remediation.
+
+See [ADR-0033](adr/0033-branch-protection-posture-for-solo-maintained-project.md). This work does not authorize a 1.x release or change the zero-major publication policy.
 
 ## Secret scanning
 
-| Control | Status |
+GitHub repository API inspection for this follow-up reported secret scanning and push protection enabled, with **0 open secret-scanning alerts**. This is a point-in-time observation, not proof that every secret format is detectable or that previously leaked credentials are safe.
+
+## Dependency management and static analysis
+
+| Control | Configuration and evidence requirement |
 |---|---|
-| Secret scanning | ✅ enabled |
-| Push protection | ✅ enabled |
-
-## Dependency management
-
-| Control | Status | Evidence |
-|---|---|---|
-| Dependabot (GitHub Actions) | ✅ weekly | `.github/dependabot.yml` |
-| Dependabot (NuGet) | ✅ monthly | `.github/dependabot.yml` |
-| Dependabot security updates | ✅ enabled | Repo settings |
+| Dependabot | `.github/dependabot.yml` schedules dependency updates; repository API inspection reported security updates enabled and **0 open Dependabot vulnerability alerts**. |
+| NuGet dependency locking | `Directory.Build.props` enables generated lock files, with separate per-RID locks for publish graphs. CI and release restore in locked mode; build/publish/pack reuse the restored graph. Commit real generated versions and content hashes, and verify all publish profiles before calling this complete. |
+| .NET analyzers | `AnalysisLevel=latest-recommended` and warnings-as-errors are enabled. Six named analyzer rules remain suppressed under ADR-0020; this is not equivalent to running security-specific SAST. |
+| CodeQL SAST | `.github/workflows/codeql.yml` scans C# and JavaScript/TypeScript on `main`, PRs to `main`, and weekly using SHA-pinned init/analyze actions and `security-extended` queries. C# uses the documented no-build mode with locked dependencies. Successful extraction and uploaded results, including review of diagnostics, are still required. |
+| Fuzzing | `.github/workflows/fuzz.yml` runs a bounded SharpFuzz/libFuzzer campaign against an instrumented parser and Guard, using the development-only `fuzz/mssql-mcp.Fuzz` harness. The runner separately proves intentional-crash detection and preserves corpus/logs/findings. Actual managed-coverage and campaign evidence must be inspected before the finding is settled; deterministic regression tests are not called fuzzing. |
 
 ## Security audits
 
@@ -67,7 +59,7 @@ See [ADR-0033: Branch protection posture for solo-maintained project](adr/0033-b
 
 ## Security hardening batch (2026-07-25)
 
-A focused sprint on the `security-hardening` branch fixed 7 findings spanning the npm shim and the core server. All fixes were verified by inverted PoC tests and the full pre-push suite (437 unit tests, 10 checks).
+The [2026-07-25 report](security-audits/2026-07-25-hardening-batch.md) records a focused sprint spanning the npm shim and core server, with inverted PoC tests and the then-current pre-push suite (437 unit tests, 10 checks). Those historical results are not evidence of today's branch or newly added workflow execution.
 
 | Finding | Fix | PoC test |
 |---|---|---|
@@ -84,11 +76,11 @@ See [ADR-0035: Security hardening batch](adr/0035-security-hardening-batch.md) f
 
 ## CODEOWNERS
 
-[.github/CODEOWNERS](../.github/CODEOWNERS) assigns `@codegiveness/mssql-mcp-maintainers` to every path, with extra precision for the Guard, ADRs, workflows, and npm distribution. It is enforced through branch protection (`require_code_owner_reviews: true`).
+[.github/CODEOWNERS](../.github/CODEOWNERS) assigns `@codegiveness/mssql-mcp-maintainers` to every path, with extra precision for the Guard, ADRs, workflows, and npm distribution. Its enforcement depends on live branch rules and eligible reviewers; it does not establish independent review for maintainer-authored changes.
 
 ## OpenSSF Best Practices
 
-Self-assessment at [bestpractices.dev](https://bestpractices.dev/) is pending. This is a manual human task tracked in [issue #68](https://github.com/codegiveness/mssql-mcp/issues/68). See [OpenSSF Best Practices self-assessment](./ossf-best-practices-self-assessment.md) for the filled-in checklist (badge stays Pending until human submits to bestpractices.dev).
+Submission at [bestpractices.dev](https://bestpractices.dev/) remains a manual human task. [Issue #68](https://github.com/codegiveness/mssql-mcp/issues/68) is historical self-assessment work, not evidence of a granted badge. The [self-assessment](./ossf-best-practices-self-assessment.md) must be checked against actual controls before a human submits it; until the external service grants a badge, the CII-Best-Practices finding remains unresolved.
 
 ## Threat model
 
@@ -100,12 +92,12 @@ mssql-mcp sits between an AI agent and a SQL Server. The trust boundaries are:
 
 | Threat | Mitigation | Residual risk |
 |--------|------------|---------------|
-| Destructive SQL by agent | Guard AST allowlist + `BEGIN TRAN ... ROLLBACK` (Restricted mode) | Guard bypass (mitigated by read-only transaction backstop per ADR-0007) |
-| Credential leak to agent | `PasswordObfuscator` at every error boundary (ConnectionError, Internal, SqlError, ConnectionValidator) | None — all error paths obfuscated post-hardening (AHD-2, AHD-3) |
-| Cross-DB read by agent | Least-privilege SQL login (operator responsibility); `database` param validated via 3-check rule (exists, online, multi-user) | Operator grants excessive permissions (out of scope — see SECURITY.md Restricted mode scope clarification) |
-| Supply-chain tampering | SHA256 checksums on release archives, provenance attestation (npm + NuGet), SHA-pinned Actions, SBOM (CycloneDX) | None — all distribution channels attested |
-| Unrestricted mode misuse | Opt-in only via `--access-mode unrestricted`; destructive operations carry `destructiveHint=true`; operator must explicitly authorize | Operator misconfiguration (documented in README Access modes section) |
-| Result size DoS (agent context window) | Byte-size safety net (default 10 MB, configurable via `MSSQL_MAX_RESULT_BYTES`) | None — truncation notice sent to agent |
-| Query timeout DoS | Per-query command timeout (default 30s in Restricted, configurable via `MSSQL_QUERY_TIMEOUT`) | None |
+| Destructive SQL by agent | AST allowlist and rollback wrapper in Restricted mode; least-privilege SQL grants | Parser/Guard defects, nontransactional effects, external side effects, or excessive grants can defeat application-level protection. |
+| Credential leak to agent/logs | Password-pattern redaction at error/log boundaries | Redaction covers recognized connection-string syntax, not every secret or encoding. Novel formats, new error paths, SQL text, and runtime memory can expose secrets. |
+| Cross-DB read by agent | Least-privilege SQL login; discovery `database` parameters checked for existence, online/multi-user state, and `HAS_DBACCESS` | These checks do not restrict a login already authorized to read sensitive data or implement table/row authorization. |
+| Supply-chain tampering | SHA-pinned actions/images, locked NuGet graphs, archive checksums, requested npm/archive provenance, generated SBOM | NuGet provenance is absent; compromised maintainers, tools, registries, or source dependencies remain trust risks. Each artifact's evidence must be verified. |
+| Unrestricted mode misuse | Explicit opt-in; destructive tool hints communicate intent | Hints are not authorization. Unrestricted execution commits changes within the login's SQL Server permissions. |
+| Result size DoS | Conservative reader budget, response truncation notice, refusal of oversized raw XML plans | No strict RSS/CPU bound; individual values, provider buffers, metadata, and parsing/serialization can still be large. A zero budget disables protection. |
+| Query timeout DoS | Configurable command timeout and cancellation handling | Command timeout is not a total request deadline; retries, parsing, memory pressure, network behavior, and SQL Server work can consume additional resources. |
 
 See the [security audit reports](security-audits/) for detailed findings (AHD-1 through AHD-3) and their resolutions.

@@ -62,7 +62,7 @@ public class ErrorHandlingTests
     public async Task SqlError_TransientErrorNumber_ReturnsConnectionClass(int transientNumber)
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(SqlExceptionFactory.Create(number: transientNumber, message: "Transient blip.", severity: 16, line: 1));
 
         SqlTools tools = CreateSqlTools(executor);
@@ -84,7 +84,7 @@ public class ErrorHandlingTests
     public async Task SqlError_NonTransientErrorNumber_ReturnsSqlClass(int nonTransientNumber)
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(SqlExceptionFactory.Create(number: nonTransientNumber, message: "Hard SQL error.", severity: 16, line: 1));
 
         SqlTools tools = CreateSqlTools(executor);
@@ -107,7 +107,7 @@ public class ErrorHandlingTests
     public async Task SqlError_Severity25_ReturnsSqlErrorNotFatal()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(SqlExceptionFactory.Create(number: 824, message: "SQL Server detected a logical consistency-based I/O error.", severity: 25, line: 1));
 
         SqlTools tools = CreateSqlTools(executor);
@@ -135,7 +135,7 @@ public class ErrorHandlingTests
         string exMessage = exWithStack.Message;
 
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(exWithStack);
 
         SqlTools tools = CreateSqlTools(executor);
@@ -183,7 +183,7 @@ public class ErrorHandlingTests
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // Plain OperationCanceledException (NOT client cancellation) → command timeout path.
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(new OperationCanceledException());
 
         SqlTools tools = CreateSqlTools(executor, RestrictedOptions(timeoutSeconds));
@@ -221,7 +221,7 @@ public class ErrorHandlingTests
         Assert.True(pos.ValueKind is JsonValueKind.Null or JsonValueKind.Object);
 
         // Guard rejection must never reach the executor.
-        await executor.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await executor.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     // ---------- CONNECTION includes "Retries exhausted" ----------
@@ -232,7 +232,7 @@ public class ErrorHandlingTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // 40613 = "Cannot open database '...' requested by the login. The database is currently
         // in the restore state / unavailable. Try again later." — Microsoft's canonical transient.
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(SqlExceptionFactory.Create(number: 40613, message: "Cannot open database.", severity: 16, line: 1));
 
         SqlTools tools = CreateSqlTools(executor);
@@ -253,11 +253,7 @@ public class ErrorHandlingTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // get_object_details first runs the lookup query — return zero rows → OBJECT_NOT_FOUND.
         // database: null avoids triggering cross-DB validation (separate code path).
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
 
         MssqlMcpOptions opts = RestrictedOptions();
         DatabaseTools tools = new(executor, Options.Create(opts), NullLogger<DatabaseTools>.Instance);
@@ -284,7 +280,7 @@ public class ErrorHandlingTests
     public async Task EveryErrorReturn_SetsIsErrorTrue(int sqlErrorNumber)
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(SqlExceptionFactory.Create(number: sqlErrorNumber, message: "Some failure.", severity: 16, line: 1));
 
         SqlTools tools = CreateSqlTools(executor);
@@ -301,7 +297,7 @@ public class ErrorHandlingTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         using CancellationTokenSource cts = new();
         cts.Cancel();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(new OperationCanceledException(cts.Token));
 
         SqlTools tools = CreateSqlTools(executor);

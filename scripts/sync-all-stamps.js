@@ -72,6 +72,13 @@ function syncServerJson(serverJsonPath, version) {
   return { changed, output: JSON.stringify(server, null, 2) + '\n' };
 }
 
+function platformPackagePaths(packageJsonPath) {
+  return ['linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64', 'win-x64'].map(rid => ({
+    rid,
+    filePath: path.join(path.dirname(packageJsonPath), 'platforms', rid, 'package.json'),
+  }));
+}
+
 function syncAllStamps({ manifestPath, csprojPath, packageJsonPath, serverJsonPath }) {
   const manifest = readJson(manifestPath, 'manifest');
   const version = manifest['.'];
@@ -95,6 +102,15 @@ function syncAllStamps({ manifestPath, csprojPath, packageJsonPath, serverJsonPa
     anyChanged = true;
   }
   results.push({ file: 'package.json', changed: pkg.changed });
+
+  for (const { rid, filePath } of platformPackagePaths(packageJsonPath)) {
+    const platform = syncPackageJson(filePath, version);
+    if (platform.changed) {
+      fs.writeFileSync(filePath, platform.output);
+      anyChanged = true;
+    }
+    results.push({ file: 'platforms/' + rid + '/package.json', changed: platform.changed });
+  }
 
   const server = syncServerJson(serverJsonPath, version);
   if (server.changed) {
@@ -122,4 +138,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { syncAllStamps, syncCsproj, syncPackageJson, syncServerJson };
+module.exports = { syncAllStamps, syncCsproj, syncPackageJson, syncServerJson, platformPackagePaths };

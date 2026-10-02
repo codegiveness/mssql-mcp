@@ -21,14 +21,14 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '10.0.x'
-      - run: dotnet restore mssql-mcp.sln
+      - run: dotnet restore mssql-mcp.sln --locked-mode
       - run: dotnet build mssql-mcp.sln --no-restore
       - run: dotnet format mssql-mcp.sln --verify-no-changes --no-restore
       - run: dotnet test --solution mssql-mcp.sln --no-build -- --filter-not-trait Category=Integration
       - name: Lint README JSON snippets
         run: node scripts/lint-readme-snippets.js
       - name: Pack
-        run: dotnet pack src/mssql-mcp/mssql-mcp.csproj -c Release -o artifacts
+        run: dotnet pack src/mssql-mcp/mssql-mcp.csproj -c Release --no-restore -o artifacts
       - name: Generate SBOM
         run: |
           dotnet tool restore
@@ -50,8 +50,10 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Restore locked self-contained dependencies (linux-x64)
+        run: dotnet restore src/mssql-mcp/mssql-mcp.csproj -r linux-x64 -p:SelfContained=true -p:PublishSingleFile=true -p:PublishTrimmed=true --lock-file-path packages.linux-x64.lock.json --locked-mode
       - name: Build self-contained binary (linux-x64)
-        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o smoke
+        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true --no-restore -o smoke
 
       - name: Verify --version exits 0
         run: ./smoke/mssql-mcp --version
@@ -83,7 +85,7 @@ jobs:
             -e "ACCEPT_EULA=1" \
             -e "MSSQL_SA_PASSWORD=YourStrong!Passw0rd" \
             -p 1433:1433 --name mssql-edge \
-            mcr.microsoft.com/azure-sql-edge:latest
+            mcr.microsoft.com/azure-sql-edge:latest@sha256:902628a8be89e35dfb7895ca31d602974c7bafde4d583a0d0873844feb1c42cf
 
       - name: Wait for SQL Server to be ready
         run: |
@@ -121,8 +123,10 @@ jobs:
       # npm pack the main + per-platform packages, then npm install
       # --ignore-scripts in a temp dir. The shim must resolve the optional dep
       # and exec the binary. This proves the install works without postinstall.
+      - name: Restore locked self-contained dependencies (linux-x64)
+        run: dotnet restore src/mssql-mcp/mssql-mcp.csproj -r linux-x64 -p:SelfContained=true -p:PublishSingleFile=true -p:PublishTrimmed=true --lock-file-path packages.linux-x64.lock.json --locked-mode
       - name: Build self-contained binary (linux-x64)
-        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o smoke
+        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true --no-restore -o smoke
 
       - name: Stage binary into per-platform package
         run: cp smoke/mssql-mcp npm/platforms/linux-x64/mssql-mcp && chmod 755 npm/platforms/linux-x64/mssql-mcp
@@ -141,16 +145,16 @@ jobs:
           cp npm/platforms/linux-x64/*.tgz /tmp/install-test/
           cp npm/*.tgz /tmp/install-test/
           cd /tmp/install-test
-          npm install --ignore-scripts ./*.tgz
-          npx mssql-mcp --version
+          npm install --offline --ignore-scripts ./*.tgz
+          ./node_modules/.bin/mssql-mcp --version
 
       - name: Verify --no-optional + MSSQL_MCP_NO_DOWNLOAD=1 prints actionable error
         run: |
           mkdir -p /tmp/no-optional-test
           cp npm/*.tgz /tmp/no-optional-test/
           cd /tmp/no-optional-test
-          npm install --ignore-scripts --no-optional ./*.tgz
-          output=$(MSSQL_MCP_NO_DOWNLOAD=1 npx mssql-mcp --version 2>&1 || true)
+          npm install --offline --ignore-scripts --no-optional ./*.tgz
+          output=$(MSSQL_MCP_NO_DOWNLOAD=1 ./node_modules/.bin/mssql-mcp --version 2>&1 || true)
           echo "$output"
           echo "$output" | grep -q "github.com/codegiveness/mssql-mcp/releases/download/"
           echo "$output" | grep -q "dotnet tool install -g codegiveness.mssql-mcp"
@@ -164,9 +168,27 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     needs: build
+    services:
+      sql:
+        image: mcr.microsoft.com/mssql/server:2022-latest@sha256:4402d880dd4c34bfa7d8705e56a86cd6c88da80a1f6bbbe741f999e76264a090
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_PID: Developer
+          MSSQL_SA_PASSWORD: YourStrong!Passw0rd
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -C -Q 'SELECT 1' -b"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build Docker image
         run: docker build -t mssql-mcp-test .
       - name: Verify --version exits 0
         run: docker run --rm mssql-mcp-test --version
+      - name: Verify live SQL connection inside the container
+        run: docker run --rm --network host --env MSSQL_CONNECTION_STRING mssql-mcp-test --validate
+        env:
+          MSSQL_CONNECTION_STRING: "Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;"

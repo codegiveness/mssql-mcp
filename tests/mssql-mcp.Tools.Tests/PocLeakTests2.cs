@@ -108,7 +108,7 @@ public class PocLeakTests2
             "Cannot open database \"secret\" requested by the login. Login failed. " +
             "Connection: Server=prod-db;User Id=sa;Password=Hunter2!;Encrypt=True;";
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(SqlExceptionFactory.Create(number: 4060, message: leakyMessage, severity: 11, line: 1));
 
         MssqlMcpOptions opts = RestrictedOptions();
@@ -141,7 +141,7 @@ public class PocLeakTests2
             "Login failed for user 'sa'. Server=localhost;User Id=sa;Password=Hunter2!;Encrypt=True;";
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // 18456 is NOT in TransientErrorNumbers — routes to SqlError (obfuscated).
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(SqlExceptionFactory.Create(number: 18456, message: leakyMessage, severity: 14, line: 1));
 
         MssqlMcpOptions opts = RestrictedOptions();
@@ -171,7 +171,7 @@ public class PocLeakTests2
         const string leakyMessage =
             "Unexpected state during connect. Config: Server=prod-db;User Id=sa;Password=Secret123;Encrypt=True;";
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(new InvalidOperationException(leakyMessage));
 
         MssqlMcpOptions opts = RestrictedOptions();

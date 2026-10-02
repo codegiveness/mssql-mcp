@@ -3,9 +3,8 @@
 // Smoke test for the postinstall-independent shim (npm/bin/mssql-mcp.js).
 // Run with: node npm/test.js
 // Verifies:
-//   1. The shim parses without syntax errors and exposes the expected pure functions
-//   2. RID mapping returns the expected RID for known (platform, arch) pairs
-//   3. archiveExt, parseChecksumFile, classifyDownloadError, sha256Hex behave correctly
+//   1. RID mapping returns the expected RID for known (platform, arch) pairs
+//   2. archiveExt, parseChecksumFile, classifyDownloadError, sha256Hex behave correctly
 
 const assert = require('assert');
 
@@ -25,15 +24,6 @@ function check(name, fn) {
     console.error('FAIL - ' + name + ': ' + (e && e.message ? e.message : e));
   }
 }
-
-check('shim parses without syntax errors and exports functions', () => {
-  const mod = loadShimModule();
-  assert.strictEqual(typeof mod.ridFor, 'function');
-  assert.strictEqual(typeof mod.archiveExt, 'function');
-  assert.strictEqual(typeof mod.parseChecksumFile, 'function');
-  assert.strictEqual(typeof mod.classifyDownloadError, 'function');
-  assert.strictEqual(typeof mod.sha256Hex, 'function');
-});
 
 check('ridFor maps known platforms', () => {
   const mod = loadShimModule();

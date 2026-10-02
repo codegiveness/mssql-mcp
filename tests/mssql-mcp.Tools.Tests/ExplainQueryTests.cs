@@ -75,7 +75,7 @@ public class ExplainQueryTests
         Assert.Equal("non_select_statement", doc.RootElement.GetProperty("rule").GetString());
 
         // Guard rejection must never reach SHOWPLAN execution.
-        await executor.DidNotReceive().ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await executor.DidNotReceive().ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public class ExplainQueryTests
         // In Unrestricted mode, execute_sql SKIPS the Guard. explain_query MUST NOT — it
         // always calls ValidateStrict (ADR-0016). Use a fake IGuard to assert the call.
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(CannedShowPlanXml.SimplePlan);
 
         IGuard guard = Substitute.For<IGuard>();
@@ -104,20 +104,18 @@ public class ExplainQueryTests
     public async Task ExplainQuery_PassesWrappedSqlToExecutor()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(CannedShowPlanXml.SimplePlan);
 
         PlanTools tools = CreateTools(executor, RestrictedOptions());
         await tools.ExplainQuery("SELECT TOP 5 * FROM sys.objects", format: "xml", CancellationToken.None);
 
         // The wrapped SQL must contain sentinel + BEGIN TRAN / ROLLBACK (ADR-0007).
-        await executor.Received(1).ExecuteShowPlanXmlAsync(
-            Arg.Is<string>(s => s != null
-                                && s.Contains("/* mssql-mcp */", StringComparison.Ordinal)
-                                && s.Contains("BEGIN TRANSACTION", StringComparison.Ordinal)
-                                && s.Contains("ROLLBACK TRANSACTION", StringComparison.Ordinal)
-                                && s.Contains("SELECT TOP 5 * FROM sys.objects", StringComparison.Ordinal)),
-            Arg.Any<CancellationToken>());
+        await executor.Received(1).ExecuteShowPlanXmlAsync(Arg.Is<string>(s => s != null
+                            && s.Contains("/* mssql-mcp */", StringComparison.Ordinal)
+                            && s.Contains("BEGIN TRANSACTION", StringComparison.Ordinal)
+                            && s.Contains("ROLLBACK TRANSACTION", StringComparison.Ordinal)
+                            && s.Contains("SELECT TOP 5 * FROM sys.objects", StringComparison.Ordinal)), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     // ---------- Summary format ----------
@@ -126,7 +124,7 @@ public class ExplainQueryTests
     public async Task ExplainQuery_SummaryFormat_ExtractsCost()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(CannedShowPlanXml.FullPlan);
 
         PlanTools tools = CreateTools(executor, RestrictedOptions());
@@ -143,7 +141,7 @@ public class ExplainQueryTests
     public async Task ExplainQuery_SummaryFormat_ExtractsMissingIndexes()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(CannedShowPlanXml.FullPlan);
 
         PlanTools tools = CreateTools(executor, RestrictedOptions());
@@ -168,7 +166,7 @@ public class ExplainQueryTests
     public async Task ExplainQuery_SummaryFormat_ExtractsWarnings()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(CannedShowPlanXml.FullPlan);
 
         PlanTools tools = CreateTools(executor, RestrictedOptions());
@@ -186,7 +184,7 @@ public class ExplainQueryTests
     public async Task ExplainQuery_SummaryFormat_ExtractsTopOperations()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(CannedShowPlanXml.PlanWithSixRelOps);
 
         PlanTools tools = CreateTools(executor, RestrictedOptions());
@@ -221,7 +219,7 @@ public class ExplainQueryTests
     public async Task ExplainQuery_SummaryFormat_NoMissingIndexes_ReturnsEmptyArray()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(CannedShowPlanXml.SimplePlan);
 
         PlanTools tools = CreateTools(executor, RestrictedOptions());
@@ -242,7 +240,7 @@ public class ExplainQueryTests
     public async Task ExplainQuery_XmlFormat_ReturnsRawXml()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(CannedShowPlanXml.SimplePlan);
 
         PlanTools tools = CreateTools(executor, RestrictedOptions());
@@ -262,7 +260,7 @@ public class ExplainQueryTests
     public async Task ExplainQuery_DefaultFormat_IsSummary()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(CannedShowPlanXml.SimplePlan);
 
         PlanTools tools = CreateTools(executor, RestrictedOptions());
@@ -283,7 +281,7 @@ public class ExplainQueryTests
     public async Task ExplainQuery_UnknownFormatFallsBackToSummary()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(CannedShowPlanXml.SimplePlan);
 
         PlanTools tools = CreateTools(executor, RestrictedOptions());
@@ -302,7 +300,7 @@ public class ExplainQueryTests
     public async Task ExplainQuery_SqlException_ReturnsSqlError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(SqlExceptionFactory.Create(number: 208, message: "Invalid object name 'Orders'.", severity: 16, line: 1));
 
         PlanTools tools = CreateTools(executor, RestrictedOptions());
@@ -321,7 +319,7 @@ public class ExplainQueryTests
     public async Task ExplainQuery_Timeout_ReturnsTimeoutError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(new OperationCanceledException());
 
         PlanTools tools = CreateTools(executor, RestrictedOptions());
@@ -340,7 +338,7 @@ public class ExplainQueryTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         using CancellationTokenSource cts = new();
         cts.Cancel();
-        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(new OperationCanceledException(cts.Token));
 
         PlanTools tools = CreateTools(executor, RestrictedOptions());
@@ -352,7 +350,7 @@ public class ExplainQueryTests
     public async Task ExplainQuery_UnexpectedException_ReturnsInternalError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(new InvalidOperationException("boom"));
 
         PlanTools tools = CreateTools(executor, RestrictedOptions());
@@ -378,6 +376,22 @@ public class ExplainQueryTests
         using JsonDocument doc = JsonDocument.Parse(json);
         Assert.Equal("GUARD_REJECTION", doc.RootElement.GetProperty("error").GetString());
         Assert.Equal("empty_batch", doc.RootElement.GetProperty("rule").GetString());
-        await executor.DidNotReceive().ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await executor.DidNotReceive().ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
+    [Fact]
+    public async Task ExplainQuery_OversizedRawPlan_ReturnsStructuredRefusal()
+    {
+        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
+        executor.ExecuteShowPlanXmlAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
+            .Throws(new PlanTooLargeException(128));
+        MssqlMcpOptions options = RestrictedOptions();
+        options.MaxResultBytes = 128;
+        CallToolResult result = await CreateTools(executor, options).ExplainQuery("SELECT 1", "xml", CancellationToken.None);
+        Assert.True(result.IsError);
+        Assert.Single(result.Content);
+        using JsonDocument doc = JsonDocument.Parse(GetText(result));
+        Assert.Equal("PLAN_TOO_LARGE", doc.RootElement.GetProperty("error").GetString());
+        Assert.Equal(128, doc.RootElement.GetProperty("max_bytes").GetInt64());
+    }
+
 }

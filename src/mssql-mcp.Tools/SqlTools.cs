@@ -112,9 +112,12 @@ public sealed class SqlTools
     private async Task<CallToolResult> ExecuteQueryAndSerialize(string sql, CancellationToken ct)
     {
         List<Dictionary<string, object?>> rows;
+        bool isTruncated;
         try
         {
-            rows = await _executor.ExecuteQueryAsync(sql, ct).ConfigureAwait(false);
+            SqlQueryResult result = await _executor.ExecuteQueryAsync(sql, _options.MaxResultBytes, ct).ConfigureAwait(false);
+            rows = result.Rows;
+            isTruncated = result.IsTruncated;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -137,7 +140,7 @@ public sealed class SqlTools
         }
 
         _logger.LogInformation("[tool] execute_sql returned {Count} rows", rows.Count);
-        return ToolErrors.SuccessWithByteCap(rows, _options.MaxResultBytes, _logger);
+        return ToolErrors.SuccessWithByteCap(rows, _options.MaxResultBytes, _logger, isTruncated);
     }
 
     private async Task<CallToolResult> ExecuteNonQueryAndSerialize(

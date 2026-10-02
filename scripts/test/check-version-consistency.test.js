@@ -13,6 +13,7 @@ const os = require('os');
 const { execFileSync } = require('child_process');
 
 const mod = require('../check-version-consistency.js');
+const { syncAllStamps, platformPackagePaths } = require('../sync-all-stamps.js');
 
 const FIXTURES = path.join(__dirname, 'fixtures');
 const SCRIPT = path.join(__dirname, '..', 'check-version-consistency.js');
@@ -36,6 +37,37 @@ function alignedPaths() {
     packageJsonPath: path.join(FIXTURES, 'package.json'),
     serverJsonPath: path.join(FIXTURES, 'server.json'),
   };
+}
+
+function fixturePaths(root) {
+  return {
+    manifestPath: path.join(root, '.release-please-manifest.json'),
+    csprojPath: path.join(root, 'src', 'mssql-mcp', 'mssql-mcp.csproj'),
+    packageJsonPath: path.join(root, 'npm', 'package.json'),
+    serverJsonPath: path.join(root, 'server.json'),
+  };
+}
+
+function withFixtureRepo(fn) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'version-stamps-'));
+  try {
+    const paths = fixturePaths(root);
+    const originals = alignedPaths();
+    for (const key of Object.keys(paths)) {
+      fs.mkdirSync(path.dirname(paths[key]), { recursive: true });
+      fs.copyFileSync(originals[key], paths[key]);
+    }
+    for (const { rid, filePath } of platformPackagePaths(paths.packageJsonPath)) {
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      fs.copyFileSync(path.join(FIXTURES, 'platforms', rid, 'package.json'), filePath);
+    }
+    fs.mkdirSync(path.join(root, 'scripts'));
+    fs.copyFileSync(SCRIPT, path.join(root, 'scripts', 'check-version-consistency.js'));
+    fs.copyFileSync(path.join(__dirname, '..', 'sync-all-stamps.js'), path.join(root, 'scripts', 'sync-all-stamps.js'));
+    fn(paths, root);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 }
 
 // --- HAPPY PATH ---
@@ -240,20 +272,77 @@ check('manifest without "." version key -> ok false with missing version error',
   );
 });
 
+check('all five platform failures are reported alongside main package drift', () => {
+  withFixtureRepo(paths => {
+    const platformPaths = platformPackagePaths(paths.packageJsonPath);
+    const contents = [
+      JSON.stringify({ version: '0.5.2' }),
+      JSON.stringify({ version: '0.4.0' }),
+      JSON.stringify({ name: 'missing-version' }),
+      '{malformed',
+    ];
+    for (let i = 0; i < contents.length; i++) {
+      fs.writeFileSync(platformPaths[i].filePath, contents[i]);
+    }
+    fs.unlinkSync(platformPaths[4].filePath);
+    fs.copyFileSync(path.join(FIXTURES, 'package-version-drifted.json'), paths.packageJsonPath);
+    const result = mod.checkVersionConsistency(paths);
+    assert.strictEqual(result.ok, false);
+    assert.strictEqual(result.errors.length, 6, JSON.stringify(result.errors));
+    for (const { rid } of platformPaths) {
+      assert.ok(result.errors.some(error => error.includes('platforms/' + rid + '/package.json')), rid);
+    }
+    assert.ok(result.errors.some(error => error.includes('missing "version"')));
+    assert.ok(result.errors.some(error => error.includes('failed to parse JSON')));
+    assert.ok(result.errors.some(error => error.includes('file not found')));
+  });
+});
+
+check('sync repairs every platform and main stamp without losing package metadata', () => {
+  withFixtureRepo(paths => {
+    fs.writeFileSync(paths.manifestPath, JSON.stringify({ '.': '0.5.1' }));
+    const platforms = platformPackagePaths(paths.packageJsonPath);
+    for (const { rid, filePath } of platforms) {
+      fs.writeFileSync(filePath, JSON.stringify({
+        name: '@codegiveness/mssql-mcp-' + rid, version: '0.5.0', files: ['mssql-mcp'], cpu: ['fixture-cpu'],
+      }));
+    }
+    syncAllStamps(paths);
+    assert.deepStrictEqual(mod.checkVersionConsistency(paths), { ok: true, errors: [] });
+    for (const { rid, filePath } of platforms) {
+      assert.deepStrictEqual(JSON.parse(fs.readFileSync(filePath, 'utf8')), {
+        name: '@codegiveness/mssql-mcp-' + rid, version: '0.5.1', files: ['mssql-mcp'], cpu: ['fixture-cpu'],
+      });
+    }
+    const before = platforms.map(({ filePath }) => fs.readFileSync(filePath, 'utf8'));
+    assert.strictEqual(syncAllStamps(paths).changed, false);
+    assert.deepStrictEqual(platforms.map(({ filePath }) => fs.readFileSync(filePath, 'utf8')), before);
+  });
+});
+
+check('sync rejects an absent platform package instead of silently omitting it', () => {
+  withFixtureRepo(paths => {
+    const missing = platformPackagePaths(paths.packageJsonPath)[4].filePath;
+    fs.unlinkSync(missing);
+    assert.throws(() => syncAllStamps(paths), /cannot read package.json/);
+  });
+});
+
 // --- CLI ENTRY POINT ---
 
-check('CLI: exits 0 with success message when repo stamps are aligned', () => {
-  const out = execFileSync('node', [SCRIPT], { encoding: 'utf8' });
-  assert.ok(
-    out.includes('Version consistency: all stamps match.'),
-    'CLI should print success message: ' + out
-  );
+check('CLI: exits 0 when isolated repository stamps including platforms are aligned', () => {
+  withFixtureRepo((paths, root) => {
+    const out = execFileSync(process.execPath, [path.join(root, 'scripts', 'check-version-consistency.js')], { encoding: 'utf8' });
+    assert.ok(out.includes('Version consistency: all stamps match.'), out);
+  });
 });
 
 check('CLI: exits non-zero when manifest is missing', () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mvc-cli-'));
   const tmpScript = path.join(tmpDir, 'check-version-consistency.js');
   fs.copyFileSync(SCRIPT, tmpScript);
+  const tmpSyncScript = path.join(tmpDir, 'sync-all-stamps.js');
+  fs.copyFileSync(path.join(__dirname, '..', 'sync-all-stamps.js'), tmpSyncScript);
   let threw = false;
   let stderr = '';
   try {
@@ -263,6 +352,7 @@ check('CLI: exits non-zero when manifest is missing', () => {
     stderr = e.stderr || '';
   } finally {
     fs.unlinkSync(tmpScript);
+    fs.unlinkSync(tmpSyncScript);
     fs.rmdirSync(tmpDir);
   }
   assert.strictEqual(threw, true, 'CLI should exit non-zero when manifest is missing');

@@ -26,3 +26,18 @@ jobs:
           node-version: '20'
       - name: Check version consistency
         run: node scripts/check-version-consistency.js
+
+  release-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '20'
+      # Unlike stamp consistency, this also checks release-please PRs/commits.
+      - name: Enforce 0.x manifest policy
+        run: node scripts/check-release-policy.js --manifest
+      - name: Test release policy entrypoints
+        run: node scripts/test/check-release-policy.test.js
+      - name: Test authoritative version stamps
+        run: node scripts/test/check-version-consistency.test.js

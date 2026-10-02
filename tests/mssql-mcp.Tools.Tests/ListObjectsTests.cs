@@ -62,11 +62,7 @@ public class ListObjectsTests
     public async Task ListObjects_DefaultLimit_ReturnsObjects_NoTruncation()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeObjects(5));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeObjects(5), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListObjects(null, null, null, null, CancellationToken.None);
@@ -83,11 +79,7 @@ public class ListObjectsTests
     public async Task ListObjects_LimitHit_PrependsTruncationNotice()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeObjects(1000));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeObjects(1000), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListObjects(null, null, null, limit: 1000, CancellationToken.None);
@@ -108,11 +100,7 @@ public class ListObjectsTests
     {
         string? capturedSql = null;
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSql = s),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeObjects(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSql = s), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeObjects(1), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.ListObjects(null, null, "TABLE", null, CancellationToken.None);
@@ -126,11 +114,7 @@ public class ListObjectsTests
     {
         string? capturedSql = null;
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSql = s),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeObjects(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSql = s), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeObjects(1), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.ListObjects(null, null, "VIEW", null, CancellationToken.None);
@@ -144,11 +128,7 @@ public class ListObjectsTests
     {
         string? capturedSql = null;
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSql = s),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeObjects(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSql = s), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeObjects(1), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.ListObjects(null, null, "PROCEDURE", null, CancellationToken.None);
@@ -162,11 +142,7 @@ public class ListObjectsTests
     {
         string? capturedSql = null;
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSql = s),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeObjects(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSql = s), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeObjects(1), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.ListObjects(null, null, "FUNCTION", null, CancellationToken.None);
@@ -180,59 +156,38 @@ public class ListObjectsTests
     {
         string? capturedSql = null;
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSql = s),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeObjects(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSql = s), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeObjects(1), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.ListObjects(null, null, null, limit: 99999, CancellationToken.None);
 
         Assert.NotNull(capturedSql);
         Assert.Contains("TOP (@limit)", capturedSql, StringComparison.Ordinal);
-        await executor.Received(1).ExecuteQueryAsync(
-            Arg.Any<string>(),
-            Arg.Is<IReadOnlyDictionary<string, object>?>(p => p != null && Convert.ToInt32(p["limit"], CultureInfo.InvariantCulture) == 5000),
-            Arg.Any<CancellationToken>());
+        await executor.Received(1).ExecuteQueryAsync(Arg.Any<string>(), Arg.Is<IReadOnlyDictionary<string, object>?>(p => p != null && Convert.ToInt32(p["limit"], CultureInfo.InvariantCulture) == 5000), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ListObjects_LimitClampedToMin1()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeObjects(1));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeObjects(1), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.ListObjects(null, null, null, limit: -5, CancellationToken.None);
 
-        await executor.Received(1).ExecuteQueryAsync(
-            Arg.Any<string>(),
-            Arg.Is<IReadOnlyDictionary<string, object>?>(p => p != null && Convert.ToInt32(p["limit"], CultureInfo.InvariantCulture) == 1),
-            Arg.Any<CancellationToken>());
+        await executor.Received(1).ExecuteQueryAsync(Arg.Any<string>(), Arg.Is<IReadOnlyDictionary<string, object>?>(p => p != null && Convert.ToInt32(p["limit"], CultureInfo.InvariantCulture) == 1), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ListObjects_DefaultLimit_Is1000()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeObjects(1));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeObjects(1), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.ListObjects(null, null, null, null, CancellationToken.None);
 
-        await executor.Received(1).ExecuteQueryAsync(
-            Arg.Any<string>(),
-            Arg.Is<IReadOnlyDictionary<string, object>?>(p => p != null && Convert.ToInt32(p["limit"], CultureInfo.InvariantCulture) == 1000),
-            Arg.Any<CancellationToken>());
+        await executor.Received(1).ExecuteQueryAsync(Arg.Any<string>(), Arg.Is<IReadOnlyDictionary<string, object>?>(p => p != null && Convert.ToInt32(p["limit"], CultureInfo.InvariantCulture) == 1000), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -240,11 +195,7 @@ public class ListObjectsTests
     {
         string? capturedSql = null;
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSql = s),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeObjects(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSql = s), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeObjects(1), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.ListObjects(null, null, null, null, CancellationToken.None);
@@ -259,11 +210,7 @@ public class ListObjectsTests
         string? capturedSql = null;
         IReadOnlyDictionary<string, object>? capturedParams = null;
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSql = s),
-                Arg.Do<IReadOnlyDictionary<string, object>?>(p => capturedParams = p),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeObjects(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSql = s), Arg.Do<IReadOnlyDictionary<string, object>?>(p => capturedParams = p), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeObjects(1), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.ListObjects(null, schema: "dbo", null, null, CancellationToken.None);
@@ -280,32 +227,19 @@ public class ListObjectsTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // First call: ValidateDatabase (queries sys.databases with @database param).
         // Second call: list_objects query (uses [AppDb].sys.objects).
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(
-                ci => ValidDbRow(),
-                ci => FakeObjects(1));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false), new SqlQueryResult(FakeObjects(1), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.ListObjects("AppDb", null, null, null, CancellationToken.None);
 
-        await executor.Received(1).ExecuteQueryAsync(
-            Arg.Is<string>(s => s != null && s.Contains("[AppDb].sys.objects", StringComparison.Ordinal)),
-            Arg.Any<IReadOnlyDictionary<string, object>?>(),
-            Arg.Any<CancellationToken>());
+        await executor.Received(1).ExecuteQueryAsync(Arg.Is<string>(s => s != null && s.Contains("[AppDb].sys.objects", StringComparison.Ordinal)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ListObjects_InvalidDb_ReturnsError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListObjects("MissingDb", null, null, null, CancellationToken.None);

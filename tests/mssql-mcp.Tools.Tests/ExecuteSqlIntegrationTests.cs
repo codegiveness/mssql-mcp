@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Protocol;
@@ -45,37 +46,43 @@ public class ExecuteSqlIntegrationTests
         return Assert.IsType<TextContentBlock>(result.Content[0]).Text;
     }
 
-    [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
-    public async Task ExecuteSql_SelectFromSysObjects_ReturnsRows()
+    [Fact(Skip = "Requires INTEGRATION=true and MSSQL_CONNECTION_STRING.", SkipUnless = nameof(mssql_mcp.Tests.IntegrationEnvironment.Enabled), SkipType = typeof(mssql_mcp.Tests.IntegrationEnvironment))]
+    public async Task ExecuteSql_SelectFromOwnedTable_ReturnsInsertedRow()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionString))
+        string tableName = $"mssql_mcp_execute_test_{Guid.NewGuid():N}";
+        CancellationToken ct = TestContext.Current.CancellationToken;
+        await using SqlConnection connection = new(ConnectionString);
+        await connection.OpenAsync(ct);
+        using (SqlCommand create = new(
+            $"CREATE TABLE [dbo].[{tableName}] (Id INT NOT NULL, Name NVARCHAR(50) NOT NULL);", connection))
         {
-            return;
+            await create.ExecuteNonQueryAsync(ct);
         }
-
-        SqlTools tools = CreateRestrictedTools();
-        CallToolResult result = await tools.ExecuteSql(
-            "SELECT TOP 5 name FROM sys.objects WHERE type='U' ORDER BY name",
-            CancellationToken.None);
-
-        Assert.False(result.IsError ?? false);
-        string json = GetJson(result);
-        using JsonDocument doc = JsonDocument.Parse(json);
-        Assert.Equal(JsonValueKind.Array, doc.RootElement.ValueKind);
-        Assert.True(doc.RootElement.GetArrayLength() > 0, "Expected at least one user table.");
-        foreach (JsonElement row in doc.RootElement.EnumerateArray())
+        try
         {
-            Assert.True(row.TryGetProperty("name", out JsonElement _));
+            using (SqlCommand insert = new($"INSERT INTO [dbo].[{tableName}] (Id, Name) VALUES (7, N'fixture');", connection))
+            {
+                await insert.ExecuteNonQueryAsync(ct);
+            }
+            SqlTools tools = CreateRestrictedTools();
+            CallToolResult result = await tools.ExecuteSql($"SELECT Id, Name FROM [dbo].[{tableName}]", ct);
+            Assert.False(result.IsError ?? false);
+            using JsonDocument doc = JsonDocument.Parse(GetJson(result));
+            JsonElement row = Assert.Single(doc.RootElement.EnumerateArray());
+            Assert.Equal(7, row.GetProperty("Id").GetInt32());
+            Assert.Equal("fixture", row.GetProperty("Name").GetString());
+        }
+        finally
+        {
+            using SqlCommand drop = new($"DROP TABLE [dbo].[{tableName}];", connection);
+            await drop.ExecuteNonQueryAsync(CancellationToken.None);
         }
     }
 
-    [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
+    [Fact(Skip = "Requires INTEGRATION=true and MSSQL_CONNECTION_STRING.", SkipUnless = nameof(mssql_mcp.Tests.IntegrationEnvironment.Enabled), SkipType = typeof(mssql_mcp.Tests.IntegrationEnvironment))]
     public async Task ExecuteSql_DropTableInRestricted_ReturnsGuardRejection_AndDoesNotExecute()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionString))
-        {
-            return;
-        }
+
 
         SqlTools tools = CreateRestrictedTools();
         CallToolResult result = await tools.ExecuteSql(
@@ -122,13 +129,10 @@ public class ExecuteSqlIntegrationTests
         return new SqlTools(executor, guard, Options.Create(options), NullLogger<SqlTools>.Instance);
     }
 
-    [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
+    [Fact(Skip = "Requires INTEGRATION=true and MSSQL_CONNECTION_STRING.", SkipUnless = nameof(mssql_mcp.Tests.IntegrationEnvironment.Enabled), SkipType = typeof(mssql_mcp.Tests.IntegrationEnvironment))]
     public async Task Unrestricted_CreateAndDropTable_RealDb_ReturnsStatusObjects()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionString))
-        {
-            return;
-        }
+
 
         SqlTools tools = CreateUnrestrictedTools();
 

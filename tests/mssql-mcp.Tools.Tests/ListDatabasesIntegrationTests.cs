@@ -43,13 +43,10 @@ public class ListDatabasesIntegrationTests
         return Assert.IsType<TextContentBlock>(result.Content[0]).Text;
     }
 
-    [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
+    [Fact(Skip = "Requires INTEGRATION=true and MSSQL_CONNECTION_STRING.", SkipUnless = nameof(mssql_mcp.Tests.IntegrationEnvironment.Enabled), SkipType = typeof(mssql_mcp.Tests.IntegrationEnvironment))]
     public async Task ListDatabases_RealServer_ExcludesSystemDatabases()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionString))
-        {
-            return;
-        }
+
 
         DatabaseTools tools = CreateTools();
         CallToolResult result = await tools.ListDatabases(CancellationToken.None);
@@ -67,13 +64,10 @@ public class ListDatabasesIntegrationTests
         Assert.DoesNotContain("msdb", names);
     }
 
-    [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
+    [Fact(Skip = "Requires INTEGRATION=true and MSSQL_CONNECTION_STRING.", SkipUnless = nameof(mssql_mcp.Tests.IntegrationEnvironment.Enabled), SkipType = typeof(mssql_mcp.Tests.IntegrationEnvironment))]
     public async Task ListDatabases_RealServer_CurrentDatabaseHasIsCurrentTrue()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionString))
-        {
-            return;
-        }
+
 
         DatabaseTools tools = CreateTools();
         CallToolResult result = await tools.ListDatabases(CancellationToken.None);

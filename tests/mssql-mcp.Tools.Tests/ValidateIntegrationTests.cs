@@ -25,13 +25,10 @@ public class ValidateIntegrationTests
         RetryIntervalMax = 10,
     };
 
-    [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
+    [Fact(Skip = "Requires INTEGRATION=true and MSSQL_CONNECTION_STRING.", SkipUnless = nameof(mssql_mcp.Tests.IntegrationEnvironment.Enabled), SkipType = typeof(mssql_mcp.Tests.IntegrationEnvironment))]
     public async Task Validate_ValidConnection_ExitsZero()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionString))
-        {
-            return;
-        }
+
 
         (bool ok, string message) = await ConnectionValidator.ValidateAsync(ValidOptions(), CancellationToken.None);
 

@@ -31,6 +31,12 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    # Keep SDK and native runtime dependencies on the supported .NET 10 line.
+    ignore:
+      - dependency-name: "dotnet/sdk"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "dotnet/runtime-deps"
+        update-types: ["version-update:semver-major"]
     labels:
       - "dependencies"
     commit-message:

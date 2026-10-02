@@ -1,0 +1,46 @@
+name: Fuzz
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '43 4 * * 3'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sharpfuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install native libFuzzer compiler and runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libclang-rt-dev
+      - name: Instrument parser and Guard, prove crash detection, and fuzz
+        run: bash scripts/run-fuzz.sh "$RUNNER_TEMP/fuzz-results" 60
+      - name: Preserve coverage logs, corpus, and crash/timeout evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sharpfuzz-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/fuzz-results/*.log
+            ${{ runner.temp }}/fuzz-results/corpus/
+            ${{ runner.temp }}/fuzz-results/probe/
+            ${{ runner.temp }}/fuzz-results/findings/
+          if-no-files-found: warn
+          retention-days: 14

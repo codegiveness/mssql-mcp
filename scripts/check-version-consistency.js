@@ -8,6 +8,7 @@
 //   - src/mssql-mcp/mssql-mcp.csproj           <VersionPrefix>...</VersionPrefix>
 //   - npm/package.json                          "version" + every "optionalDependencies" entry
 //   - server.json                               top-level "version" + packages[].version (npm + nuget)
+//   - npm/platforms/<rid>/package.json           each of the five platform package versions
 //
 // Collects ALL drifts — does not stop at the first. Missing files and parse
 // errors are reported per-file and never crash the check.
@@ -21,6 +22,7 @@
 const fs = require('fs');
 const path = require('path');
 
+const { platformPackagePaths } = require('./sync-all-stamps.js');
 // Extract <VersionPrefix>X</VersionPrefix> from csproj XML via regex.
 // Returns the version string, or null if the element is absent.
 function extractVersionPrefix(xml) {
@@ -141,6 +143,26 @@ function checkVersionConsistency(opts) {
       errors.push('package.json: failed to parse JSON: ' + e.message.replace(/^.*failed to parse JSON: /, ''));
     } else {
       throw e;
+    }
+  }
+
+  for (const { rid, filePath } of platformPackagePaths(packageJsonPath)) {
+    const label = 'platforms/' + rid + '/package.json';
+    try {
+      const pkg = readJson(filePath);
+      if (typeof pkg.version !== 'string') {
+        errors.push(label + ': missing "version" field');
+      } else if (pkg.version !== manifestVersion) {
+        errors.push(label + ': version is ' + pkg.version + ', expected ' + manifestVersion);
+      }
+    } catch (e) {
+      if (e.kind === 'missing') {
+        errors.push(label + ' file not found: ' + filePath);
+      } else if (e.kind === 'parse') {
+        errors.push(label + ': failed to parse JSON: ' + e.message.replace(/^.*failed to parse JSON: /, ''));
+      } else {
+        throw e;
+      }
     }
   }
 

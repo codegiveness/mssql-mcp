@@ -7,13 +7,16 @@
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- Distro SDK library-packs may repackage NuGet artifacts with different hashes. -->
+    <DisableImplicitLibraryPacksFolder>true</DisableImplicitLibraryPacksFolder>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <!-- CA1707: 590 hits — idiomatic xUnit test naming + namespace matches package name. Permanent suppression. -->
-    <!-- CA1848: 110 hits — LoggerMessage source generator. Defer to post-1.0. -->
-    <!-- CA1873: 38 hits — expensive logging arg eval. Defer to post-1.0. -->
-    <!-- CA1863: 26 hits — cache CompositeFormat. Defer to post-1.0. -->
-    <!-- CA1861: 68 hits — constant arrays in test args. Defer to post-1.0. -->
-    <!-- CA1859: 6 hits — test helper concrete types. Defer to post-1.0. -->
+    <!-- CA1848: LoggerMessage migration is deferred independently of release major. -->
+    <!-- CA1873: Expensive logging argument evaluation remains a tracked cleanup. -->
+    <!-- CA1863: CompositeFormat caching remains a tracked cleanup. -->
+    <!-- CA1861: Constant test argument arrays remain a tracked cleanup. -->
+    <!-- CA1859: Concrete test helper types remain a tracked cleanup. -->
     <NoWarn>$(NoWarn);CA1707;CA1848;CA1873;CA1863;CA1861;CA1859</NoWarn>
   </PropertyGroup>
 </Project>

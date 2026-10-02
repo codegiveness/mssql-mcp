@@ -75,7 +75,8 @@ internal static class ToolErrors
     public static CallToolResult SuccessWithByteCap(
         IReadOnlyList<object> items,
         long maxBytes,
-        Microsoft.Extensions.Logging.ILogger? logger = null)
+        Microsoft.Extensions.Logging.ILogger? logger = null,
+        bool isTruncated = false)
     {
         ArgumentNullException.ThrowIfNull(items);
 
@@ -91,23 +92,23 @@ internal static class ToolErrors
         StringBuilder buffer = new();
         buffer.Append('[');
 
-        long totalBytes = 1;
+        long totalBytes = 2; // Include the closing bracket before accepting any item.
         int returned = 0;
-        bool truncated = false;
+        bool truncated = isTruncated;
 
         for (int i = 0; i < items.Count; i++)
         {
             string itemJson = JsonSerializer.Serialize(items[i], typeof(object), McpJsonContext.Default);
-            string segment = (i == 0 ? string.Empty : ",") + itemJson;
-
-            int segmentBytes = Encoding.UTF8.GetByteCount(segment);
-            if (totalBytes + segmentBytes > maxBytes)
+            int itemBytes = Encoding.UTF8.GetByteCount(itemJson);
+            long segmentBytes = (long)itemBytes + (returned == 0 ? 0 : 1);
+            if (totalBytes > maxBytes || segmentBytes > maxBytes - totalBytes)
             {
                 truncated = true;
                 break;
             }
 
-            buffer.Append(segment);
+            if (returned != 0) buffer.Append(',');
+            buffer.Append(itemJson);
             totalBytes += segmentBytes;
             returned++;
         }
@@ -134,63 +135,15 @@ internal static class ToolErrors
         };
     }
 
-    /// <summary>
-    /// Truncates <paramref name="text"/> when its UTF-8 byte count crosses
-    /// <paramref name="maxBytes"/> (ADR-0003 transport safety net for non-array payloads like
-    /// <c>explain_query</c>'s raw SHOWPLAN_XML). <paramref name="maxBytes"/> of <c>0</c> disables.
-    /// When truncated, returns TWO <see cref="TextContentBlock"/> items: the text (cut to fit
-    /// under the byte threshold) first, then a truncation notice as the second item.
-    /// </summary>
-    public static CallToolResult SuccessWithByteCap(
-        string text,
-        long maxBytes,
-        Microsoft.Extensions.Logging.ILogger? logger = null)
+    public static CallToolResult PlanTooLarge(long maxBytes)
     {
-        ArgumentNullException.ThrowIfNull(text);
-
-        if (maxBytes <= 0)
+        PlanTooLargePayload payload = new()
         {
-            return Success(text);
-        }
-
-        int textBytes = Encoding.UTF8.GetByteCount(text);
-        if (textBytes <= maxBytes)
-        {
-            return Success(text);
-        }
-
-        // Truncate at a character boundary so the result is valid UTF-8 (and valid XML when the
-        // input is XML). Binary search for the largest char count whose UTF-8 encoding fits under
-        // maxBytes — O(log n) instead of decrementing one char at a time.
-        int lo = 0;
-        int hi = text.Length;
-        while (lo < hi)
-        {
-            int mid = lo + (hi - lo + 1) / 2;
-            if (Encoding.UTF8.GetByteCount(text.AsSpan(0, mid)) <= maxBytes)
-            {
-                lo = mid;
-            }
-            else
-            {
-                hi = mid - 1;
-            }
-        }
-        int charCount = lo;
-        string truncatedText = text.Substring(0, charCount);
-
-        string notice = $"[truncated] Result exceeded {maxBytes} bytes. Truncated to {charCount} characters. Narrow the query or request summary format.";
-        logger?.LogWarning("[byte-cap] Truncated text from {Original} to {Truncated} chars (threshold {Threshold} bytes)", text.Length, charCount, maxBytes);
-
-        return new CallToolResult
-        {
-            Content = new List<ContentBlock>
-            {
-                new TextContentBlock { Text = truncatedText },
-                new TextContentBlock { Text = notice },
-            },
-            IsError = false,
+            Error = "PLAN_TOO_LARGE",
+            MaxBytes = maxBytes,
+            Detail = $"SHOWPLAN_XML exceeds {maxBytes} bytes. Use format=summary instead.",
         };
+        return Text(JsonSerializer.Serialize(payload, McpJsonContext.Default.PlanTooLargePayload), isError: true);
     }
 
     // ---------- ADR-0010 error classes ----------

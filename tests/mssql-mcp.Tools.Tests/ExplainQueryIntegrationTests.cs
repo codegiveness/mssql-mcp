@@ -63,13 +63,10 @@ public class ExplainQueryIntegrationTests
         return Assert.IsType<TextContentBlock>(result.Content[0]).Text;
     }
 
-    [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
+    [Fact(Skip = "Requires INTEGRATION=true and MSSQL_CONNECTION_STRING.", SkipUnless = nameof(mssql_mcp.Tests.IntegrationEnvironment.Enabled), SkipType = typeof(mssql_mcp.Tests.IntegrationEnvironment))]
     public async Task ExplainQuery_RealDb_ReturnsPlanWithCost()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionString))
-        {
-            return;
-        }
+
 
         MssqlMcpOptions options = CreateOptions();
         PlanTools tools = CreatePlanTools(options);
@@ -88,13 +85,10 @@ public class ExplainQueryIntegrationTests
         Assert.True(ops.GetArrayLength() > 0, "Expected at least one RelOp in the plan.");
     }
 
-    [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
+    [Fact(Skip = "Requires INTEGRATION=true and MSSQL_CONNECTION_STRING.", SkipUnless = nameof(mssql_mcp.Tests.IntegrationEnvironment.Enabled), SkipType = typeof(mssql_mcp.Tests.IntegrationEnvironment))]
     public async Task ExplainQuery_RealDb_XmlFormat_ReturnsRawXml()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionString))
-        {
-            return;
-        }
+
 
         MssqlMcpOptions options = CreateOptions();
         PlanTools tools = CreatePlanTools(options);
@@ -114,13 +108,10 @@ public class ExplainQueryIntegrationTests
     /// This verifies that <c>SET SHOWPLAN_XML OFF</c> in the finally block + the default
     /// <c>Connection Reset=true</c> clears the session-scoped SHOWPLAN_XML setting.
     /// </summary>
-    [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
+    [Fact(Skip = "Requires INTEGRATION=true and MSSQL_CONNECTION_STRING.", SkipUnless = nameof(mssql_mcp.Tests.IntegrationEnvironment.Enabled), SkipType = typeof(mssql_mcp.Tests.IntegrationEnvironment))]
     public async Task ExplainQuery_RealDb_SubsequentExecuteSqlReturnsRows()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionString))
-        {
-            return;
-        }
+
 
         MssqlMcpOptions options = CreateOptions();
 

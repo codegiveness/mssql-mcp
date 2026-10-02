@@ -25,6 +25,10 @@ jobs:
         with:
           node-version: '20'
 
+      # A forced major Release-As PR must not create a release after merge.
+      - name: Enforce 0.x manifest policy
+        run: node scripts/check-release-policy.js --manifest
+
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         id: release-please
         with:
@@ -36,7 +40,9 @@ jobs:
         if: steps.release-please.outputs.releases_created == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ steps.release-please.outputs.version }}
         run: |
-          tag="v${{ steps.release-please.outputs.version }}"
+          tag="v${RELEASE_VERSION}"
+          node scripts/check-release-policy.js "$tag"
           echo "Release created with tag $tag, triggering release.yml"
           gh workflow run release.yml -f tag="$tag"

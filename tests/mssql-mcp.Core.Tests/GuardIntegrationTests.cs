@@ -16,13 +16,10 @@ public class GuardIntegrationTests
 {
     private static string? ConnectionString => Environment.GetEnvironmentVariable("MSSQL_CONNECTION_STRING");
 
-    [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
+    [Fact(Skip = "Requires INTEGRATION=true and MSSQL_CONNECTION_STRING.", SkipUnless = nameof(mssql_mcp.Tests.IntegrationEnvironment.Enabled), SkipType = typeof(mssql_mcp.Tests.IntegrationEnvironment))]
     public async Task TransactionWrapper_RollsBackInsert_RowCountStaysZero()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionString))
-        {
-            return;
-        }
+
 
         // Use a unique temp table name per run to avoid collisions.
         string tableName = $"mssql_mcp_guard_test_{Guid.NewGuid():N}";
@@ -60,7 +57,7 @@ public class GuardIntegrationTests
             // The INSERT must have rolled back — verify rowcount is 0.
             using (SqlCommand count = new($"SELECT COUNT(*) FROM [{tableName}];", connection))
             {
-                long rowCount = (long)(await count.ExecuteScalarAsync(TestContext.Current.CancellationToken) ?? 0);
+                int rowCount = Assert.IsType<int>(await count.ExecuteScalarAsync(TestContext.Current.CancellationToken));
                 Assert.Equal(0, rowCount);
             }
         }
@@ -68,19 +65,15 @@ public class GuardIntegrationTests
         {
             // Cleanup the scratch table.
             using SqlCommand drop = new($"DROP TABLE IF EXISTS [{tableName}];", connection);
-            await drop.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+            await drop.ExecuteNonQueryAsync(CancellationToken.None);
         }
     }
 
-    [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
+    [Fact(Skip = "Requires INTEGRATION=true and MSSQL_CONNECTION_STRING.", SkipUnless = nameof(mssql_mcp.Tests.IntegrationEnvironment.Enabled), SkipType = typeof(mssql_mcp.Tests.IntegrationEnvironment))]
     public async Task Guard_AcceptsSelectAgainstRealServer_ReturnsRows()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionString))
-        {
-            return;
-        }
 
-        // ConnectionString is non-null here — the guard at the top returned early otherwise.
+
         string connStr = ConnectionString ?? throw new InvalidOperationException("MSSQL_CONNECTION_STRING must be set");
 
         MssqlMcpOptions options = new()
@@ -104,8 +97,8 @@ public class GuardIntegrationTests
             options.RetryCount, options.RetryIntervalMin, options.RetryIntervalMax,
             NullLogger<SqlExecutor>.Instance);
         List<Dictionary<string, object?>> rows =
-            await executor.ExecuteQueryAsync(result.WrappedSql, CancellationToken.None);
+            (await executor.ExecuteQueryAsync(result.WrappedSql, 0, CancellationToken.None)).Rows;
         Assert.Single(rows);
-        Assert.Equal(1L, rows[0]["Value"]);
+        Assert.Equal(1, Assert.IsType<int>(rows[0]["Value"]));
     }
 }
