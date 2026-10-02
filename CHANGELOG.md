@@ -67,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bound query row accumulation using a conservative JSON-byte budget that includes keys, structure, nulls, escaping, and Unicode. Early reader termination now carries an explicit truncation notice; disabling the budget preserves uncapped behavior.
 - Refuse oversized raw SHOWPLAN XML with structured `PLAN_TOO_LARGE` and `format=summary` recovery advice, using bounded XML-compatible reads rather than materializing the complete plan first.
 - Align Microsoft.Extensions dependencies at 10.0.12, update SqlClient to 7.1.1 and coverlet to 10.1.0, and update the SHA-pinned Scorecard uploader.
+- Incorporate the subsequent dependency PRs for Test SDK 18.10.1, SourceLink 10.0.401, ScriptDom 180.117.0, and xunit.v3 4.0.1 with regenerated portable, fuzz, and all six runtime lock graphs.
 - Enable existing integration tests through an explicit runtime opt-in and repair their actual SQL result-type assumptions.
 - Synchronize all npm platform manifests with the release version and verify local package installs offline.
 - Pin Docker images to registry digests and use genuine content-hashed NuGet locks for portable and six runtime publish profiles. Disable the distro SDK's implicit repackaged dependency feed so official SDK and container restores validate the same hashes.
