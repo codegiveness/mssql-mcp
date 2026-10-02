@@ -2,6 +2,8 @@
 
 This document is a draft self-assessment against the OpenSSF Best Practices passing-level criteria for mssql-mcp. Each criterion lists its status (Met / Unmet / N/A) and a one-line evidence citation. The human maintainer must still submit the project to [bestpractices.dev](https://bestpractices.dev/) to make the badge official.
 
+Evidence refreshed on 2026-10-02 during [settlement PR #139](https://github.com/codegiveness/mssql-mcp/pull/139). Statuses are a draft, not an external award or a guarantee against vulnerabilities. [Issue #140](https://github.com/codegiveness/mssql-mcp/issues/140) tracks human review/submission. Criteria are interpreted against the [actual passing requirements](https://www.bestpractices.dev/en/criteria/0), not inferred from their identifiers.
+
 ## Basics
 
 - **description_good** — Met — README.md:1-3 (project name, tagline, and summary of what mssql-mcp does)
@@ -33,29 +35,29 @@ This document is a draft self-assessment against the OpenSSF Best Practices pass
 ## Reporting
 
 - **report_process** — Met — README.md Contributing section and SECURITY.md:5-7 describe GitHub Issues for bugs and private vulnerability reporting
-- **report_tracker** — Met — GitHub Issues are enabled; issue #68 tracks OpenSSF Best Practices submission
-- **report_responses** — Met — SECURITY.md:34-38 publishes response SLAs (48h acknowledge, 14d assessment, 90d fix/disclosure)
-- **enhancement_responses** — Met — CONTRIBUTING.md:167-169 asks for GitHub Issues with use-case descriptions
+- **report_tracker** — Met — GitHub Issues are enabled; #140 tracks actual external assessment submission, while historical #68 completed repository documentation/badge wiring
+- **report_responses** — Met — API inventory on 2026-10-02 found 77 owner-authored issues and no non-owner/non-bot reports; there was no external bug-report response sample to measure. A published SLA alone is not evidence of response performance
+- **enhancement_responses** — Met — The same public inventory contained no external-author enhancement requests; CONTRIBUTING.md documents the request process. Reassess when an actual response sample exists
 - **report_archive** — Met — GitHub Issues and Security Advisories archive reports; docs/security-audits/ archive point-in-time audits
 - **vulnerability_report_process** — Met — SECURITY.md:1-7 documents private GitHub vulnerability reporting and forbids public issues
 - **vulnerability_report_private** — Met — SECURITY.md:5-7 explicitly uses GitHub's private vulnerability reporting and says "Do not open a public issue"
-- **vulnerability_report_response** — Met — SECURITY.md:34-38 defines acknowledgment, assessment, and fix/disclosure SLAs
+- **vulnerability_report_response** — N/A — Repository advisory API returned no records on 2026-10-02, so no report-response interval was available to assess. Verify any privately received reports before submission; the published SLA is not execution evidence
 
 ## Quality
 
 - **build** — Met — `dotnet build mssql-mcp.sln` builds all src and test projects; CI runs it on every push/PR
 - **build_common_tools** — Met — .NET SDK 10, `dotnet restore`, `dotnet build`, `dotnet pack`, `dotnet test` are standard .NET tooling
 - **build_floss_tools** — Met — Build uses only standard .NET SDK and open-source Node tooling; all build tooling is free/libre
-- **test** — Met — CONTRIBUTING.md:46-47 and CI run `dotnet test --solution mssql-mcp.sln -- --filter-not-trait Category=Integration`; ~440 unit tests
+- **test** — Met — Current observed run: 439 unit cases passed; the full opt-in disposable SQL Server run passed 464 cases, with 0 failures and 4 existing unreachable-case skips in each. Commands and limits are recorded in docs/security-quality-follow-up.md
 - **test_invocation** — Met — CONTRIBUTING.md:46-47 documents how to run unit and integration tests
-- **test_most** — Met — tests/ directory covers Guard AST validation, tool wiring, error handling, type coercion, and regression tests for security findings
-- **test_continuous_integration** — Met — .github/workflows/ci.yml runs build, format check, unit tests, npm smoke, Docker build, and MCP stdio smoke on every push/PR
+- **test_most** — Met — Actual merged unit/live-SQL Coverlet 10.1.0 measurement: Core 81.16% line / 80.51% branch; Tools 86.68% line / 67.73% branch. These are the two measured C# libraries, not whole-repository/CLI/JavaScript coverage or proof of all input combinations
+- **test_continuous_integration** — Met — CI runs build, format, unit, offline npm, native CLI/SQL and live container SQL checks on push/PR. The real MCP stdio Inspector check is separately mandatory before pushes; do not claim it runs in hosted CI
 - **test_policy** — Met — CONTRIBUTING.md:64-79 pre-push checklist mandates passing tests; ADR-0031 documents unknown-argument dispatch and pre-push discipline
 - **tests_are_added** — Met — CONTRIBUTING.md:148-149 requires new code to have unit tests; PR checklist enforces it
 - **tests_documented_added** — Met — CONTRIBUTING.md:148-149 and PR checklist require tests for new code; tests follow project layout naming
 - **warnings** — Met — Directory.Build.props uses `TreatWarningsAsErrors=true` and `AnalysisLevel=latest-recommended`
 - **warnings_fixed** — Met — CI `dotnet build` and `dotnet format` are clean; security audit confirms warnings treated as errors
-- **warnings_strict** — Unmet — Additional external analyzers (e.g., security-focused Roslyn analyzers) are deliberately deferred per ADR-0020
+- **warnings_strict** — Met — Warnings are errors and latest-recommended .NET analyzers are enabled, with six explicit, documented suppressions in ADR-0020; strictness is practical, not a claim that every possible rule is enabled
 
 ## Security
 
@@ -68,21 +70,21 @@ This document is a draft self-assessment against the OpenSSF Best Practices pass
 - **crypto_working** — N/A — No custom crypto implementation; connection encryption is delegated to SQL Server / SqlClient
 - **crypto_weaknesses** — N/A — No custom crypto to review; documented risk: README and SECURITY.md warn about `TrustServerCertificate=True`
 - **crypto_pfs** — N/A — No project-managed key exchange; TLS settings are operator-controlled in the connection string
-- **crypto_password_storage** — Met — Connection strings are never stored; passed via `MSSQL_CONNECTION_STRING` env var, never argv, per ADR-0015 and README Configuration section
+- **crypto_password_storage** — N/A — The project does not store password verifiers for authentication of external users. Operator SQL credentials are a different concern; environment configuration is recommended, and the supported CLI flag does not establish an absence of argv exposure
 - **crypto_random** — N/A — No custom randomness required for project logic
-- **delivery_mitm** — Met — Release archives have SHA256 sidecars; npm publish uses `--provenance`; release.yml attests archives with `actions/attest@v4`; NuGet uses Trusted Publishing via OIDC
-- **delivery_unsigned** — Met — GitHub Release artifacts are attested; npm and NuGet packages are published with provenance/Trusted Publishing; checksum sidecars shipped with archives
-- **vulnerabilities_fixed_60_days** — Met — SECURITY.md:34-38 commits to fix or disclose within 90 days of assessment; two security audits (2026-07-22 and 2026-07-24) fixed all blocking findings promptly
+- **delivery_mitm** — Met — GitHub archive/checksum downloads and npm/NuGet registry delivery use HTTPS. Archive checksums, requested attestations and npm provenance are additional controls whose actual per-release evidence must be checked
+- **delivery_unsigned** — Met — The npm shim retrieves checksum sidecars over HTTPS, not unsigned HTTP. This criterion is not a claim that every package has artifact provenance; NuGet Trusted Publishing authenticates publication and is not artifact provenance
+- **vulnerabilities_fixed_60_days** — Met — Documented pre-public/post-hardening audit fixes shipped promptly; the 2026-10-02 public inventory found no medium/high/critical-labeled unresolved reports and no advisory records. Review released fixes and any additional reports before submission; a 90-day disclosure policy is not itself proof of this 60-day criterion
 - **vulnerabilities_critical_fixed** — Met — All critical/high findings from pre-public and post-hardening audits were fixed before public release; see docs/security-audits/
-- **no_leaked_credentials** — Met — PasswordObfuscator scrubs `Password=`, `PWD=`, `AccessToken=`, `Token=` patterns; AHD-2 and AHD-3 regression tests confirm credential leaks fixed
+- **no_leaked_credentials** — Met — The 2026-10-02 repository secret-scanning API returned zero open alerts, with scanning and push protection enabled. This is a point-in-time repository observation, not proof of absence or a claim that runtime redaction covers every secret format
 
 ## Analysis
 
-- **static_analysis** — Met — .github/workflows/scorecard.yml runs OpenSSF Scorecard weekly; Directory.Build.props enables latest-recommended Roslyn analyzers; `dotnet format` runs in CI
-- **static_analysis_common_vulnerabilities** — Unmet — External security analyzers (e.g., CodeQL, Semgrep) are not configured; deferred per ADR-0020
-- **static_analysis_fixed** — Met — All blocking findings from two security audits were remediated; remaining items are documented accepted risks
-- **static_analysis_often** — Met — Scorecard workflow runs weekly; Roslyn analyzers and `dotnet format` run on every CI build
-- **dynamic_analysis** — Unmet — No dynamic/fuzz testing is currently integrated in CI; deferred as accepted risk for a database-connector project
-- **dynamic_analysis_unsafe** — Unmet — Depends on dynamic_analysis; no unsafe-input dynamic tests are run
-- **dynamic_analysis_enable_assertions** — N/A — .NET `Debug.Assert` is not used as a runtime safety mechanism; tests use xUnit assertions
-- **dynamic_analysis_fixed** — N/A — No dynamic analysis findings to remediate because dynamic analysis is not currently performed
+- **static_analysis** — Met — Actual [CodeQL C#/JavaScript analyses](https://github.com/codegiveness/mssql-mcp/actions/runs/36960543627) completed and uploaded results; both analysis records reported zero results, errors and warnings. Roslyn/format checks and Scorecard are separate controls
+- **static_analysis_common_vulnerabilities** — Met — CodeQL uses security-extended queries; uploaded records reported 63 C# and 103 JavaScript/TypeScript rules. These rule counts do not establish complete security coverage
+- **static_analysis_fixed** — Met — The observed CodeQL run returned no findings to remediate; historical audit fixes and accepted residual risks remain documented. Confirmed future medium/higher exploitable findings must still be addressed
+- **static_analysis_often** — Met — CodeQL runs on main pushes, PRs and weekly; Roslyn/format checks run in CI. A new workflow does not retroactively scan historical commits
+- **dynamic_analysis** — Met — Actual [hosted SharpFuzz/libFuzzer run](https://github.com/codegiveness/mssql-mcp/actions/runs/36960543729) instrumented ScriptDom/Guard, detected the separate deliberate engine crash, then completed 370,328 real inputs in 61 seconds with feature/corpus growth and no emitted product findings
+- **dynamic_analysis_unsafe** — N/A — Shipping project code is C#/JavaScript, not a memory-unsafe language. The nonshipping upstream C++ fuzz bridge does not establish sanitizer coverage of all native dependencies
+- **dynamic_analysis_enable_assertions** — Met — The fuzz target has unconditional malformed/empty-acceptance, non-SELECT and SELECT-INTO invariants that throw even in Release builds; the independent crash probe proves exceptions reach the engine
+- **dynamic_analysis_fixed** — N/A — The observed local and hosted campaigns emitted no genuine findings to remediate. The intentionally separate probe crash is not a product vulnerability; future confirmed findings still require fixes
