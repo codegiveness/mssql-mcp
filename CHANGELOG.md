@@ -94,6 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Continue releases on 0.x. Release automation rejects major versions 1 and above; superseded v1 graduation tasks are retired rather than falsely certified.
 - Record the maintainer's successful production use with Oh My Pi and OpenCode as user-reported evidence, without inventing a 30-day log or verification of other clients.
+- Switch npm release authentication to package-scoped GitHub Trusted Publishing (OIDC), with Node 24 and pinned npm 12.0.1; remove the workflow's long-lived `NPM_TOKEN` dependency while preserving provenance, sequential platform-first publication, and the 0.x guard. Publication requires each package's trusted-publisher authorization.
 
 ## [0.4.2] - 2026-07-24
 
