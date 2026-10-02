@@ -147,6 +147,41 @@ public class GuardTests
         Assert.Equal("select_into", RequireRejection(result).Rule);
     }
 
+    [Theory]
+    [InlineData("SELECT NEXT VALUE FOR dbo.ReviewSequence")]
+    [InlineData("SELECT NEXT VALUE FOR dbo.ReviewSequence FROM (VALUES (1), (2)) AS v(Id)")]
+    [InlineData("SELECT NEXT VALUE FOR dbo.ReviewSequence OVER (ORDER BY v.Id) FROM (VALUES (1), (2)) AS v(Id)")]
+    public void SequenceAllocation_IsRejectedByRestrictedAndStrictValidation_ButAllowedUnrestricted(string sql)
+    {
+        var restricted = CreateGuard();
+        var restrictedResult = restricted.Validate(sql);
+        var restrictedRejection = RequireRejection(restrictedResult);
+        Assert.Equal("next_value_for", restrictedRejection.Rule);
+        Assert.Equal(1, restrictedRejection.Line);
+        Assert.Equal(8, restrictedRejection.Column);
+        Assert.Null(restrictedResult.WrappedSql);
+
+        var unrestricted = CreateGuard(AccessMode.Unrestricted);
+        var unrestrictedResult = unrestricted.Validate(sql);
+        Assert.True(unrestrictedResult.Accepted);
+        Assert.Equal(sql, unrestrictedResult.WrappedSql);
+        Assert.Null(unrestrictedResult.Rejection);
+
+        var strictResult = unrestricted.ValidateStrict(sql);
+        Assert.Equal("next_value_for", RequireRejection(strictResult).Rule);
+        Assert.Null(strictResult.WrappedSql);
+    }
+
+    [Fact]
+    public void Accept_SequenceLikeText_IsNotSequenceAllocation()
+    {
+        var guard = CreateGuard();
+        var result = guard.Validate("SELECT 'NEXT VALUE FOR dbo.ReviewSequence' AS Description");
+
+        Assert.True(result.Accepted, $"Expected accept, got rejection: {result.Rejection?.Rule}");
+        Assert.Null(result.Rejection);
+    }
+
     [Fact]
     public void Reject_OpenRowset()
     {

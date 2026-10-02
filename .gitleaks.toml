@@ -1,0 +1,114 @@
+title = "mssql-mcp: provider secrets and SQL credentials"
+
+[extend]
+useDefault = true
+
+# No entropy threshold: short SQL passwords still grant database access.
+# Quoted SQL/ODBC values and C#/JSON escaped quotes may contain semicolons.
+[[rules]]
+id = "sql-connection-password"
+description = "SQL connection-string Password/PWD credential"
+regex = '''(?i)\b(?:password|pwd)[ \t]*=[ \t]*(\\"(?:\\.|[^\\\r\n])+?\\"|"(?:""|[^"\r\n])+"|'(?:''|[^'\r\n])+'|\{[^}\r\n]+\}|[^;\s"'\\{}]+)'''
+secretGroup = 1
+keywords = ["password", "pwd"]
+
+[[rules]]
+id = "sql-server-container-password"
+description = "SQL Server container administrator credential"
+regex = '''(?i)\bMSSQL_SA_PASSWORD["']?[ \t]*[=:][ \t]*["']?([^\s"'\\]+)'''
+secretGroup = 1
+keywords = ["mssql_sa_password"]
+
+# Only literal placeholders/redacted values, and only for the SQL rules.
+# Provider token rules remain fully enabled, even on these paths.
+[[allowlists]]
+description = "Non-credential SQL documentation placeholders and redacted output"
+targetRules = ["sql-connection-password", "sql-server-container-password"]
+regexTarget = "secret"
+regexes = ['''^(?:\.\.\.|\*\*\*|<your-password>|"\.\.\."|'\.\.\.'|\{\.\.\.\})$''']
+
+[[allowlists]]
+description = "Public disposable SQL container fixture, never a production credential"
+targetRules = ["sql-connection-password", "sql-server-container-password"]
+condition = "AND"
+paths = ['''^(?:\.github/workflows/(?:ci|release)\.yml|README\.md|CONTRIBUTING\.md)$''']
+regexTarget = "secret"
+regexes = ['''^YourStrong!Passw0rd$''']
+
+[[allowlists]]
+description = "Exact synthetic values in named password obfuscation/connection failure tests"
+targetRules = ["sql-connection-password"]
+condition = "AND"
+paths = [
+  '''^tests/mssql-mcp\.Core\.Tests/(?:FileLoggerProviderTests|PasswordObfuscationTests|PocLeakTests3|PocObfuscationPartialLeakTests|ValidateFlagTests)\.cs$''',
+  '''^tests/mssql-mcp\.Tools\.Tests/(?:PocLeakTests|PocLeakTests2|ValidateIntegrationTests)\.cs$''',
+]
+regexTarget = "secret"
+regexes = [
+  '''^(?:secret|secret123|p@ssw0rd!|abc123|xyz789|hunter2|Hunter2!|Secret123|plain)$''',
+  '''^(?:\\"|"|'|\{)(?:secret|my;pass|a;b|x|a)(?:\\"|"|'|\})$''',
+]
+
+[[allowlists]]
+description = "Exact non-value notation and unterminated marker in named historical obfuscation tests"
+targetRules = ["sql-connection-password"]
+condition = "AND"
+paths = ['''^tests/mssql-mcp\.Core\.Tests/PasswordObfuscationTests\.cs$''']
+regexTarget = "secret"
+regexes = ['''^(?:and|as|unterminated)$''', '''^"\. Replacement normalizes to canonical "$''']
+
+[[allowlists]]
+description = "Exact synthetic regression examples in two historical audit reports"
+targetRules = ["sql-connection-password"]
+condition = "AND"
+paths = ['''^docs/security-audits/2026-07-(?:24-post-hardening|25-hardening-batch)\.md$''']
+regexTarget = "secret"
+regexes = ['''^(?:Hunter2!|Secret123|"x"|"\.\.\.")$''']
+
+[[allowlists]]
+description = "Bare key notation, not a password value, in named security documentation"
+targetRules = ["sql-connection-password"]
+condition = "AND"
+paths = ['''^docs/(?:ossf-best-practices-self-assessment|security-audits/2026-07-25-hardening-batch)\.md$''']
+regexTarget = "secret"
+regexes = ['''^`,$''']
+
+[[allowlists]]
+description = "Malformed synthetic value in the historical hardening decision"
+targetRules = ["sql-connection-password"]
+condition = "AND"
+paths = ['''^docs/adr/0035-security-hardening-batch\.md$''']
+regexTarget = "secret"
+regexes = ['''^"x"$''']
+
+[[allowlists]]
+description = "Literal regex-notation example in the obfuscator's source comment"
+targetRules = ["sql-connection-password"]
+condition = "AND"
+paths = ['''^src/mssql-mcp\.Core/Logging/PasswordObfuscator\.cs$''']
+regexTarget = "secret"
+regexes = ['''^\[\^$''', '''^"x"$''', '''^</c>$''', '''^\.\.\.</c>$''', '''^\($''', '''^p@ss$''']
+
+[[allowlists]]
+description = "Escaped empty-quote runs in the named malformed-input regression"
+targetRules = ["sql-connection-password"]
+condition = "AND"
+paths = ['''^tests/mssql-mcp\.Core\.Tests/PocObfuscationPartialLeakTests\.cs$''']
+regexTarget = "secret"
+regexes = ['''^(?:\\"){3,9}(?:Hunter2!)?$''']
+
+[[allowlists]]
+description = "Exact synthetic regression examples in the deleted logging design ticket"
+targetRules = ["sql-connection-password"]
+condition = "AND"
+paths = ['''^\.scratch/mssql-mcp-v1/issues/08b-logging\.md$''']
+regexTarget = "secret"
+regexes = ['''^(?:\[\^|secret123|p@ss|secret)$''']
+
+[[allowlists]]
+description = "Exact non-credential prefix of the generated synthetic detector input"
+targetRules = ["sql-connection-password"]
+condition = "AND"
+paths = ['''^scripts/security-scan\.py$''']
+regexTarget = "secret"
+regexes = ['''^"Synthetic"$''']

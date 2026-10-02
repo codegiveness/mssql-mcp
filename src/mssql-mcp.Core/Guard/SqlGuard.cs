@@ -136,8 +136,8 @@ public sealed class SqlGuard : IGuard
     /// TSqlFragmentVisitor that records the first rejection encountered while walking the AST.
     /// Layer 1: <see cref="Visit(TSqlStatement)"/> rejects any statement type other than SelectStatement
     /// anywhere in the AST (including nested inside BEGIN/END, IF, WHILE — the visitor recurses automatically).
-    /// Layer 2: targeted overrides reject SELECT INTO, OPENROWSET/QUERY/XML/DATASOURCE, EXECUTE AS,
-    /// four-part names, and BULK INSERT.
+    /// Layer 2: targeted overrides reject SELECT INTO, NEXT VALUE FOR, OPENROWSET/QUERY/XML/DATASOURCE,
+    /// EXECUTE AS, four-part names, and BULK INSERT.
     /// </summary>
     private sealed class ValidationVisitor : TSqlFragmentVisitor
     {
@@ -201,6 +201,16 @@ public sealed class SqlGuard : IGuard
         }
 
         // ---- Layer 2: intra-SELECT blocklist ----
+
+        public override void Visit(NextValueForExpression node)
+        {
+            // Sequence allocation persists even when the surrounding transaction is rolled back.
+            SetRejection(new GuardRejection(
+                rule: "next_value_for",
+                detail: "[guard] Restricted mode: NEXT VALUE FOR is not permitted because sequence allocation cannot be rolled back.",
+                line: node.StartLine,
+                column: node.StartColumn));
+        }
 
         public override void Visit(OpenRowsetTableReference node)
         {

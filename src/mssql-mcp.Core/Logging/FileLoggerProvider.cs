@@ -54,8 +54,6 @@ public sealed class FileLoggerProvider : ILoggerProvider
             throw new ArgumentOutOfRangeException(nameof(maxRolls), "Must be non-negative.");
         }
 
-        ValidatePath(path);
-
         _path = path;
         _maxBytes = maxBytes;
         _maxRolls = maxRolls;
@@ -114,6 +112,14 @@ public sealed class FileLoggerProvider : ILoggerProvider
     // then open a fresh writer at <path>. Runs under _gate — the caller already holds it.
     private void Rotate()
     {
+        // Validate the whole chain before any rename/delete, including dangling archive
+        // links. Checks are defense in depth, not atomic confinement against path races.
+        ValidatePath(_path);
+        for (int n = _maxRolls; n > 0; n--)
+        {
+            ValidatePath($"{_path}.{n}");
+        }
+
         _writer.Flush();
         _writer.Dispose();
 
@@ -140,13 +146,12 @@ public sealed class FileLoggerProvider : ILoggerProvider
 
     /// <summary>
     /// Defense-in-depth path validation (PB-2 hardening). Rejects paths containing
-    /// <c>..</c> traversal segments and rejects symlinks whose resolved target differs
-    /// from the configured path. Absolute paths are permitted — operators may use
-    /// <c>/var/log/</c> or similar; no allowlist root is imposed.
+    /// <c>..</c> traversal segments and any symlink or reparse point in the file or
+    /// parent path, including dangling links. Plain absolute and relative paths are
+    /// permitted; no allowlist root is imposed.
     /// </summary>
     /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="path"/> contains <c>..</c> or resolves via symlink to
-    /// a different path than the one configured.
+    /// Thrown when <paramref name="path"/> contains <c>..</c> or a symlink/reparse point.
     /// </exception>
     private static void ValidatePath(string path)
     {
@@ -160,22 +165,37 @@ public sealed class FileLoggerProvider : ILoggerProvider
                 nameof(path));
         }
 
-        // Resolve to absolute so the symlink check compares apples to apples. GetFullPath
-        // normalizes separators and resolves relative segments against the CWD; traversal
-        // was already rejected above, so this is safe.
-        string resolved = Path.GetFullPath(path);
-
-        // If the path is an existing symlink, reject when its target differs from the
-        // configured path. FileInfo.LinkTarget returns the stored link target string for
-        // symlinks (null for regular files or non-existent paths). We resolve the link
-        // target to absolute and compare — a mismatch means the path points elsewhere.
-        if (File.Exists(resolved) && new FileInfo(resolved).LinkTarget is { } linkTarget)
+        // Link metadata must be inspected independently of File.Exists: a dangling link
+        // is still an attacker-controlled path component.
+        string resolved = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+        for (string? component = resolved;
+             component is not null;
+             component = Path.GetDirectoryName(component))
         {
-            string resolvedLink = Path.GetFullPath(linkTarget);
-            if (!string.Equals(resolvedLink, resolved, StringComparison.Ordinal))
+            FileSystemInfo entry = component == resolved
+                ? new FileInfo(component)
+                : new DirectoryInfo(component);
+            bool isLink = entry.LinkTarget is not null;
+            if (!isLink)
+            {
+                try
+                {
+                    isLink = (File.GetAttributes(component) & FileAttributes.ReparsePoint) != 0;
+                }
+                catch (FileNotFoundException)
+                {
+                    // A missing ordinary file is created by the writer.
+                }
+                catch (DirectoryNotFoundException)
+                {
+                    // Continue checking ancestors; opening a missing parent still fails.
+                }
+            }
+
+            if (isLink)
             {
                 throw new ArgumentException(
-                    $"Log file path '{path}' is a symlink pointing to '{linkTarget}', which differs from the configured path. Symlinks are rejected.",
+                    $"Log file path '{path}' contains a symlink or reparse point at '{component}'.",
                     nameof(path));
             }
         }

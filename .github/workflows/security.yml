@@ -1,0 +1,118 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '37 5 * * 1'
+  workflow_dispatch:
+
+# Tokenless scans on PR code; no publish, SARIF write, or privileged fork path.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secrets:
+    name: secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install content-pinned Gitleaks
+        run: python3 scripts/install-security-tools.py gitleaks
+      - name: Verify synthetic detectors and redaction
+        run: python3 scripts/security-scan.py verify-detectors --reports artifacts/security/detectors
+      - name: Scan all committed Git history
+        run: python3 scripts/security-scan.py secrets --reports artifacts/security/secrets
+      - name: Preserve redacted finding metadata
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: security-secrets
+          path: |
+            artifacts/security/secrets/*.json
+            artifacts/security/detectors/*.json
+          retention-days: 14
+          if-no-files-found: error
+
+  workflow-audit:
+    name: workflow-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install content-pinned workflow auditors
+        run: python3 scripts/install-security-tools.py zizmor actionlint shellcheck
+      - name: Audit workflows with zizmor and actionlint (including ShellCheck)
+        run: python3 scripts/security-scan.py workflows --reports artifacts/security/workflows
+      - name: Preserve workflow findings
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: security-workflows
+          path: artifacts/security/workflows
+          retention-days: 14
+          if-no-files-found: error
+
+  artifact-audit:
+    name: artifact-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install content-locked npm tooling and publishing runtime
+        run: |
+          npm ci --prefix .config/npm-tools --ignore-scripts --no-audit --no-fund --bin-links=false --engine-strict --userconfig=/dev/null
+          python3 scripts/install-npm-cli.py
+      - name: Install content-pinned Trivy
+        run: python3 scripts/install-security-tools.py trivy
+      # Rebuild this checked-out commit rather than trusting artifacts from another
+      # workflow/PR. CI and Release also call the same helpers on their own outputs.
+      - name: Generate CycloneDX SBOM from locked dependencies
+        run: |
+          dotnet restore mssql-mcp.sln --locked-mode
+          dotnet tool restore
+          dotnet dotnet-CycloneDX mssql-mcp.sln --output-format json --output artifacts/sbom
+      - name: Build actual Docker image
+        run: docker build -t mssql-mcp-test .
+      - name: Assess image, SBOM and tooling with fresh advisories and block HIGH/CRITICAL
+        run: |
+          status=0
+          python3 scripts/security-scan.py image mssql-mcp-test --reports artifacts/security/image || status=1
+          python3 scripts/security-scan.py sbom artifacts/sbom --reports artifacts/security/sbom || status=1
+          python3 scripts/security-scan.py dependencies .config/npm-tools/package-lock.json --reports artifacts/security/tooling || status=1
+          python3 scripts/security-scan.py dependencies .config/npm-cli/package-lock.json --reports artifacts/security/npm-cli || status=1
+          exit "$status"
+      - name: Preserve vulnerability findings and advisory metadata
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: security-artifacts
+          path: |
+            artifacts/security/image
+            artifacts/security/sbom
+            artifacts/security/tooling
+            artifacts/security/npm-cli
+            artifacts/sbom/*.json
+          retention-days: 14
+          if-no-files-found: error

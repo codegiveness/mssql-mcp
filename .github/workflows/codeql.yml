@@ -26,7 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [csharp, javascript-typescript]
+        language: [csharp, javascript-typescript, python]
     # Also applies to dependency restores performed by the C# no-build extractor.
     env:
       RestoreLockedMode: 'true'
@@ -46,7 +46,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: none
-          queries: security-extended
+          queries: security-and-quality
       - name: Analyze
         uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:

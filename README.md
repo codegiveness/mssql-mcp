@@ -7,7 +7,7 @@
 [![.NET](https://img.shields.io/badge/.NET-10-blue)](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/github/license/codegiveness/mssql-mcp)](./LICENSE)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/codegiveness/mssql-mcp/badge)](https://scorecard.dev/viewer/?uri=github.com/codegiveness/mssql-mcp)
-[![OpenSSF Best Practices](https://img.shields.io/badge/OpenSSF_Best_Practices-Pending-yellow)](https://bestpractices.dev/)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15156/badge)](https://www.bestpractices.dev/en/projects/15156/passing)
 [![SBOM](https://img.shields.io/badge/SBOM-CycloneDX-blue)](./docs/security-posture.md#supply-chain-attestation)
 [![Security Policy](https://img.shields.io/badge/Security-Policy-blue)](./SECURITY.md)
 
@@ -446,12 +446,12 @@ If `--validate` passes but your harness can't see the server, the problem is in 
 
 ## Why this exists
 
-`mssql-mcp` gives AI agents a small, well-typed tool surface backed by AST validation, read-only transactions, timeouts, and a byte-size transport safety net — so an agent can explore schema, run SELECTs, and analyze query plans without a human in the loop, by default.
+`mssql-mcp` gives AI agents a small, well-typed tool surface backed by AST validation, rollback wrappers, timeouts, and a byte-size transport safety net. Use a least-privilege SQL login: application checks are not a database authorization boundary.
 
 | Feature | mssql-mcp |
 |---|---|
-| Guardrails | AST validation + read-only transactions |
-| Destructive SQL | Blocked by default (rollback) |
+| Guardrails | AST validation + transaction rollback |
+| Destructive SQL | Rejected by the Guard by default |
 | Tool surface | 9 typed tools |
 | Transport safety | Byte-size limit on stdio |
 | Language | C#/.NET 10 |
@@ -459,7 +459,7 @@ If `--validate` passes but your harness can't see the server, the problem is in 
 
 ## Access modes
 
-mssql-mcp ships in two modes, selected at startup via `--access-mode` or `MSSQL_ACCESS_MODE`:
+mssql-mcp ships in two modes, selected at startup via `--access-mode` or `MSSQL_ACCESS_MODE`. Only the case-insensitive names `restricted` and `unrestricted` are accepted; numeric and combined enum values are rejected:
 
 - **Restricted (default)** — read-only. The Guard enforces an AST allowlist, wraps every query in `BEGIN TRAN ... ROLLBACK`, applies a per-query command timeout, and truncates oversized results with a notice. All tools carry `readOnlyHint=true`. This is the mode to use with AI agents.
 - **Unrestricted (opt-in)** — full DML/DDL via `execute_sql`. The Guard is bypassed for `execute_sql`, destructive operations carry `destructiveHint=true`, and the default query timeout is unlimited. Use this only when the human operator has explicitly authorized schema changes or writes. `explain_query` is still Guarded in both modes (it never executes the query).
@@ -834,9 +834,9 @@ In Restricted mode (the default), every `execute_sql` call is wrapped in `BEGIN 
 
 The Guard applies four layers of validation in Restricted mode:
 
-1. **AST allowlist** — T-SQL is parsed by ScriptDom into an AST. A Visitor walks every batch and every nested statement, rejecting anything that isn't a SELECT (or a SELECT-adjacent statement on the allowlist). `INTO`, `OPENROWSET(BULK)`, `EXECUTE`, DDL, and DML are all rejected.
-2. **Read-only transaction** — every query runs inside `BEGIN TRAN ... ROLLBACK`. Even a Guard bypass can't commit changes.
-3. **Command timeout** — default 30s in Restricted mode. Runaway queries are killed.
+1. **AST allowlist** — ScriptDom parses T-SQL; a visitor rejects non-SELECT statements and targeted dangerous constructs including `INTO`, `NEXT VALUE FOR`, `OPENROWSET(BULK)`, `EXECUTE`, DDL and DML.
+2. **Rollback wrapper** — accepted queries run inside `BEGIN TRAN ... ROLLBACK`. This defends against transactional effects, not arbitrary nontransactional/external effects or a Guard bypass. SQL grants remain the authorization boundary.
+3. **Command timeout** — default 30s in Restricted mode; limits command execution, not total request duration or resource usage.
 4. **Byte-size safety net** — results over 10 MB (configurable) are truncated with a notice appended, so an agent's context window isn't blown out.
 
 ### Transaction rollback

@@ -124,12 +124,20 @@ public sealed class MssqlMcpOptions
         string? accessModeRaw = GetCliValue(args, CliAccessMode) ?? GetEnv(env, EnvAccessMode);
         if (!string.IsNullOrWhiteSpace(accessModeRaw))
         {
-            if (!Enum.TryParse<AccessMode>(accessModeRaw, ignoreCase: true, out AccessMode parsedMode))
+            ReadOnlySpan<char> mode = accessModeRaw.AsSpan().Trim();
+            if (mode.Equals(nameof(AccessMode.Restricted), StringComparison.OrdinalIgnoreCase))
+            {
+                options.AccessMode = AccessMode.Restricted;
+            }
+            else if (mode.Equals(nameof(AccessMode.Unrestricted), StringComparison.OrdinalIgnoreCase))
+            {
+                options.AccessMode = AccessMode.Unrestricted;
+            }
+            else
             {
                 throw new InvalidOperationException(
                     $"[startup] Invalid access mode '{accessModeRaw}'. Accepted values: restricted, unrestricted.");
             }
-            options.AccessMode = parsedMode;
         }
 
         // Query timeout: CLI > env > default (30 restricted / 0 unrestricted).

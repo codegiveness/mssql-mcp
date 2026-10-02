@@ -1,0 +1,9 @@
+{
+  "all": true,
+  "src": ["npm/bin"],
+  "include": ["npm/bin/mssql-mcp.js"],
+  "exclude": [],
+  "reporter": ["json-summary", "html", "cobertura"],
+  "reports-dir": "artifacts/coverage/npm",
+  "temp-directory": "artifacts/coverage/raw/npm"
+}

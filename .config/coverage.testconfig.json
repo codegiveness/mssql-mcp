@@ -1,0 +1,14 @@
+{
+  "platformOptions": {
+    "Coverlet": {
+      "include": "[mssql-mcp.Core]*,[mssql-mcp.Tools]*",
+      "exclude": "[*.Tests]*",
+      "excludeByAttribute": "GeneratedCodeAttribute,ExcludeFromCodeCoverageAttribute",
+      "excludeByFile": "**/obj/**/*.cs",
+      "format": "cobertura,json",
+      "useSourceLink": false,
+      "includeTestAssembly": false,
+      "excludeAssembliesWithoutSources": "MissingAll"
+    }
+  }
+}

@@ -29,6 +29,7 @@ Even within an allowed `SelectStatement`, reject a small, targeted set of danger
 | Construct | Visitor override | Why blocked |
 |---|---|---|
 | `SELECT ... INTO` | `Visit(SelectStatement)` → check `node.Into` | DDL disguised as SELECT — creates a table |
+| `NEXT VALUE FOR` (including ordered window expressions) | `Visit(NextValueForExpression)` → `next_value_for` rejection | Sequence allocation persists despite transaction rollback |
 | `OPENROWSET('provider', ...)` in FROM | `Visit(OpenRowsetTableReference)` | Reads arbitrary files / remote servers (provider form) |
 | `OPENROWSET(BULK 'file', ...)` in FROM | `Visit(BulkOpenRowset)` | Reads arbitrary local files (BULK form). **Note:** `BulkOpenRowset` is a separate AST node from `OpenRowsetTableReference` — they are siblings, not parent/child. Both must be blocked. |
 | `OPENROWSET` for Cosmos DB | `Visit(OpenRowsetCosmos)` | Cross-service data access (Azure Synapse) |

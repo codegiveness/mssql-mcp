@@ -27,6 +27,8 @@ jobs:
       attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -43,8 +45,11 @@ jobs:
           node scripts/check-release-policy.js --manifest
           node scripts/check-release-policy.js --github-event
 
-      - name: Install npm CLI with trusted publishing support
-        run: npm install --global npm@12.0.1
+      # Source and production dependencies are independently content-locked.
+      - name: Install integrity-locked npm CLI for trusted publishing
+        run: |
+          npm ci --prefix .config/npm-tools --ignore-scripts --no-audit --no-fund --bin-links=false --engine-strict --userconfig=/dev/null
+          python3 scripts/install-npm-cli.py
 
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
@@ -56,12 +61,6 @@ jobs:
       # (issue: 0.5.3 npm package shipped a binary reporting 0.5.2.0).
       # sync-all-stamps.js writes csproj, main/platform npm packages, and
       # server.json from the manifest before any artifact is built.
-      - name: Sync NuGet version
-        run: |
-          version="${{ steps.tag.outputs.version }}"
-          sed -i "s|<VersionPrefix>[^<]*</VersionPrefix>|<VersionPrefix>${version}</VersionPrefix>|" src/mssql-mcp/mssql-mcp.csproj
-          echo "Synced VersionPrefix to ${version}"
-          grep VersionPrefix src/mssql-mcp/mssql-mcp.csproj
 
       - name: Sync all version stamps
         run: node scripts/sync-all-stamps.js
@@ -96,12 +95,16 @@ jobs:
 
       # Flat archives: binary at archive root (ADR-0002).
       - name: Archive Unix RIDs
+        env:
+          RELEASE_TAG: ${{ steps.tag.outputs.name }}
         run: |
           for rid in linux-x64 linux-arm64 osx-x64 osx-arm64; do
-            (cd artifacts/$rid && tar -czf ../mssql-mcp-${{ steps.tag.outputs.name }}-$rid.tar.gz *)
+            (cd "artifacts/$rid" && tar -czf "../mssql-mcp-${RELEASE_TAG}-$rid.tar.gz" ./*)
           done
       - name: Archive Windows RID
-        run: cd artifacts/win-x64 && zip -r ../mssql-mcp-${{ steps.tag.outputs.name }}-win-x64.zip *
+        env:
+          RELEASE_TAG: ${{ steps.tag.outputs.name }}
+        run: cd artifacts/win-x64 && zip -r "../mssql-mcp-${RELEASE_TAG}-win-x64.zip" ./*
 
       - name: Generate SHA256 checksums
         run: |
@@ -114,13 +117,34 @@ jobs:
         run: |
           dotnet tool restore
           dotnet dotnet-CycloneDX mssql-mcp.sln --output-format json --output artifacts/sbom
+      - name: Install content-pinned Trivy
+        run: python3 scripts/install-security-tools.py trivy
+      - name: Assess release inventories before any release or registry publication
+        run: |
+          status=0
+          python3 scripts/security-scan.py sbom artifacts/sbom --reports artifacts/security/release-sbom || status=1
+          python3 scripts/security-scan.py dependencies .config/npm-tools/package-lock.json --reports artifacts/security/release-tooling || status=1
+          python3 scripts/security-scan.py dependencies .config/npm-cli/package-lock.json --reports artifacts/security/release-npm-cli || status=1
+          exit "$status"
+      - name: Preserve release security findings and advisory metadata
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-security-inventories
+          path: |
+            artifacts/security/release-sbom
+            artifacts/security/release-tooling
+            artifacts/security/release-npm-cli
+          if-no-files-found: error
+          retention-days: 14
 
       # GitHub Release FIRST so the shim self-heal can fetch archives before npm publish lands.
       # Conventional Commits auto-notes (titles enforced by semantic.yml from #16).
       - name: Create GitHub Release
-        run: gh release create ${{ steps.tag.outputs.name }} --generate-notes --title ${{ steps.tag.outputs.name }} artifacts/mssql-mcp-*.tar.gz artifacts/mssql-mcp-*.zip artifacts/mssql-mcp-*.sha256 artifacts/sbom/*.json || gh release upload ${{ steps.tag.outputs.name }} artifacts/mssql-mcp-*.tar.gz artifacts/mssql-mcp-*.zip artifacts/mssql-mcp-*.sha256 artifacts/sbom/*.json --clobber
+        run: gh release create "$RELEASE_TAG" --generate-notes --title "$RELEASE_TAG" artifacts/mssql-mcp-*.tar.gz artifacts/mssql-mcp-*.zip artifacts/mssql-mcp-*.sha256 artifacts/sbom/*.json || gh release upload "$RELEASE_TAG" artifacts/mssql-mcp-*.tar.gz artifacts/mssql-mcp-*.zip artifacts/mssql-mcp-*.sha256 artifacts/sbom/*.json --clobber
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.tag.outputs.name }}
 
       # Attest GitHub Release archives + checksums BEFORE registry pushes so attestation
       # failure aborts the release. NOT the .nupkg — NuGet.org re-signs packages on
@@ -146,18 +170,20 @@ jobs:
         with:
           user: ${{ secrets.NUGET_USERNAME }}
       - name: Push NuGet
-        run: dotnet nuget push "artifacts/codegiveness.mssql-mcp.*.nupkg" --skip-duplicate --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push "artifacts/codegiveness.mssql-mcp.*.nupkg" --skip-duplicate --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
 
       # Sync npm version to the tag, then publish all 6 packages sequentially
       # (5 per-platform first, main last) with provenance (ADR-0028 §7).
       # Fail-fast: if any per-platform publish fails, the main package is not published.
-      - name: Sync npm version
-        run: node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('npm/package.json')); p.version='${{ steps.tag.outputs.version }}'; fs.writeFileSync('npm/package.json', JSON.stringify(p,null,2)+'\n')"
 
       - name: Publish per-platform npm packages
+        env:
+          RELEASE_TAG: ${{ steps.tag.outputs.name }}
         run: |
           set -e
-          tag="${{ steps.tag.outputs.name }}"
+          tag="$RELEASE_TAG"
           for rid in linux-x64 linux-arm64 osx-x64 osx-arm64 win-x64; do
             echo "=== Publishing @codegiveness/mssql-mcp-$rid ==="
             pkg_dir="npm/platforms/$rid"
@@ -171,17 +197,19 @@ jobs:
               tar -xzf "$archive" -C "$pkg_dir"
             fi
             # Publish from the per-platform package dir.
-            (cd "$pkg_dir" && npm publish --provenance --access public)
+            (cd "$pkg_dir" && node "$NPM_CLI" publish --ignore-scripts --provenance --access public)
           done
 
       - name: Publish main npm package (@codegiveness/mssql-mcp)
-        run: cd npm && npm publish --provenance --access public
+        run: cd npm && node "$NPM_CLI" publish --ignore-scripts --provenance --access public
 
   smoke:
     runs-on: ubuntu-latest
     needs: build-and-release
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '10.0.x'

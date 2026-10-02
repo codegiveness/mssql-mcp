@@ -121,6 +121,22 @@ public class ExecuteSqlTests
     // ---------- Guard rejections ----------
 
     [Fact]
+    public async Task ExecuteSql_UndefinedProgrammaticMode_DoesNotPermitWrites()
+    {
+        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
+        MssqlMcpOptions options = RestrictedOptions();
+        options.AccessMode = (AccessMode)2;
+        SqlTools tools = CreateTools(executor, options);
+
+        CallToolResult result = await tools.ExecuteSql("DROP TABLE nonexistent", CancellationToken.None);
+
+        Assert.True(result.IsError ?? false);
+        using JsonDocument doc = JsonDocument.Parse(GetText(result));
+        Assert.Equal("GUARD_REJECTION", doc.RootElement.GetProperty("error").GetString());
+        await executor.DidNotReceive().ExecuteNonQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task ExecuteSql_GuardRejectsDropTable_ReturnsGuardRejection_AndIsErrorTrue()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
