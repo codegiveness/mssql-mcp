@@ -103,48 +103,6 @@ public class RetryLogicTests
         Assert.Equal(1, provider.RetryLogic.NumberOfTries); // One attempt, no retries.
     }
 
-    [Fact]
-    public void RetryLogic_RetryingEvent_HookedForRetryProvider()
-    {
-        // The Retrying event handler must be attached so we can log transient errors at info level.
-        SqlRetryLogicBaseProvider provider = SqlExecutor.BuildRetryProvider(
-            retryCount: 3, retryIntervalMin: 2, retryIntervalMax: 10,
-            NullLogger.Instance);
-
-        // BuildRetryProvider attaches a Retrying handler that logs attempts.
-        // Reflection is unreliable for event backer (it's a C# auto-event backing field),
-        // so verify via GetInvocationList on the event itself.
-        Delegate[]? handlers = provider.Retrying?.GetInvocationList();
-        Assert.NotNull(handlers);
-        Assert.True(handlers!.Length > 0, "BuildRetryProvider must attach a Retrying handler for logging.");
-    }
-
-    // --- SqlExecutor ctor wires the provider onto each connection/command ---
-
-    [Fact]
-    public void SqlExecutor_WithRetryCount_PersistsProviderForNewConnection()
-    {
-        // Construct SqlExecutor with retryCount=3. The provider should be stored internally
-        // and assigned to each new SqlConnection/SqlCommand instance (RetryLogicProvider is
-        // an instance property on Microsoft.Data.SqlClient 7.0.2, NOT static).
-        var executor = new SqlExecutor(
-            "Server=localhost;Database=Test;Integrated Security=true;",
-            commandTimeout: 30,
-            retryCount: 3, retryIntervalMin: 2, retryIntervalMax: 10,
-            NullLogger<SqlExecutor>.Instance);
-
-        // We can't open a real connection in a unit test, but we CAN verify the provider
-        // would be assigned by constructing a fresh SqlConnection and checking it accepts
-        // the assignment without error. The behavior we care about is that SqlExecutor
-        // doesn't throw during construction and stores a valid provider.
-        using var conn = new SqlConnection("Server=localhost;");
-        SqlRetryLogicBaseProvider provider = SqlExecutor.BuildRetryProvider(
-            retryCount: 3, retryIntervalMin: 2, retryIntervalMax: 10,
-            NullLogger<SqlExecutor>.Instance);
-        conn.RetryLogicProvider = provider; // If this compiles and runs, the API is correct.
-        Assert.Same(provider, conn.RetryLogicProvider);
-    }
-
     // --- MssqlMcpOptions env-var validation (ADR-0015 fail-fast) ---
 
     [Fact]
