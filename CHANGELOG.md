@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.7](https://github.com/codegiveness/mssql-mcp/compare/v0.5.6...v0.5.7) (2026-10-02)
+
+
+### Bug Fixes
+
+* modernize .NET toolchain and resource lifetimes ([5551ad7](https://github.com/codegiveness/mssql-mcp/commit/5551ad70de7e222f36b293ce63ff0fbaacfaf815))
+* **quality:** confine fixture cleanup and settle expanded findings ([#153](https://github.com/codegiveness/mssql-mcp/issues/153)) ([3fecb48](https://github.com/codegiveness/mssql-mcp/commit/3fecb485f3a70dbf94abae34b1c551091a583292))
+* remove restricted authentication and native SNI assets ([8def9ae](https://github.com/codegiveness/mssql-mcp/commit/8def9ae68138812858638a73a82c858c27c27681))
+* **security:** verified scan gates and fail-closed runtime controls ([#150](https://github.com/codegiveness/mssql-mcp/issues/150)) ([de7648f](https://github.com/codegiveness/mssql-mcp/commit/de7648f22ba273013b7181d8d1a6c988afc906c6))
+
 ## [Unreleased]
 
 ### Changed
