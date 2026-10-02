@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Pin the stable .NET SDK to 10.0.401, retain `net10.0` on runtime 10.0.12, and pin C# 14 instead of the floating `latest` language setting. Align CI and Docker with this SDK.
-- Restore SqlClient 7.1.1's documented Entra authentication through its matching Azure extension and preserve reflection-based provider discovery in trimmed distributions.
+- Remove the SqlClient Azure authentication extension and its trimming root to avoid the restricted native broker dependency. Microsoft Entra connection-string authentication is no longer supported; retain SqlClient 7.1.1, SQL password, and Windows Integrated Authentication.
+- Select SqlClient's managed networking on Windows and exclude all native SNI assets from every build/publish/pack profile. Framework-dependent publishing alone did not prevent native dependency redistribution; keep the existing Windows runtime requirement.
 - Regenerate all 24 portable, test, fuzz, and runtime-profile package locks against official NuGet content without weakening locked restore or hash validation.
 - Reuse the SQL row scratch array per result set, and avoid UTF-8 accounting when the execution-plan byte limit is disabled.
 - Use the existing Node runtime rather than Python for the official Inspector smoke's JSON handling; retain npm distribution and independently justified CI/security tooling.
@@ -25,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- Retain Entra functionality with an owner-selected public redistribution hold for `Microsoft.Identity.Client.NativeInterop`. Release publication fails closed and CI withholds distributable package uploads until licensing clearance or an approved dependency change; verification reports remain available. This is not a general license audit.
+- Remove `Microsoft.Identity.Client.NativeInterop` and the Azure/MSAL authentication graph from all package-lock profiles with owner approval. Retain fail-closed release/CI redistribution guards against reintroduction; the broker-free graph no longer requires the former publication hold. This is not a general license audit.
 
 ## [0.5.6](https://github.com/codegiveness/mssql-mcp/compare/v0.5.5...v0.5.6) (2026-10-02)
 

@@ -1,8 +1,7 @@
 'use strict';
 
-// Publication hold approved during modernization. This checks one known restricted
-// dependency, not general license compliance. Clear it only after owner review of
-// redistribution rights or removal of the dependency from distributed artifacts.
+// Prevent reintroduction of the native broker removed after owner review.
+// This checks one known restricted dependency, not general license compliance.
 const fs = require('node:fs');
 const path = require('node:path');
 

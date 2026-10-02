@@ -45,7 +45,7 @@ jobs:
           node scripts/check-release-policy.js --manifest
           node scripts/check-release-policy.js --github-event
 
-      - name: Enforce native broker redistribution hold
+      - name: Reject restricted native broker dependencies
         run: node scripts/check-redistribution.js
 
       # Source and production dependencies are independently content-locked.
@@ -90,7 +90,7 @@ jobs:
         run: |
           dotnet restore src/mssql-mcp/mssql-mcp.csproj -r osx-arm64 -p:SelfContained=true -p:PublishSingleFile=true -p:PublishTrimmed=true --lock-file-path packages.osx-arm64.lock.json --locked-mode
           dotnet publish src/mssql-mcp -c Release -r osx-arm64 --self-contained true --no-restore -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/osx-arm64
-      # Framework-dependent for Windows (SNI license blocks self-contained per ADR-0002).
+      # Retain Windows' runtime contract; native SNI assets are explicitly excluded per ADR-0002.
       - name: Build win-x64 (framework-dependent)
         run: |
           dotnet restore src/mssql-mcp/mssql-mcp.csproj -r win-x64 -p:SelfContained=false -p:PublishSingleFile=true -p:PublishTrimmed=false --lock-file-path packages.win-x64.lock.json --locked-mode

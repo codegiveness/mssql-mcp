@@ -11,11 +11,6 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- SqlClient 7 discovers the Azure provider by reflection; preserve Entra modes in trimmed distributions. -->
-    <TrimmerRootAssembly Include="Microsoft.Data.SqlClient.Extensions.Azure" />
-  </ItemGroup>
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>

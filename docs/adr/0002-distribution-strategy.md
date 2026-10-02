@@ -2,26 +2,43 @@
 
 ## Context
 
-The server needs to be distributed to both .NET developers (who expect `dotnet tool install`) and the broader MCP ecosystem (where `npx` is the universal one-liner). The SNI license constraint on Windows self-contained builds is a key driver.
+The server is distributed to .NET developers through a NuGet tool and to the broader MCP ecosystem through npm/npx. Native dependencies must not introduce redistribution requirements the project is trying to avoid.
 
 ## Decision
 
-Publish the server two ways. (1) **Primary**: a `dotnet tool` on NuGet — clean, idiomatic .NET, mirrors the standard .NET tool distribution model, and sidesteps the SNI redistribution problem because NuGet restore fetches `Microsoft.Data.SqlClient.SNI` on the user's machine (we are not the distributor). (2) **Secondary**: an npm package that wraps the self-contained .NET binary using the Node shim + per-platform binary pattern (Node shim in `npm/bin/`, binary delivered via per-platform `optionalDependencies`). For Linux/macOS the self-contained binary uses managed SNI (MIT-clean). For Windows, the self-contained binary would bundle `Microsoft.Data.SqlClient.SNI` under the Microsoft 'Distributable Code' license — whose anti-copyleft clause (§3.a.iii) conservatively blocks redistribution under our MIT license. So Windows npm installs fall back to framework-dependent execution (user has .NET 10 runtime) or the `dotnet tool` path.
+Publish two ways: (1) a primary NuGet `dotnet tool`; (2) an npm wrapper with per-platform `optionalDependencies` carrying the .NET executable. Retain the existing four self-contained Linux/macOS builds and framework-dependent Windows build to avoid changing installation contracts during this cutover. The Windows runtime requirement is a deployment choice, not proof that native dependencies are absent.
 
-## Current publication hold
+## Entra dependency removal
 
-The modernization retains this distribution architecture, but the restored
-SqlClient 7 Entra extension introduces a separate restriction:
-`Microsoft.Identity.Client.NativeInterop` has not been cleared for redistribution.
-Managed SNI's MIT license is not permission to redistribute the complete
-authentication graph. The owner selected retention of authentication support with
-public distribution blocked pending licensing review. Release publication fails
-closed, and CI withholds NuGet/npm package uploads while retaining verification
-reports. See [Third-Party Notices](../../THIRD-PARTY-NOTICES.md).
+The distribution architecture above remains unchanged. The restored SqlClient 7
+Entra extension introduced `Microsoft.Identity.Client.NativeInterop`, whose
+packaged license prohibits redistribution. The owner subsequently authorized
+removing the affected integration instead of seeking licensing clearance.
+The Azure authentication extension, trimming root, and transitive broker graph
+are removed; Entra connection-string authentication is no longer supported.
+Release and CI retain the fail-closed redistribution guard, which admits the
+broker-free graph. See [Third-Party Notices](../../THIRD-PARTY-NOTICES.md).
+
+## Native SNI asset exclusion
+
+Actual publication exposed a flaw in the earlier rationale: framework-dependent
+Windows and portable NuGet tool packages also bundle native SNI. Its Microsoft
+license grants object-code redistribution subject to additional requirements.
+Avoid those requirements by excluding every `Microsoft.Data.SqlClient.SNI.runtime`
+asset in shared build configuration; keep its restored version aligned with the
+driver rather than suppressing or hand-editing NuGet's dependency graph.
+
+Use MIT-licensed managed SNI on all platforms. Shared runtime configuration enables
+SqlClient's documented `Switch.Microsoft.Data.SqlClient.UseManagedNetworkingOnWindows`
+switch for the server, tests, and fuzz executable. SQL password and Windows
+Integrated Authentication remain the supported authentication contract.
+Verify clean publication directories and the actual NuGet tool archive: changing
+only `SelfContained` is not a redistribution safeguard.
+
 
 ## Considered Options
 
-- Self-contained binary for all platforms including Windows — rejected: SNI license risk under MIT.
+- Change Windows to self-contained in this cutover — rejected: changes the existing deployment contract; managed SNI asset exclusion does not require that change.
 - Framework-dependent everywhere — rejected: forces every Linux/macOS user to install .NET 10, hurting the "just works via npx" UX.
 - Drop Windows support entirely — rejected: Windows is the dominant SQL Server dev platform.
 
@@ -29,4 +46,4 @@ reports. See [Third-Party Notices](../../THIRD-PARTY-NOTICES.md).
 
 - Linux/macOS users get `npx mssql-mcp` that just works. Windows users get a working `npx` experience only if .NET 10 runtime is present, otherwise must `dotnet tool install`. Document this in README.
 - Release pipeline builds 4 self-contained RIDs (linux-x64/arm64, osx-x64/arm64) + publishes a NuGet tool package. Windows builds are framework-dependent.
-- `THIRD-PARTY-NOTICES` must enumerate Microsoft.Data.SqlClient.SNI's Distributable Code terms even though we don't bundle it, because the dotnet tool path restores it.
+- Third-party notices explain the excluded native SNI package and the managed-networking replacement. Windows execution remains a separate platform-verification requirement.

@@ -101,12 +101,12 @@ The Quick start above covers the common path. This section covers platform detai
 | `osx-arm64` | yes | `.tar.gz` | Apple Silicon |
 | `win-x64` | no (framework-dependent) | `.zip` | Requires .NET 10 runtime; `dotnet tool install` is the recommended path |
 
-Windows is framework-dependent because the self-contained build would bundle `Microsoft.Data.SqlClient.SNI` under the Microsoft "Distributable Code" license, whose anti-copyleft clause conservatively blocks redistribution under our MIT license. Linux and macOS use the managed SNI implementation (MIT-clean). This is the distribution rationale — see [Architecture & decisions](#architecture--decisions) for the full ADR.
+Windows retains the existing framework-dependent distribution and requires .NET 10. All platforms now use managed SNI; native SNI assets are explicitly excluded even from framework-dependent and NuGet tool packages. Windows selects SqlClient's [managed networking switch](https://github.com/dotnet/SqlClient/blob/v7.1.1/BUILDGUIDE.md#using-managed-sni-on-windows). See [Architecture & decisions](#architecture--decisions).
 
-**Current unreleased builds have a separate Entra native-broker redistribution
-hold.** The managed SNI rationale does not clear the complete authentication
-graph for publication. Release and CI package uploads are blocked as described in
-[Third-Party Notices](THIRD-PARTY-NOTICES.md).
+The Entra authentication extension was removed from unreleased builds because its
+native broker dependency prohibits redistribution. SQL password and Windows
+Integrated Authentication remain supported; `Authentication=Active Directory ...`
+modes are no longer supported. See [Authentication](#authentication).
 
 ### How the binary is delivered
 
@@ -444,7 +444,7 @@ Exit code 1. The `tag` tells you the category:
 |---|---|---|
 | `timeout` | Server didn't respond in time | Check the hostname/port, firewall rules, and that SQL Server accepts TCP connections. |
 | `connection` | Network-level failure (refused, DNS, etc.) | Verify the `Server=` value, that SQL Server is running, and that port 1433 (or your custom port) is reachable. |
-| `auth` | Login failed | Double-check `User Id` and `Password`. If using Entra ID, verify the `Authentication=` setting. |
+| `auth` | Login failed | Double-check `User Id` and `Password`, or the Windows identity and database grants for Integrated Authentication. |
 | `certificate` | TLS/SSL handshake failed | See [Troubleshooting: connection / login failed](#connection-failed--login-failed) below — usually `TrustServerCertificate=True` is needed for self-signed certs. |
 
 If `--validate` passes but your harness can't see the server, the problem is in the harness config — see [Troubleshooting: agent can't see the server](#agent-cant-see-the-server).
@@ -678,23 +678,20 @@ On Windows with .NET 10, `Integrated Security=True` uses the running process's W
 Server=myserver;Database=mydb;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;
 ```
 
-This does not work from the self-contained Linux/macOS npm binary (no SSPI). For cross-platform, use SQL auth or Microsoft Entra ID.
+This does not work from the self-contained Linux/macOS npm binary (no SSPI). For cross-platform, use SQL authentication.
 
-### Microsoft Entra ID (formerly Azure AD) — Default authentication
+### Microsoft Entra ID — no longer supported
 
-`Authentication=Active Directory Default` picks up the ambient credential — managed identity in Azure, `az login` locally, or `DefaultAzureCredential` chain:
+The application no longer includes `Microsoft.Data.SqlClient.Extensions.Azure`.
+Its supported versions pull in `Microsoft.Identity.Client.NativeInterop`, whose
+packaged license prohibits redistribution. Removing that integration avoids
+shipping the restricted component without downgrading SqlClient security fixes.
 
-```text
-Server=tcp:myserver.database.windows.net,1433;Database=mydb;Authentication=Active Directory Default;Encrypt=True;
-```
-
-For service principals with a client secret, use `Active Directory Service Principal` with `User ID` and `Password` set to the SPN client ID and secret respectively.
-
-SqlClient 7 separates driver-provided Entra authentication into
-`Microsoft.Data.SqlClient.Extensions.Azure`. The server includes the version-matched
-extension and preserves its reflection-discovered providers in trimmed distributions.
-Identity configuration, token acquisition, and database grants still belong to the host;
-installing the provider does not establish access to an Azure database.
+Connection strings using `Authentication=Active Directory ...` no longer work,
+including Default, Managed Identity, Service Principal, Interactive, and Device
+Code Flow. Configure SQL authentication instead, or Windows Integrated
+Authentication on Windows. The application does not acquire Entra tokens or
+provide a replacement credential chain.
 
 ## Configuration
 
@@ -921,16 +918,15 @@ releases verified against [Microsoft's release metadata](https://builds.dotnet.m
 Package versions are centralized in `Directory.Packages.props`; committed lockfiles
 cover portable builds and all six publish profiles. CI reads the same `global.json`,
 and Docker pins both SDK and runtime-dependency images by digest.
-**Publication hold:** the retained Entra extension brings in
-`Microsoft.Identity.Client.NativeInterop`, whose packaged license is not MIT and
-prohibits redistribution. The owner selected retention of authentication support
-with public distribution blocked pending licensing clearance.
-`node scripts/check-redistribution.js` currently exits 1 by design, and the Release
-workflow runs that gate before producing or publishing artifacts. CI still builds
-and tests, but withholds NuGet/npm package uploads; SBOM and verification reports
-remain available. Local success is not permission to distribute the binaries,
-container, or NuGet/npm packages.
-See [Third-Party Notices](THIRD-PARTY-NOTICES.md).
+**Redistribution guard:** the Azure authentication extension and its restricted
+`Microsoft.Identity.Client.NativeInterop` graph were removed with owner approval.
+Entra authentication is no longer supported; SQL password and Windows Integrated
+remain. `node scripts/check-redistribution.js` now admits the broker-free graph
+and continues to fail closed if that dependency is reintroduced.
+Release runs the guard before producing/publishing artifacts; CI applies it
+before NuGet/npm uploads. Native Windows SNI assets are explicitly excluded too.
+See [Third-Party Notices](THIRD-PARTY-NOTICES.md). This guard does not establish
+general license compliance.
 
 
 Non-.NET components serve distribution or independent verification, not a second
@@ -971,7 +967,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for coding standards, ADR workflow, and
 ## Trademarks & licensing
 
 - **License:** MIT. See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
-- **Third-party notices:** See [THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md) for the full list, including `Microsoft.Data.SqlClient.SNI`'s "Distributable Code" license terms (which is why Windows builds are framework-dependent).
+- **Third-party notices:** See [THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md) for distributed components and the excluded Azure/native SNI dependencies.
 - **Not affiliated with Microsoft Corporation.** "Microsoft SQL Server", "Windows", "Azure", "Microsoft Entra ID", and related marks are trademarks of Microsoft Corporation. This project is an independent MCP server that connects to SQL Server using the public `Microsoft.Data.SqlClient` ADO.NET provider.
 - **Client Access License (CAL) / multiplexing.** Using mssql-mcp does not reduce or eliminate SQL Server licensing requirements. Each end user or device that indirectly accesses SQL Server through mssql-mcp may require a CAL or a Core-based license, exactly as if they were connecting directly. You are responsible for ensuring your SQL Server deployment is properly licensed.
 

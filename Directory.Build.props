@@ -19,4 +19,9 @@
     <!-- CA1859: Concrete test helper types remain a tracked cleanup. -->
     <NoWarn>$(NoWarn);CA1707;CA1848;CA1873;CA1863;CA1861;CA1859</NoWarn>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Framework-dependent/tool packages also copy native SNI unless its assets are excluded. -->
+    <PackageReference Include="Microsoft.Data.SqlClient.SNI.runtime" ExcludeAssets="all" PrivateAssets="all" />
+    <RuntimeHostConfigurationOption Include="Switch.Microsoft.Data.SqlClient.UseManagedNetworkingOnWindows" Value="true" />
+  </ItemGroup>
 </Project>

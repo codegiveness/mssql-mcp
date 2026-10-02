@@ -8,7 +8,7 @@ ADRs document every significant design choice in mssql-mcp. They are numbered se
 | [ADR-0002](0002-distribution-strategy.md) | Distribution: dotnet tool + npm wrapper | Active (install.js section superseded by ADR-0028) |
 | [ADR-0003](0003-no-result-cap.md) | No application-layer row cap; transport-safety byte limit with notice | Active |
 | [ADR-0004](0004-connection-lifecycle.md) | Single connection string at startup; rely on SqlClient built-in retry | Active |
-| [ADR-0005](0005-authentication-matrix.md) | Authentication: SQL password + Windows Integrated + Active Directory Default | Active |
+| [ADR-0005](0005-authentication-matrix.md) | Authentication: SQL password + Windows Integrated; Entra integration removed | Active |
 | [ADR-0006](0006-guard-ast-allowlist.md) | Guard AST allowlist: Visitor-based statement-type allowlist | Active |
 | [ADR-0007](0007-restricted-execution-mechanics.md) | Restricted-mode execution: transaction + always rollback, configurable timeout | Active |
 | [ADR-0008](0008-mcp-sdk-choice.md) | MCP SDK choice | Active |

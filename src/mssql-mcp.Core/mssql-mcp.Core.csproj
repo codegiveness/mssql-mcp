@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" />
-    <PackageReference Include="Microsoft.Data.SqlClient.Extensions.Azure" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" />
     <PackageReference Include="Microsoft.Extensions.Options" />

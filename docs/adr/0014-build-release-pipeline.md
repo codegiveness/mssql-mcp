@@ -18,7 +18,7 @@ Two GitHub Actions workflows. `ci.yml` runs build + test + pack (no publish) on 
 1. All CI steps
 2. Build self-contained binaries per RID:
    - `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`: `dotnet publish -r <rid> --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true`
-   - `win-x64`: `dotnet publish -r win-x64 --self-contained false -p:PublishSingleFile=true` (framework-dependent per ADR-0002 — SNI license blocks self-contained Windows)
+   - `win-x64`: `dotnet publish -r win-x64 --self-contained false -p:PublishSingleFile=true` (retain the Windows runtime contract per ADR-0002; native SNI assets are excluded and managed networking is selected)
 3. Archive flat (binary at archive root per the Node shim contract) — `.tar.gz` for Unix, `.zip` for Windows
 4. Generate SHA256 checksums
 5. Create GitHub Release with archives + checksums

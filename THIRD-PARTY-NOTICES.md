@@ -11,51 +11,45 @@ their license terms. Source links are provided for verification.
 - Purpose: ADO.NET data provider for Microsoft SQL Server. Used in all build
   configurations (NuGet package and self-contained binaries).
 
-## Microsoft.Data.SqlClient.Extensions.Azure and authentication libraries
+## SqlClient extension abstractions and internal logging
 
-- License: MIT for `Microsoft.Data.SqlClient.Extensions.Azure`, its
-  `Extensions.Abstractions` / `Internal.Logging` companions, Azure.Core,
-  Azure.Identity, Microsoft.Identity.Client, Microsoft.Identity.Client.Broker,
-  and Microsoft.Identity.Client.Extensions.Msal.
+- License: MIT
 - Copyright: Microsoft Corporation / .NET Foundation and Contributors.
-- Sources: https://github.com/dotnet/SqlClient,
-  https://github.com/Azure/azure-sdk-for-net,
-  https://github.com/AzureAD/microsoft-authentication-library-for-dotnet.
-- Purpose: Preserve driver-provided Microsoft Entra authentication after the
-  SqlClient 7 package split.
+- Source: https://github.com/dotnet/SqlClient.
+- Purpose: `Microsoft.Data.SqlClient.Extensions.Abstractions` and
+  `Microsoft.Data.SqlClient.Internal.Logging` remain driver dependencies.
 
-### Microsoft.Identity.Client.NativeInterop — redistribution hold
+## Removed Entra authentication integration
 
-- License: Microsoft Software License Terms, **not MIT**.
-- Package: https://www.nuget.org/packages/Microsoft.Identity.Client.NativeInterop/0.20.6.
-- The official package's `LICENSE`, section 3(e), prohibits sharing/publishing/
-  distributing the software. It contains native broker assets for Windows,
-  Linux x64, and macOS; it is a transitive authentication dependency.
-- Local installation and verification are distinct from permission to redistribute.
-  The owner selected retention of Entra support with public redistribution blocked
-  pending licensing clearance. `scripts/check-redistribution.js` enforces the hold
-  before artifact production/publication in the Release workflow and withholds
-  distributable NuGet/npm uploads in CI without disabling verification reports.
-- Do not publish the affected binaries, container, or NuGet/npm artifacts without
-  confirmed redistribution rights or a reviewed dependency change that removes the
-  restricted software while preserving the supported authentication contract.
-  The MIT license of this repository does not grant rights to this dependency.
+`Microsoft.Data.SqlClient.Extensions.Azure` and its Azure.Identity / MSAL
+authentication graph are no longer included. Their transitive
+`Microsoft.Identity.Client.NativeInterop` 0.20.6 package has Microsoft Software
+License Terms, not MIT; section 3(e) prohibits sharing/publishing/distributing
+the software. Package: https://www.nuget.org/packages/Microsoft.Identity.Client.NativeInterop/0.20.6.
 
-## Microsoft.Data.SqlClient.SNI.runtime
+The owner authorized removal rather than licensing clearance. Entra connection
+string authentication is consequently unsupported; SQL password and Windows
+Integrated Authentication remain. No restricted broker assets may be shipped.
+`scripts/check-redistribution.js` remains a fail-closed release/CI guard against
+reintroducing that dependency. Removing this known component is not a complete
+legal/licensing audit. Native SNI asset exclusion is described below.
 
-- License: Microsoft "Distributable Code" license
-- Copyright: Copyright (c) Microsoft Corporation
-- Source: https://www.nuget.org/packages/Microsoft.Data.SqlClient.SNI.runtime
-- Purpose: Native SNI (Session Network Interface) for Windows. Transitive
-  dependency of Microsoft.Data.SqlClient on Windows.
-- Note: The Microsoft "Distributable Code" license contains anti-copyleft
-  clauses (§3.a.iii) that conservatively block redistribution inside a
-  self-contained binary under an MIT-licensed project. For this reason,
-  Windows builds of mssql-mcp are **framework-dependent** (the SNI native
-  component is resolved via NuGet restore on the user's machine, not
-  redistributed inside our binary). Linux and macOS builds use the managed
-  SNI implementation, which is MIT-licensed and freely redistributable.
-  See ADR-0002 for the full rationale.
+## Excluded Microsoft.Data.SqlClient.SNI.runtime assets
+
+- License: Microsoft Software License Terms ("Distributable Code").
+- Copyright: Copyright (c) Microsoft Corporation.
+- Source: https://www.nuget.org/packages/Microsoft.Data.SqlClient.SNI.runtime/7.1.0.
+- Purpose: Windows native SNI. The package remains in NuGet's restore graph because
+  SqlClient depends on it, but all assets are excluded from builds and publication.
+- Section 3(a) permits object-code redistribution subject to additional requirements;
+  framework-dependent publishing does not avoid those requirements because it
+  also copies native dependencies. The earlier framework-dependent-only workaround
+  did not actually exclude SNI.
+- The application instead uses MIT-licensed managed SNI on every platform.
+  `Switch.Microsoft.Data.SqlClient.UseManagedNetworkingOnWindows` is enabled in
+  executable/test runtime configuration. Native SNI is not distributed in our
+  binaries, container, Windows archive, or NuGet tool package.
+  See ADR-0002; no licensing clearance is being sought for excluded native assets.
 
 ## Microsoft.SqlServer.TransactSql.ScriptDom
 

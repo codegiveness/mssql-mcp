@@ -1,4 +1,4 @@
-# Authentication: SQL password + Windows Integrated + Active Directory Default; env var + CLI flag
+# Authentication: SQL password + Windows Integrated; env var + CLI flag
 
 ## Context
 
@@ -6,34 +6,34 @@ The server needs to support the standard SQL Server authentication matrix across
 
 ## Decision
 
-v1 supports three auth methods: SQL password (universal baseline), Windows Integrated (`Integrated Security=SSPI`, Windows-only via `dotnet tool` / framework-dependent path — SNI license blocks self-contained Windows builds per ADR-0002), and Active Directory Default (`Authentication=Active Directory Default`, Microsoft's recommended "do the right thing" chain — covers MSI, VS, CLI, Interactive fallbacks). This covers the standard SQL Server authentication matrix. We skip AD Password and AD Service Principal in v1 — anyone needing them can use AD Default via environment variables, and we can add them in v1.1 if requested.
+Support SQL password (universal baseline) and Windows Integrated (`Integrated Security=SSPI`, Windows-only via `dotnet tool` / framework-dependent execution). Windows uses managed SNI with native SNI assets excluded per ADR-0002. Microsoft Entra connection-string authentication is no longer supported following the owner-authorized dependency removal below.
 
 Connection string is supplied via env var `MSSQL_CONNECTION_STRING` or CLI flag `--connection-string`, with env var taking precedence. No config file in v1. Env var matches the MCP host config pattern (Claude Desktop, Cursor inject env vars); CLI flag helps debugging and `npx` one-shots. Connection string details are never logged raw — `Password=...;` is regex-replaced with `Password=***;` in all log output.
 
-## SqlClient 7 compatibility
+## SqlClient 7 licensing cutover
 
 The current SqlClient 7.1.1 baseline separates driver-provided Entra authentication
-into `Microsoft.Data.SqlClient.Extensions.Azure`. The version-matched extension
-restores the documented modes; its assembly is rooted to preserve reflection-based
-provider discovery in trimmed builds. Provider discovery was exercised in portable
-and actual trimmed Docker assemblies, not an authenticated Azure session.
+into `Microsoft.Data.SqlClient.Extensions.Azure`. Supported extension versions
+and the checked SqlClient 6.1 LTS rollback still depend on the restricted native
+broker. Disabling broker usage does not remove the package from published assets.
+The owner authorized removal rather than licensing clearance; introducing a
+custom authentication subsystem or downgrading security fixes was not warranted.
 
-The retained extension introduces a public redistribution hold for its native
-broker dependency. The managed SNI statements below do not establish licensing
-clearance for the complete authentication graph. See
-[Third-Party Notices](../../THIRD-PARTY-NOTICES.md) and the
-[current distribution hold](0002-distribution-strategy.md#current-publication-hold).
+Remove the Azure extension, its trimming root, and its transitive authentication
+graph. This removes every `Authentication=Active Directory ...` connection-string
+mode, including Default and managed identity. SQL password and Windows Integrated
+Authentication remain. See [Third-Party Notices](../../THIRD-PARTY-NOTICES.md) and
+the [distribution decision](0002-distribution-strategy.md#entra-dependency-removal).
 
 ## Considered Options
 
-- SQL password only — rejected: excludes every corporate Windows user on Integrated Auth and every Azure-hosted MSI scenario.
-- Everything except Interactive — rejected: AD Password and AD Service Principal add code paths and testing burden for marginal v1 value; AD Default covers most of their use cases via environment variables.
+- SQL password only — rejected: excludes corporate Windows users on Integrated Authentication.
 - Per-call connection string — rejected: credentials in every tool call is insecure; agent carries connection state in its reasoning context.
 - Config file (`.mssql-mcp.json`) — rejected for v1: file-location resolution adds complexity for little value when env var + CLI flag cover the MCP host config patterns.
 
 ## Consequences
 
-- Linux/macOS self-contained binaries: SQL password + AD Default work cleanly (managed SNI, MIT-clean). Windows Integrated does NOT work on these platforms — SSPI is Windows-only, and Kerberos-on-Linux is fragile and out of scope for v1.
-- Windows: all three auth methods work via `dotnet tool install` or framework-dependent execution (SNI present on user's machine via NuGet restore, we are not the distributor).
+- Linux/macOS self-contained binaries: SQL password is supported (managed SNI). Windows Integrated is not supported on these platforms; SSPI is Windows-only and Kerberos-on-Linux remains out of scope.
+- Windows: SQL password and Windows Integrated remain supported via `dotnet tool install` or framework-dependent execution using SqlClient's managed networking implementation. Native SNI is excluded from published assets.
 - Agent never sees credentials — connection string is a server config concern, not a tool input.
 - If creds rotate or DB moves, restart the server (per ADR-0004).
