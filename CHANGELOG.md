@@ -102,7 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Continue releases on 0.x. Release automation rejects major versions 1 and above; superseded v1 graduation tasks are retired rather than falsely certified.
 - Record the maintainer's successful production use with Oh My Pi and OpenCode as user-reported evidence, without inventing a 30-day log or verification of other clients.
-- Expand CodeQL to `security-and-quality`; activate a native HIGH/CRITICAL CodeQL merge gate without bypass actors. Expanded hosted analysis and new required-check enforcement remain pending deployment.
+- Expand CodeQL to `security-and-quality` for C#, JavaScript/TypeScript and Python; activate a native HIGH/CRITICAL CodeQL merge gate without bypass actors. Exercise hosted analyses, triage complete SARIF and require all 15 observed GitHub Actions checks with strict branch protection.
 - Content-lock Inspector 2.9.0/c8 and install unchanged hash-pinned npm 12.2.0 source with independently SRI-locked production dependencies; resolve the original bundled HIGH vulnerabilities without vendor patches or scan exceptions. Adapt MCP smoke to the v2 response envelope and memory-only secret storage.
 - Switch npm release authentication to package-scoped GitHub Trusted Publishing (OIDC), with Node 24 and a content-locked npm CLI; remove the workflow's long-lived `NPM_TOKEN` dependency while preserving provenance, sequential platform-first publication, and the 0.x guard. Publication requires each package's trusted-publisher authorization and a passing tool-dependency scan.
 
