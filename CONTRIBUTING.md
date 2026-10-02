@@ -104,20 +104,18 @@ Run these checks before pushing or opening a PR. If any check fails, the push is
 ### Dependencies
 
 - Adding a new dependency requires updating `THIRD-PARTY-NOTICES.md` with the license and source link
-- Transitive dependencies that ship in self-contained builds must be MIT or Apache-2.0 (no copyleft, no "Distributable Code" license unless we have a redistribution plan like the SNI workaround in ADR-0002)
+- Transitive dependencies shipped in artifacts must be MIT or Apache-2.0 unless an explicit redistribution plan is approved. Native SNI assets are excluded and managed networking is selected per ADR-0002; framework-dependent publishing alone is not a license safeguard.
 
-The modernization retains Entra authentication with a **public redistribution hold**
-for `Microsoft.Identity.Client.NativeInterop`. Its packaged license section 3(e)
-prohibits redistribution. The Release workflow executes
-`node scripts/check-redistribution.js` before any artifact production/publication;
-it currently fails intentionally. CI withholds NuGet/npm package uploads while
-retaining builds, tests, SBOM, and verification reports. Local verification may
-continue, but do not publish affected binaries, containers, or NuGet/npm artifacts
-until owner licensing review clears the dependency or a reviewed replacement
-preserves authentication.
-The deterministic gate regressions run with
-`node scripts/test/check-redistribution.test.js`. This is one known dependency hold,
-not a complete legal/licensing audit.
+The Entra authentication extension was removed with owner approval because its
+`Microsoft.Identity.Client.NativeInterop` dependency prohibits redistribution.
+Do not reintroduce that graph or undocumented Entra support. SQL password and
+Windows Integrated Authentication remain supported.
+The Release workflow executes `node scripts/check-redistribution.js` before
+artifact production/publication; CI applies the same guard to NuGet/npm uploads.
+The gate now admits the broker-free graph and still rejects any inventory that
+contains the restricted component. Its deterministic regressions run with
+`node scripts/test/check-redistribution.test.js`. This addresses one known
+dependency restriction, not a complete legal/licensing audit.
 
 
 ## ADR Workflow

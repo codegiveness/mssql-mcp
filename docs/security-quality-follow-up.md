@@ -15,9 +15,10 @@ npm, Microsoft registry, or maintainer release metadata.
 The retained stable application baseline includes **SqlClient 7.1.1**,
 **Microsoft.Extensions 10.0.12**, **ScriptDom 180.117.0**, and **MCP SDK 2.2.0**.
 SqlClient 7 separated Entra support into its
-[Azure extension](https://learn.microsoft.com/en-us/sql/connect/ado-net/sql/azure-active-directory-authentication?view=sql-server-ver17);
-the matching **7.1.1** extension restores the documented authentication modes.
-Its assembly is explicitly rooted for reflection-based discovery during trimming.
+[Azure extension](https://learn.microsoft.com/en-us/sql/connect/ado-net/sql/azure-active-directory-authentication?view=sql-server-ver17).
+After the modernization, the owner authorized removing that integration instead
+of seeking clearance for its restricted native broker. SqlClient remains 7.1.1;
+SQL password and Windows Integrated remain, but Entra authentication is unsupported.
 All **24** portable, test, fuzz, and six-profile deployment locks were regenerated
 against official NuGet content in a clean cache; locked restore and content-hash
 validation remain enabled.
@@ -79,25 +80,44 @@ its EOF shutdown exited zero. Smoke-created tables were removed.
 The Docker build emits two nonfatal SourceLink/repository-metadata warnings
 because the build context excludes Git metadata; it does not produce usable
 SourceLink information for the container executable.
-Provider discovery also succeeded using the actual trimmed assemblies extracted
-from that Docker executable; this does not establish an authenticated Azure login.
+The earlier provider-discovery smoke proved Entra integration before its removal;
+it was not an authenticated Azure login and is not a claim of current support.
 
-**Public redistribution remains blocked by the owner's selected policy.**
-The Entra graph includes `Microsoft.Identity.Client.NativeInterop` **0.20.6**;
-its packaged license section 3(e) prohibits distribution. The release workflow
-fails closed through `scripts/check-redistribution.js`. Licensing clearance or
-an owner-approved dependency change is required before publication. This check
-addresses one known restricted component, not general license compliance.
-CI applies the same policy before NuGet/npm artifact uploads; builds, tests, SBOM,
-and verification reports remain enabled while distributable packages are withheld.
+**The owner authorized removal of the restricted authentication graph.**
+The Azure extension, reflection trimming root, and Azure.Identity/MSAL/native
+broker dependencies are removed from portable and deployment inventories.
+`scripts/check-redistribution.js` remains a fail-closed release/CI gate against
+reintroduction; it now admits the broker-free application graph.
+Actual output inspection also disproved the former Windows SNI workaround:
+framework-dependent builds and portable tool packages copy native dependencies.
+Shared build configuration excludes all native SNI assets and selects SqlClient's
+documented managed-networking switch for Windows. The restored SNI package remains
+version-aligned at 7.1.0 but none of its assets may be published.
+The existing distribution architecture remains. These exclusions resolve the
+identified restrictions, not general license compliance.
+
+The removal cutover repeated the **452 unit / 479 live-SQL successes** and all
+three mandatory Inspector checks, with zero failures and the same four skips.
+All **24** inventories exclude the Azure/MSAL/native broker graph.
+Locked restore and clean publication passed for all six exact deployment profiles,
+including Windows' existing framework-dependent single-file flags.
+Actual publication directories and the NuGet tool ZIP exclude native SNI and the
+restricted authentication assemblies; the packaged runtime configuration enables
+managed Windows networking. Provider discovery found no Entra providers for all
+driver `ActiveDirectory` methods. The final Alpine image validated SQL and
+exercised all nine tools, DDL/DML/read, decimal(38), metadata, XML/summary plans,
+and diagnostics, then exited zero on EOF. Temporary database tables were removed.
+The actual newly packed NuGet tool was installed from an isolated local feed and
+exercised the same nine-tool workload with clean EOF shutdown. The published
+linux-x64 executable passed that workload too.
 
 Application logic remains .NET. The official Inspector, npm distribution,
 Node-based release tooling, shell orchestration, and Python security/reproducible
 packaging utilities retain independent capabilities; replacing them merely to
 claim “100% .NET” would not improve the runtime. Inspector JSON processing now
 uses its already-required Node runtime rather than an additional Python step.
-Windows/macOS/ARM64 execution, authenticated Entra token acquisition, exhaustive
-leak profiling, production load, and a complete legal audit remain unverified.
+Windows/macOS/ARM64 execution, exhaustive leak profiling, production load, and a
+complete legal audit remain unverified. Entra authentication is intentionally unsupported.
 
 ## Baseline evidence and twelve active findings
 

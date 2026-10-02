@@ -99,7 +99,7 @@ Publishing authentication uses npm Trusted Publishing (OIDC), not a stored `NPM_
 
 ### 8. Windows: framework-dependent, honest failure
 
-Windows (`win-x64`) ships a framework-dependent binary (per ADR-0002 — `Microsoft.Data.SqlClient.SNI`'s "Distributable Code" license conservatively blocks self-contained redistribution under MIT). The binary is bundled via the `win-x64` optional dep, so it lands on disk postinstall-free. But it requires the .NET 10 runtime on the host. The shim detects a missing runtime at startup and prints the runtime download URL + `dotnet tool install` fallback. Windows is not one-shot until the SNI license issue is resolved — that investigation is a separate follow-up ADR.
+Windows (`win-x64`) retains the framework-dependent binary and .NET 10 runtime requirement. It is delivered through the `win-x64` optional dependency without postinstall. The shim detects a missing runtime and prints the runtime download URL plus the `dotnet tool install` fallback. ADR-0002 now selects managed SNI and explicitly excludes native SNI assets; framework-dependent publishing alone was not an effective licensing workaround.
 
 ## Considered Options
 
@@ -115,6 +115,6 @@ Windows (`win-x64`) ships a framework-dependent binary (per ADR-0002 — `Micros
 - **`install.js` is deleted.** Its logic is relocated into the shim. The smoke test (`npm/test.js`) is updated to test the shim's RID mapping and checksum logic instead of `install.js` exports.
 - **`mssql-mcp-cli` is frozen at v0.2.0 and deprecated.** Existing users keep working; migration is opt-in via the npm deprecation notice.
 - **ADR-0014's postinstall contract is superseded.** The "fail loudly, no fallback, no retry" contract is replaced by: optionalDep for the happy path, self-heal download with cache for the unhappy path, fail loudly only when both fail. The rest of ADR-0014 (tag-triggered release, CI on main, dual stability contract, graduation triggers) is untouched.
-- **Windows is not one-shot.** The .NET 10 runtime dependency remains. The shim makes the failure honest and actionable, but Windows users without .NET must install it. Path 2 (resolve the SNI license for self-contained Windows) is a separate follow-up ADR.
+- **Windows is not one-shot.** The existing .NET 10 runtime dependency remains. The shim makes the failure honest and actionable. Native SNI is now excluded independently of self-contained/framework-dependent deployment; changing the Windows runtime distribution is outside this cutover.
 - **Self-heal download can fail at runtime.** First run on a stripped-optionalDep environment does a network download. If that fails (air-gapped, proxy), the error message provides the manual download URL. `MSSQL_MCP_NO_DOWNLOAD=1` lets locked-down environments skip the attempt and fail immediately with guidance.
 - **Cache at `~/.mssql-mcp/bin/`** is a new user-visible directory. Documented in README's Installation section. Users can clear it; the shim re-downloads on next run.

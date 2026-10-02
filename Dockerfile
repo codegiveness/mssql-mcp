@@ -1,6 +1,6 @@
 # Self-contained, single-file, trimmed linux-musl-x64 build of mssql-mcp.
-# Linux uses managed SNI per ADR-0002. The retained Entra native-broker
-# dependency still carries the public redistribution hold in THIRD-PARTY-NOTICES.md.
+# All platforms use managed SNI per ADR-0002. Restricted Entra broker and native
+# Windows SNI assets are excluded from distribution.
 FROM mcr.microsoft.com/dotnet/sdk:10.0.401@sha256:35d40304542c8689331f8cab17c65926cdf48fe711e289321d71924b230a7d29 AS build
 WORKDIR /src
 COPY . .

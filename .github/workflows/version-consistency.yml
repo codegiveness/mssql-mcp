@@ -43,7 +43,7 @@ jobs:
         run: node scripts/check-release-policy.js --manifest
       - name: Test release policy entrypoints
         run: node scripts/test/check-release-policy.test.js
-      - name: Test redistribution publication hold
+      - name: Test fail-closed redistribution guard
         run: node scripts/test/check-redistribution.test.js
       - name: Test authoritative version stamps
         run: node scripts/test/check-version-consistency.test.js
