@@ -55,9 +55,9 @@
       },
       "Microsoft.SqlServer.TransactSql.ScriptDom": {
         "type": "Direct",
-        "requested": "[180.102.0, )",
-        "resolved": "180.102.0",
-        "contentHash": "hIE9+a4TUrk1KQY+byb2WioGn6pmR2o03XzFm4kxloPdWio8bJJYfIFhGuveOT3426ZfnNxT6e9hfXb9EA0a9g=="
+        "requested": "[180.117.0, )",
+        "resolved": "180.117.0",
+        "contentHash": "VMaO1kz5dbufYly4jl+CUhrq0X+zb/3uTE16izqKi3lIDq1aYfWxxRxsj31KnwU1sMKLTyhhBYW+LMZBJyFBqg=="
       },
       "Microsoft.Bcl.Cryptography": {
         "type": "Transitive",
