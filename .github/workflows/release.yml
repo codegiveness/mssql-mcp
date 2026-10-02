@@ -30,8 +30,9 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
 
       # Both tag pushes and manual dispatch must pass before sync/build/publish.
       - name: Enforce 0.x release policy and resolve version
@@ -41,6 +42,9 @@ jobs:
         run: |
           node scripts/check-release-policy.js --manifest
           node scripts/check-release-policy.js --github-event
+
+      - name: Install npm CLI with trusted publishing support
+        run: npm install --global npm@12.0.1
 
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
@@ -151,8 +155,6 @@ jobs:
         run: node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('npm/package.json')); p.version='${{ steps.tag.outputs.version }}'; fs.writeFileSync('npm/package.json', JSON.stringify(p,null,2)+'\n')"
 
       - name: Publish per-platform npm packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -e
           tag="${{ steps.tag.outputs.name }}"
@@ -174,8 +176,6 @@ jobs:
 
       - name: Publish main npm package (@codegiveness/mssql-mcp)
         run: cd npm && npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   smoke:
     runs-on: ubuntu-latest
