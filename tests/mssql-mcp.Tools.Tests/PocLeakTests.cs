@@ -36,7 +36,7 @@ public class PocLeakTests
         const string leakyMessage =
             "Login failed for user 'sa'. Connection: Server=localhost;User Id=sa;Password=Hunter2!;Encrypt=True;";
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(SqlExceptionFactory.Create(number: 18456, message: leakyMessage, severity: 14, line: 1));
 
         MssqlMcpOptions opts = RestrictedOptions();
@@ -80,7 +80,7 @@ public class PocLeakTests
         Assert.Contains("Password=***;", obfuscated);
 
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(SqlExceptionFactory.Create(number: 18456, message: leaky, severity: 14, line: 1));
 
         MssqlMcpOptions opts = RestrictedOptions();
@@ -108,14 +108,10 @@ public class PocLeakTests
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // Simulate what sys.databases returns for master: state_desc=ONLINE, user_access_desc=MULTI_USER.
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>
-            {
-                new() { ["state_desc"] = "ONLINE", ["user_access_desc"] = "MULTI_USER" },
-            });
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>
+        {
+            new() { ["state_desc"] = "ONLINE", ["user_access_desc"] = "MULTI_USER" },
+        }, false));
 
         DatabaseValidationResult result =
             await SqlHelpers.ValidateDatabaseAsync(executor, "master", CancellationToken.None);
@@ -139,14 +135,10 @@ public class PocLeakTests
     public async Task A3_ValidateDatabaseAsync_AcceptsAllSystemDbs(string systemDb)
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>
-            {
-                new() { ["state_desc"] = "ONLINE", ["user_access_desc"] = "MULTI_USER" },
-            });
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>
+        {
+            new() { ["state_desc"] = "ONLINE", ["user_access_desc"] = "MULTI_USER" },
+        }, false));
 
         DatabaseValidationResult result =
             await SqlHelpers.ValidateDatabaseAsync(executor, systemDb, CancellationToken.None);

@@ -62,6 +62,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Bound query row accumulation using a conservative JSON-byte budget that includes keys, structure, nulls, escaping, and Unicode. Early reader termination now carries an explicit truncation notice; disabling the budget preserves uncapped behavior.
+- Refuse oversized raw SHOWPLAN XML with structured `PLAN_TOO_LARGE` and `format=summary` recovery advice, using bounded XML-compatible reads rather than materializing the complete plan first.
+- Align Microsoft.Extensions dependencies at 10.0.12, update SqlClient to 7.1.1 and coverlet to 10.1.0, and update the SHA-pinned Scorecard uploader.
+- Enable existing integration tests through an explicit runtime opt-in and repair their actual SQL result-type assumptions.
+- Synchronize all npm platform manifests with the release version and verify local package installs offline.
+- Pin Docker images to registry digests and use genuine content-hashed NuGet locks for portable and six runtime publish profiles. Disable the distro SDK's implicit repackaged dependency feed so official SDK and container restores validate the same hashes.
+- Restore actual SQL functionality in the Alpine container by using the ICU-enabled .NET 10 runtime image instead of invariant globalization. CI now checks a live container SQL connection, not just version output.
+- Replace source-text security assertions with behavioral redirect rejection/depth regressions; remove obsolete export-only smoke assertions.
+
+### Added
+
+- C# and JavaScript/TypeScript CodeQL security analysis and a bounded, coverage-guided ScriptDom/Guard fuzzing workflow with an intentional engine-crash probe and retained campaign artifacts.
+- Current security finding dispositions and explicit external prerequisites; historical audits remain unchanged.
+
+### Changed
+
+- Continue releases on 0.x. Release automation rejects major versions 1 and above; superseded v1 graduation tasks are retired rather than falsely certified.
+- Record the maintainer's successful production use with Oh My Pi and OpenCode as user-reported evidence, without inventing a 30-day log or verification of other clients.
+
 ## [0.4.2] - 2026-07-24
 
 ### Added

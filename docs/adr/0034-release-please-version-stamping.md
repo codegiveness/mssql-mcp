@@ -1,5 +1,9 @@
 # Release-please for automated version stamping and CHANGELOG generation
 
+> **Current release policy supplement:** [ADR-0036](0036-continue-zero-major-releases.md) requires continued 0.x releases. `bump-minor-pre-major: true` remains configured; one shared release-policy guard validates the manifest before release-please, generated tags before dispatch, and the manifest plus pushed/manual tag before artifact production/publication. All major versions >= 1, including v1 RCs, are blocked. The original automation decision below remains historical context; this supplement changes no version stamp.
+
+> **Platform stamp scope:** authoritative synchronization and consistency validation now include all five `npm/platforms/<rid>/package.json` versions, not only the main package's `optionalDependencies`. Release publication no longer rewrites those platform versions independently; `scripts/sync-all-stamps.js` owns them before build/package staging. This closes the stale-platform-version path that could cause local npm installation to select a registry version instead of the staged binary.
+
 We adopted [release-please](https://github.com/googleapis/release-please) with a custom manifest (`.release-please-manifest.json`) as the single source of truth for the version, driving automatic bumps of all version stamps (`mssql-mcp.csproj`, `npm/package.json` including five `optionalDependencies`, `server.json`'s three version fields), `CHANGELOG.md` generation from Conventional Commits, and tag creation. The existing tag-triggered `release.yml` builds and publishes unchanged. A `version-consistency.yml` CI workflow plus local `scripts/check-version-consistency.js` script enforce that no stamp ever drifts from the manifest.
 
 ## Context

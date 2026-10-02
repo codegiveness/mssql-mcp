@@ -66,11 +66,7 @@ public class SqlHelpersTests
     public async Task ValidateDatabase_ExistsOnlineMultiUser_ReturnsValid()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(DbRow("ONLINE", "MULTI_USER"));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(DbRow("ONLINE", "MULTI_USER"), false));
 
         DatabaseValidationResult result = await SqlHelpers.ValidateDatabaseAsync(executor, "AppDb", CancellationToken.None);
 
@@ -82,11 +78,7 @@ public class SqlHelpersTests
     public async Task ValidateDatabase_NoRows_ReturnsDoesNotExistError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
 
         DatabaseValidationResult result = await SqlHelpers.ValidateDatabaseAsync(executor, "MissingDb", CancellationToken.None);
 
@@ -104,11 +96,7 @@ public class SqlHelpersTests
     public async Task ValidateDatabase_NotOnline_ReturnsNotOnlineError(string stateDesc)
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(DbRow(stateDesc, "MULTI_USER"));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(DbRow(stateDesc, "MULTI_USER"), false));
 
         DatabaseValidationResult result = await SqlHelpers.ValidateDatabaseAsync(executor, "AppDb", CancellationToken.None);
 
@@ -124,11 +112,7 @@ public class SqlHelpersTests
     public async Task ValidateDatabase_NotMultiUser_ReturnsNotMultiUserError(string userAccessDesc)
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(DbRow("ONLINE", userAccessDesc));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(DbRow("ONLINE", userAccessDesc), false));
 
         DatabaseValidationResult result = await SqlHelpers.ValidateDatabaseAsync(executor, "AppDb", CancellationToken.None);
 
@@ -143,11 +127,7 @@ public class SqlHelpersTests
     {
         IReadOnlyDictionary<string, object>? captured = null;
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Do<IReadOnlyDictionary<string, object>?>(p => captured = p),
-                Arg.Any<CancellationToken>())
-            .Returns(DbRow("ONLINE", "MULTI_USER"));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Do<IReadOnlyDictionary<string, object>?>(p => captured = p), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(DbRow("ONLINE", "MULTI_USER"), false));
 
         await SqlHelpers.ValidateDatabaseAsync(executor, "AppDb", CancellationToken.None);
 

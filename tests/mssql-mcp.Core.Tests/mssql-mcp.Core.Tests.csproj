@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Compile Include="..\IntegrationEnvironment.cs" Link="IntegrationEnvironment.cs" />
   </ItemGroup>
 
   <ItemGroup>

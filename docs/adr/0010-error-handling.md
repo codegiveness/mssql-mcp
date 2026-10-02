@@ -14,8 +14,9 @@ All errors follow a consistent JSON envelope: `{"error": "<DISCRIMINATOR>", ...d
 | SQL | `"SQL"` | Non-transient `SqlException` | `{"error": "SQL", "code": "SQL208", "message": "Invalid object name 'users'.", "severity": 16, "line": 1, "procedure": null}` |
 | Internal | `"INTERNAL"` | Any other unhandled exception | `{"error": "INTERNAL", "exception_type": "InvalidOperationException", "detail": "{Message}"}` — never stack traces |
 | Object not found | `"OBJECT_NOT_FOUND"` | `get_object_details` returns zero rows | `{"error": "OBJECT_NOT_FOUND", "schema": "dbo", "name": "Orders", "type": "TABLE", "database": "SalesDB"}` |
+| Plan too large | `"PLAN_TOO_LARGE"` | Raw `explain_query` XML crosses a positive UTF-8 byte limit while being read | `{"error": "PLAN_TOO_LARGE", "max_bytes": 10485760, "detail": "SHOWPLAN_XML exceeds 10485760 bytes. Use format=summary instead."}` |
 
-All six classes return `isError: true`. Agents branch on the `error` discriminator field; `SQL` errors additionally let agents parse `code`/`severity` to decide recovery (≤10 warning, 11-16 fixable SQL error, 17-25 server/resource).
+All seven classes return `isError: true`. Agents branch on the `error` discriminator field; `SQL` errors additionally let agents parse `code`/`severity` to decide recovery (≤10 warning, 11-16 fixable SQL error, 17-25 server/resource). `PLAN_TOO_LARGE` returns no partial XML; request summary format, narrow the query, or change the byte budget. Zero disables raw XML refusal; summary format does not cap its underlying XML. Cleanup preserves session usability on refusal/cancellation/error paths (ADR-0003).
 
 ## Severity 25 (fatal SQL Server errors)
 
@@ -38,7 +39,7 @@ Surface the error, do **not** exit the process. The agent ran a query that hit a
 
 ## DTO-based error envelopes (v0.4.0)
 
-Error payloads are now explicit `record` DTOs rather than anonymous types, to enable source-generated JSON serialization under `PublishTrimmed=true` (issue #44). The DTOs are in `src/mssql-mcp.Tools/Json/DtoRecords.cs`:
+Error payloads are explicit `record` DTOs and production serialization uses `McpJsonContext` source-generated metadata under `PublishTrimmed=true` (issue #44). This is landed, not deferred. The DTOs are in `src/mssql-mcp.Tools/Json/DtoRecords.cs`:
 
 - `GuardRejectionPayload` (with nested `PositionDto`)
 - `TimeoutPayload`
@@ -46,5 +47,6 @@ Error payloads are now explicit `record` DTOs rather than anonymous types, to en
 - `InternalErrorPayload`
 - `ConnectionErrorPayload`
 - `ObjectNotFoundPayload`
+- `PlanTooLargePayload`
 
 Each DTO has `[JsonPropertyName]` attributes matching the snake_case JSON keys of the original anonymous types, ensuring **byte-for-byte identical JSON output** (verified by `DtoJsonEqualityTests`). The JSON shape documented in the table above is unchanged.

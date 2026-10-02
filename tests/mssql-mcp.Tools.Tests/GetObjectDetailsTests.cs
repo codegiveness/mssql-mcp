@@ -14,7 +14,7 @@ namespace mssql_mcp.Tools.Tests;
 /// </summary>
 public class GetObjectDetailsTests
 {
-    private static DatabaseTools CreateTools(ISqlExecutor executor)
+    private static DatabaseTools CreateTools(ISqlExecutor executor, long maxBytes = 10 * 1024 * 1024)
     {
         MssqlMcpOptions opts = new()
         {
@@ -22,7 +22,7 @@ public class GetObjectDetailsTests
             AccessMode = AccessMode.Restricted,
             QueryTimeout = 30,
             LogLevel = "info",
-            MaxResultBytes = 10 * 1024 * 1024,
+            MaxResultBytes = maxBytes,
             RetryCount = 3,
             RetryIntervalMin = 2,
             RetryIntervalMax = 10,
@@ -110,15 +110,12 @@ public class GetObjectDetailsTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // First call: sys.objects lookup (returns table type U)
         // Then: columns, indexes, triggers
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(
-                ObjectRow("U"),   // object type lookup
-                Columns(),         // columns
-                Indexes(),         // indexes
-                Triggers());       // triggers
+                new SqlQueryResult(ObjectRow("U"), false),
+                new SqlQueryResult(Columns(), false),
+                new SqlQueryResult(Indexes(), false),
+                new SqlQueryResult(Triggers(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.GetObjectDetails(null, "dbo", "Orders", null, CancellationToken.None);
@@ -137,31 +134,20 @@ public class GetObjectDetailsTests
     public async Task GetObjectDetails_Table_UsesQuotedDbPrefix()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ValidDbRow(), ObjectRow("U"), Columns(), Indexes(), Triggers());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false), new SqlQueryResult(ObjectRow("U"), false), new SqlQueryResult(Columns(), false), new SqlQueryResult(Indexes(), false), new SqlQueryResult(Triggers(), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.GetObjectDetails("AppDb", "dbo", "Orders", null, CancellationToken.None);
 
         // All subsequent queries (after validation) must use [AppDb].sys.* prefix.
-        await executor.Received(4).ExecuteQueryAsync(
-            Arg.Is<string>(s => s != null && s.Contains("[AppDb].sys.", StringComparison.Ordinal)),
-            Arg.Any<IReadOnlyDictionary<string, object>?>(),
-            Arg.Any<CancellationToken>());
+        await executor.Received(4).ExecuteQueryAsync(Arg.Is<string>(s => s != null && s.Contains("[AppDb].sys.", StringComparison.Ordinal)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task GetObjectDetails_View_ReturnsColumnsButNoIndexes()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ObjectRow("V"), Columns());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ObjectRow("V"), false), new SqlQueryResult(Columns(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.GetObjectDetails(null, "dbo", "ActiveOrders", null, CancellationToken.None);
@@ -177,11 +163,7 @@ public class GetObjectDetailsTests
     public async Task GetObjectDetails_Procedure_ReturnsParameters()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ObjectRow("P"), Parameters());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ObjectRow("P"), false), new SqlQueryResult(Parameters(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.GetObjectDetails(null, "dbo", "GetOrder", null, CancellationToken.None);
@@ -197,11 +179,7 @@ public class GetObjectDetailsTests
     public async Task GetObjectDetails_Function_ReturnsParameters()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ObjectRow("FN"), Parameters());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ObjectRow("FN"), false), new SqlQueryResult(Parameters(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.GetObjectDetails(null, "dbo", "ComputeTotal", null, CancellationToken.None);
@@ -216,11 +194,7 @@ public class GetObjectDetailsTests
     public async Task GetObjectDetails_NotFound_ReturnsObjectNotFoundError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.GetObjectDetails(null, "dbo", "Nonexistent", null, CancellationToken.None);
@@ -239,11 +213,7 @@ public class GetObjectDetailsTests
     public async Task GetObjectDetails_TableAlsoReturnsIndexes()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ObjectRow("U"), Columns(), Indexes(), Triggers());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ObjectRow("U"), false), new SqlQueryResult(Columns(), false), new SqlQueryResult(Indexes(), false), new SqlQueryResult(Triggers(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.GetObjectDetails(null, "dbo", "Orders", null, CancellationToken.None);
@@ -269,11 +239,7 @@ public class GetObjectDetailsTests
     public async Task GetObjectDetails_TableAlsoReturnsTriggers()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ObjectRow("U"), Columns(), Indexes(), Triggers());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ObjectRow("U"), false), new SqlQueryResult(Columns(), false), new SqlQueryResult(Indexes(), false), new SqlQueryResult(Triggers(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.GetObjectDetails(null, "dbo", "Orders", null, CancellationToken.None);
@@ -298,11 +264,7 @@ public class GetObjectDetailsTests
     {
         List<string> capturedSqls = new();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ObjectRow("U"));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ObjectRow("U"), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.GetObjectDetails(null, "dbo", "Orders", "TABLE", CancellationToken.None);
@@ -321,11 +283,7 @@ public class GetObjectDetailsTests
         // query as @objectId parameter to detail queries.
         List<string> capturedSqls = new();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ValidDbRow(), ObjectRow("U"), Columns(), Indexes(), Triggers());
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false), new SqlQueryResult(ObjectRow("U"), false), new SqlQueryResult(Columns(), false), new SqlQueryResult(Indexes(), false), new SqlQueryResult(Triggers(), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.GetObjectDetails("AppDb", "dbo", "Orders", null, CancellationToken.None);
@@ -345,11 +303,7 @@ public class GetObjectDetailsTests
         // Verify the lookup query SELECTs object_id alongside type.
         List<string> capturedSqls = new();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ValidDbRow(), ObjectRow("U"), Columns(), Indexes(), Triggers());
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false), new SqlQueryResult(ObjectRow("U"), false), new SqlQueryResult(Columns(), false), new SqlQueryResult(Indexes(), false), new SqlQueryResult(Triggers(), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.GetObjectDetails("AppDb", "dbo", "Orders", null, CancellationToken.None);
@@ -364,15 +318,12 @@ public class GetObjectDetailsTests
     public async Task GetObjectDetails_Table_TypeCharPadded_ReturnsColumns()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(
-                ObjectRow("U "),  // char(2) padded — real SQL Server behavior
-                Columns(),
-                Indexes(),
-                Triggers());
+                new SqlQueryResult(ObjectRow("U "), false),
+                new SqlQueryResult(Columns(), false),
+                new SqlQueryResult(Indexes(), false),
+                new SqlQueryResult(Triggers(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.GetObjectDetails(null, "dbo", "Orders", null, CancellationToken.None);
@@ -383,4 +334,18 @@ public class GetObjectDetailsTests
         Assert.Equal(4, doc.RootElement.GetArrayLength());
         Assert.Equal("Id", doc.RootElement[0].GetProperty("name").GetString());
     }
+    [Fact]
+    public async Task GetObjectDetails_TinyCap_DoesNotTurnExistingObjectIntoNotFound()
+    {
+        ISqlExecutor executor = Substitute.For<ISqlExecutor>();
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), 0, Arg.Any<CancellationToken>())
+            .Returns(new SqlQueryResult(ObjectRow("V"), false));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), 2, Arg.Any<CancellationToken>())
+            .Returns(new SqlQueryResult(new(), true));
+        CallToolResult result = await CreateTools(executor, 2).GetObjectDetails(null, "dbo", "ExistingView", null, CancellationToken.None);
+        Assert.False(result.IsError);
+        Assert.Equal(2, result.Content.Count);
+        Assert.Equal("[]", GetJson(result));
+    }
+
 }

@@ -14,18 +14,22 @@ const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const https = require('https');
+const { EventEmitter } = require('events');
 
 const shim = require('./bin/mssql-mcp.js');
 
 let failures = 0;
+let checks = Promise.resolve();
 function check(name, fn) {
-  try {
-    fn();
-    console.log('ok - ' + name);
-  } catch (e) {
-    failures++;
-    console.error('FAIL - ' + name + ': ' + (e && e.message ? e.message : e));
-  }
+  checks = checks.then(async () => {
+    try {
+      await fn();
+      console.log('ok - ' + name);
+    } catch (e) {
+      failures++;
+      console.error('FAIL - ' + name + ': ' + (e && e.message ? e.message : e));
+    }
+  });
 }
 
 function makeTempDir() {
@@ -88,7 +92,6 @@ check('PB3: extractTarGz rejects crafted tarball with traversal entry', () => {
     assert.strictEqual(fs.existsSync(path.join(outDir, 'escape-marker.txt')), false,
       'no file should be written inside outDir either');
 
-    assert.strictEqual(typeof shim.extractTarGz, 'function', 'extractTarGz must be exported for testability');
   } finally {
     rmrf(outDir);
     rmrf(escapeDir);
@@ -96,84 +99,63 @@ check('PB3: extractTarGz rejects crafted tarball with traversal entry', () => {
   }
 });
 
-check('PB3: contrast — extractZip validates entries (Zip Slip fix present)', () => {
-  // This is a contrast test, not a separate finding. It confirms that the codebase
-  // HAS the path-traversal defense for zip but NOT for tar.gz, proving the gap is
-  // an oversight rather than an intentional design choice.
-  // We verify extractZip is also exported and is a distinct function from extractTarGz.
-  assert.strictEqual(typeof shim.extractZip, 'undefined',
-    'extractZip is intentionally not exported (only extractTarGz is, for this PoC). ' +
-    'The source (bin/mssql-mcp.js:104-130) shows extractZip validates entries via ' +
-    'path.resolve prefix check; extractTarGz (line 97-102) does not. This static ' +
-    'contrast is the structural proof of the gap.');
+// ---------- PB-4: exercise redirect rejection and depth boundaries ----------
+
+async function withRedirects(locations, fn) {
+  const originalGet = https.get;
+  const requested = [];
+  https.get = (url, callback) => {
+    requested.push(url);
+    const location = locations.shift();
+    const response = new EventEmitter();
+    response.statusCode = location ? 302 : 200;
+    response.headers = location ? { location } : {};
+    response.resume = () => {};
+    const request = new EventEmitter();
+    request.setTimeout = () => request;
+    queueMicrotask(() => {
+      callback(response);
+      if (!location) {
+        response.emit('data', Buffer.from('verified-archive'));
+        response.emit('end');
+      }
+    });
+    return request;
+  };
+  try {
+    await fn(requested);
+  } finally {
+    https.get = originalGet;
+  }
+}
+
+check('PB4: untrusted redirects are rejected before another connection', async () => {
+  const start = 'https://github.com/codegiveness/mssql-mcp/archive';
+  for (const host of ['evil.example.com', 'github.com.evil.example.com']) {
+    await withRedirects(['https://' + host + '/payload'], async (requested) => {
+      await assert.rejects(shim.fetchUrl(start), /untrusted host/);
+      assert.deepStrictEqual(requested, [start]);
+    });
+  }
 });
 
-// ---------- PB-4: fetchUrl pins redirect hosts to github.com and *.githubusercontent.com ----------
-
-// Static proof: fetchUrl (bin/mssql-mcp.js) follows 3xx redirects only after
-// validating the Location host against REDIRECT_HOST_ALLOWLIST. A redirect to
-// any host outside {github.com, objects.githubusercontent.com,
-// github-releases.githubusercontent.com, *.githubusercontent.com} is refused.
-check('PB4: fetchUrl pins redirect hosts to github.com and *.githubusercontent.com', () => {
-  assert.strictEqual(typeof shim.fetchUrl, 'function', 'fetchUrl must be exported for testability');
-
-  const src = fs.readFileSync(path.join(__dirname, 'bin/mssql-mcp.js'), 'utf8');
-
-  assert.ok(src.indexOf('isAllowedRedirectHost') !== -1,
-    'fetchUrl redirect branch should call a host validation helper');
-
-  const redirectSection = src.substring(
-    src.indexOf('function fetchUrl'),
-    src.indexOf('function fetchUrl') + 1500
-  );
-  assert.ok(redirectSection.indexOf('githubusercontent.com') !== -1 ||
-            redirectSection.indexOf('isAllowedRedirectHost') !== -1,
-    'fetchUrl redirect section must reference the githubusercontent.com allowlist');
-  assert.ok(src.indexOf('REDIRECT_HOST_ALLOWLIST') !== -1 && src.indexOf("'github.com'") !== -1,
-    'module must define REDIRECT_HOST_ALLOWLIST containing github.com');
-  assert.ok(redirectSection.indexOf('Refusing to follow redirect to untrusted host') !== -1,
-    'fetchUrl must reject untrusted redirect hosts with the documented message');
-
-  console.log('  -> Static proof: fetchUrl follows redirects only to github.com and *.githubusercontent.com.');
+check('PB4: allowed redirects return bytes at the limit and reject longer chains', async () => {
+  const start = 'https://github.com/codegiveness/mssql-mcp/archive';
+  const redirects = [
+    'https://objects.githubusercontent.com/one',
+    'https://github-releases.githubusercontent.com/two',
+    'https://raw.githubusercontent.com/three',
+  ];
+  await withRedirects([...redirects], async (requested) => {
+    assert.deepStrictEqual(await shim.fetchUrl(start), Buffer.from('verified-archive'));
+    assert.deepStrictEqual(requested, [start, ...redirects]);
+  });
+  await withRedirects([...redirects, start], async (requested) => {
+    await assert.rejects(shim.fetchUrl(start), /too many redirects/);
+    assert.deepStrictEqual(requested, [start, ...redirects]);
+  });
 });
 
-check('PB4: fetchUrl rejects redirect to untrusted host', () => {
-  assert.strictEqual(typeof shim.fetchUrl, 'function', 'fetchUrl must be exported for testability');
-  assert.strictEqual(typeof shim.isAllowedRedirectHost, 'function',
-    'isAllowedRedirectHost must be exported for testability');
-
-  // Allowed hosts:
-  assert.strictEqual(shim.isAllowedRedirectHost('github.com'), true);
-  assert.strictEqual(shim.isAllowedRedirectHost('objects.githubusercontent.com'), true);
-  assert.strictEqual(shim.isAllowedRedirectHost('github-releases.githubusercontent.com'), true);
-  assert.strictEqual(shim.isAllowedRedirectHost('raw.githubusercontent.com'), true,
-    'any *.githubusercontent.com host is allowed');
-
-  // Untrusted hosts rejected:
-  assert.strictEqual(shim.isAllowedRedirectHost('evil.example.com'), false,
-    'arbitrary host must be rejected');
-  assert.strictEqual(shim.isAllowedRedirectHost('github.com.evil.example.com'), false,
-    'host with github.com as substring-prefix of suffix must not bypass the allowlist');
-
-  const src = fs.readFileSync(path.join(__dirname, 'bin/mssql-mcp.js'), 'utf8');
-  const redirectSection = src.substring(
-    src.indexOf('function fetchUrl'),
-    src.indexOf('function fetchUrl') + 1500
-  );
-  assert.ok(redirectSection.indexOf('Refusing to follow redirect to untrusted host') !== -1,
-    'fetchUrl must reject untrusted redirect hosts with the documented message');
-
-  console.log('  -> isAllowedRedirectHost allowlist enforced; untrusted hosts refused.');
-});
-
-check('PB4: fetchUrl respects MAX_REDIRECTS depth limit (mitigation present)', () => {
-  const src = fs.readFileSync(path.join(__dirname, 'bin/mssql-mcp.js'), 'utf8');
-  assert.ok(src.indexOf('MAX_REDIRECTS = 3') !== -1,
-    'MAX_REDIRECTS should be 3 to cap redirect chains');
-  assert.ok(src.indexOf('too many redirects') !== -1,
-    'fetchUrl should reject with "too many redirects" past the limit');
-  console.log('  -> Depth limit (3) caps redirect chains.');
-});
 
 // ---------- PB5: cache poisoning — re-verify sha256 on cache hit ----------
 
@@ -258,9 +240,11 @@ check('PB5: no cached binary returns null (baseline cache miss)', () => {
   }
 });
 
-if (failures > 0) {
-  console.error('\n' + failures + ' test(s) failed.');
-  process.exit(1);
-} else {
-  console.log('\nAll PoC tests passed.');
-}
+checks.then(() => {
+  if (failures > 0) {
+    console.error('\n' + failures + ' test(s) failed.');
+    process.exitCode = 1;
+  } else {
+    console.log('\nAll PoC tests passed.');
+  }
+});

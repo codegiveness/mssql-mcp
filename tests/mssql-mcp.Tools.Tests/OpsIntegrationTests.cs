@@ -48,13 +48,10 @@ public class OpsIntegrationTests
         return Assert.IsType<TextContentBlock>(result.Content[0]).Text;
     }
 
-    [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
+    [Fact(Skip = "Requires INTEGRATION=true and MSSQL_CONNECTION_STRING.", SkipUnless = nameof(mssql_mcp.Tests.IntegrationEnvironment.Enabled), SkipType = typeof(mssql_mcp.Tests.IntegrationEnvironment))]
     public async Task AnalyzeIndexes_RealDb_ReturnsIndexesOrEmpty()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionString))
-        {
-            return;
-        }
+
 
         OpsTools tools = CreateTools();
         CallToolResult result = await tools.AnalyzeIndexes(database: null, query: null, CancellationToken.None);
@@ -66,13 +63,10 @@ public class OpsIntegrationTests
         // Empty array is valid (no missing indexes) — but must be an array, not an error.
     }
 
-    [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
+    [Fact(Skip = "Requires INTEGRATION=true and MSSQL_CONNECTION_STRING.", SkipUnless = nameof(mssql_mcp.Tests.IntegrationEnvironment.Enabled), SkipType = typeof(mssql_mcp.Tests.IntegrationEnvironment))]
     public async Task GetTopQueries_RealDb_ReturnsQueries()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionString))
-        {
-            return;
-        }
+
 
         OpsTools tools = CreateTools();
         CallToolResult result = await tools.GetTopQueries(
@@ -85,13 +79,10 @@ public class OpsIntegrationTests
         // May be empty if there's no workload — but must be an array, not an error.
     }
 
-    [Fact(Skip = "Integration test — set MSSQL_CONNECTION_STRING and run without the Category!=Integration filter.")]
+    [Fact(Skip = "Requires INTEGRATION=true and MSSQL_CONNECTION_STRING.", SkipUnless = nameof(mssql_mcp.Tests.IntegrationEnvironment.Enabled), SkipType = typeof(mssql_mcp.Tests.IntegrationEnvironment))]
     public async Task AnalyzeDbHealth_RealDb_ReturnsFiveChecks()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionString))
-        {
-            return;
-        }
+
 
         OpsTools tools = CreateTools();
         CallToolResult result = await tools.AnalyzeDbHealth(database: null, CancellationToken.None);

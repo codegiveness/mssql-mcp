@@ -61,7 +61,7 @@ You should see the mssql-mcp version printed. If it prints, the install is good.
 
 **2. Add the server to your MCP client.**
 
-For Claude Desktop, edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+For example, a Claude Desktop configuration uses `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows). This is a configuration example, not a recorded manual verification; confirm the location/schema for your client version:
 
 ```jsonc
 {
@@ -152,7 +152,9 @@ dotnet tool install -g codegiveness.mssql-mcp
 
 ## Supported clients
 
-mssql-mcp works with any MCP-compatible client (we call them **harnesses**). Pick yours below. Every snippet is copy-paste-ready — just replace the `<...>` placeholders with your SQL Server details.
+mssql-mcp uses MCP over stdio and is designed to work with compatible **harnesses** (MCP client applications). The user reports successful production use with **Oh My Pi** and **OpenCode**. This is user-reported evidence, not a dated 30-day usage log or a recorded verification of specific OS versions, client versions, configuration paths, or logs.
+
+**Evidence limits:** the automated [MCP stdio smoke check](./AGENTS.md#mcp-stdio-smoke-test--mandatory) exercises initialization, tool discovery, and a real SQL Server tool call. It does not verify each GUI harness. In particular, the six historical examples—Claude Desktop, Cursor, VS Code/Copilot, Windsurf, Cline/Roo Code, and Continue—are **configuration examples, not claimed manually verified integrations**. The other snippets below are examples as well. Confirm your installed client's current configuration schema and file location, then replace the `<...>` placeholders with your SQL Server details. Manual six-harness verification is no longer a release gate; see [ADR-0036](./docs/adr/0036-continue-zero-major-releases.md).
 
 The placeholder connection string used throughout is:
 
@@ -288,7 +290,7 @@ Edit `~/.continue/config.json`:
 }
 ```
 
-### opencode
+### OpenCode
 
 Edit `~/.config/opencode/opencode.json` (user-level) or `opencode.json` in your project root. opencode uses a `"mcp"` key (not `"mcpServers"`), `"command"` as an array, and `"environment"` (not `"env"`):
 
@@ -734,7 +736,7 @@ Symptom: your harness (Claude Desktop, Cursor, etc.) doesn't list `mssql-mcp` in
 
 Diagnosis steps:
 
-1. **Check the config file path.** Each harness looks for config in a specific location — see [Supported clients](#supported-clients) for exact paths. A wrong path means the harness never reads your config.
+1. **Check the config file path.** Each harness looks for config in a specific location — see the examples under [Supported clients](#supported-clients) and confirm against your installed client's documentation. A wrong path means the harness never reads your config.
 2. **Check JSON syntax.** A missing comma, trailing comma, or unescaped quote silently breaks the config. Paste your JSON into a linter (e.g. `python -m json.tool config.json`) to check.
 3. **Restart the harness.** Most harnesses read config only at startup. Fully quit (not just minimize) and reopen.
 4. **Check that `npx` is on the harness's PATH.** Some harnesses don't inherit your shell's PATH. If `npx` isn't found, use the absolute path (run `which npx` to find it) or switch to `dotnet tool install` and use `"command": "mssql-mcp"`.
@@ -801,7 +803,7 @@ The shim prints the RID, the GitHub Releases URL, and the fallback command. Manu
 
 ### Per-harness log locations
 
-When a harness fails to start the server, check its logs:
+When a harness fails to start the server, check its logs. The locations below are troubleshooting examples, not collected manual-verification records; paths and UI labels may vary by client version and operating system:
 
 | Harness | Log location |
 |---|---|
@@ -887,6 +889,19 @@ node npm/test.js
 
 Verifies the shim (`bin/mssql-mcp.js`) parses, the RID mapping returns expected values for known platforms, and the checksum parser handles bare and `sha256sum`-formatted sidecar files. The real integration test is `npm pack && npm install --ignore-scripts` on each platform.
 
+### Release policy checks
+
+```bash
+node scripts/check-release-policy.js --manifest
+node scripts/test/check-release-policy.test.js
+node scripts/check-version-consistency.js
+node scripts/test/check-version-consistency.test.js
+```
+
+The first command admits only a canonical 0.x version. The deterministic tests exercise valid 0.x tags, blocked majors (including v1 RCs), malformed tags, and the real manual-dispatch/manifest entrypoints without creating a release. CI applies the same guard to release PRs, automatic release-please releases, tag pushes, and manual dispatch before artifact publication.
+
+Version consistency includes the main npm package's optional dependencies **and all five platform package manifests**, as well as the csproj and server.json. After a canonical manifest change, `node scripts/sync-all-stamps.js` synchronizes all these derivatives before release builds or preparing committed stamps. A stale platform version can otherwise make a local npm package install resolve a different registry version.
+
 ### Project layout
 
 ```
@@ -917,15 +932,18 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md). PRs welcome — please open an issue f
 
 ## Stability
 
-mssql-mcp is currently `0.x`. The tool surface is stable (tool names, parameter names, and parameter types don't break within the `0.x` series); CLI flags, env var names, error response shapes, and return value formats may change between minor versions before `1.0.0`.
+mssql-mcp continues releasing in the `0.x` series. There is **no scheduled v1 release, RC promotion, or 30-day graduation requirement**. Automatic and manual release workflows reject major versions >= 1 before publishing artifacts; see [ADR-0036](./docs/adr/0036-continue-zero-major-releases.md).
+
+The tool surface remains stable (tool names, parameter names, and parameter types don't break within `0.x`); CLI flags, env var names, error response shapes, and return value formats may change between minor versions. The former launch milestones (#1, #11, #20, #22, #34) are retired under the revised policy, **not certified as passing their original tests**. Guard, security, distribution, CI, and pre-push controls remain in force.
 
 ## Architecture & decisions
 
-Architectural Decision Records (ADRs) document every significant design choice. They live in [`docs/adr/`](./docs/adr/). See the [ADR index](./docs/adr/README.md) for all 35 ADRs. Key decisions:
+Architectural Decision Records (ADRs) document every significant design choice. They live in [`docs/adr/`](./docs/adr/). See the [ADR index](./docs/adr/README.md) for all 36 ADRs. Key decisions:
 
 - [ADR-0006](./docs/adr/0006-guard-ast-allowlist.md) — Guard AST allowlist
 - [ADR-0015](./docs/adr/0015-configuration-via-env-vars.md) — Configuration via env vars (secrets in env, not argv)
 - [ADR-0028](./docs/adr/0028-binary-delivery-via-optional-dependencies-and-shim-self-heal.md) — Binary delivery via optional dependencies and shim self-heal
 - [ADR-0033](./docs/adr/0033-branch-protection-posture-for-solo-maintained-project.md) — Branch protection posture for solo-maintained project
+- [ADR-0036](./docs/adr/0036-continue-zero-major-releases.md) — Continue 0.x releases; distinguish production reports, stdio proof, and harness examples
 
 For the consolidated security posture (OpenSSF Scorecard, SBOM, supply-chain attestation, branch protection), see [docs/security-posture.md](./docs/security-posture.md).

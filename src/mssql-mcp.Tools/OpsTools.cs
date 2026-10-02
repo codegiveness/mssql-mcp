@@ -209,9 +209,12 @@ public sealed class OpsTools
         }
 
         List<Dictionary<string, object?>> rows;
+        bool isTruncated;
         try
         {
-            rows = await _executor.ExecuteQueryAsync(sql, parameters, ct).ConfigureAwait(false);
+            SqlQueryResult result = await _executor.ExecuteQueryAsync(sql, parameters, _options.MaxResultBytes, ct).ConfigureAwait(false);
+            rows = result.Rows;
+            isTruncated = result.IsTruncated;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -241,7 +244,7 @@ public sealed class OpsTools
         }
 
         _logger.LogInformation("[tool] analyze_indexes returned {Count} missing indexes", rows.Count);
-        return ToolErrors.SuccessWithByteCap(rows, _options.MaxResultBytes, _logger);
+        return ToolErrors.SuccessWithByteCap(rows, _options.MaxResultBytes, _logger, isTruncated);
     }
 
     /// <summary>
@@ -287,9 +290,12 @@ public sealed class OpsTools
         }
 
         List<Dictionary<string, object?>> rows;
+        bool isTruncated;
         try
         {
-            rows = await _executor.ExecuteQueryAsync(sql, parameters, ct).ConfigureAwait(false);
+            SqlQueryResult result = await _executor.ExecuteQueryAsync(sql, parameters, _options.MaxResultBytes, ct).ConfigureAwait(false);
+            rows = result.Rows;
+            isTruncated = result.IsTruncated;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -321,7 +327,7 @@ public sealed class OpsTools
         }
 
         _logger.LogInformation("[tool] get_top_queries returned {Count} queries", rows.Count);
-        return ToolErrors.SuccessWithByteCap(rows, _options.MaxResultBytes, _logger);
+        return ToolErrors.SuccessWithByteCap(rows, _options.MaxResultBytes, _logger, isTruncated);
     }
 
     /// <summary>
@@ -360,13 +366,15 @@ public sealed class OpsTools
         }
 
         List<object> summaries = new(capacity: 5);
+        bool isTruncated = false;
 
         try
         {
             // 1. Database size + log size.
             string sizeSql = string.Format(CultureInfo.InvariantCulture, DatabaseSizeSqlTemplate, dbPrefix);
-            List<Dictionary<string, object?>> sizeRows = await _executor.ExecuteQueryAsync(sizeSql, null, ct).ConfigureAwait(false);
-            summaries.Add(BuildSizeSummary(sizeRows));
+            SqlQueryResult sizeRows = await _executor.ExecuteQueryAsync(sizeSql, null, _options.MaxResultBytes, ct).ConfigureAwait(false);
+            isTruncated |= sizeRows.IsTruncated;
+            if (!sizeRows.IsTruncated) summaries.Add(BuildSizeSummary(sizeRows.Rows));
 
             // 2. VLF count.
             string vlfSql = string.Format(CultureInfo.InvariantCulture, VlfCountSqlTemplate, dbPrefix, dbIdExpr);
@@ -375,8 +383,9 @@ public sealed class OpsTools
             {
                 vlfParams["database"] = database;
             }
-            List<Dictionary<string, object?>> vlfRows = await _executor.ExecuteQueryAsync(vlfSql, vlfParams, ct).ConfigureAwait(false);
-            summaries.Add(BuildVlfSummary(vlfRows));
+            SqlQueryResult vlfRows = await _executor.ExecuteQueryAsync(vlfSql, vlfParams, _options.MaxResultBytes, ct).ConfigureAwait(false);
+            isTruncated |= vlfRows.IsTruncated;
+            if (!vlfRows.IsTruncated) summaries.Add(BuildVlfSummary(vlfRows.Rows));
 
             // 3. Index fragmentation (SAMPLED mode).
             string fragSql = string.Format(CultureInfo.InvariantCulture, IndexFragmentationSqlTemplate, dbPrefix, dbIdExpr);
@@ -385,17 +394,20 @@ public sealed class OpsTools
             {
                 fragParams["database"] = database;
             }
-            List<Dictionary<string, object?>> fragRows = await _executor.ExecuteQueryAsync(fragSql, fragParams, ct).ConfigureAwait(false);
-            summaries.Add(BuildFragmentationSummary(fragRows));
+            SqlQueryResult fragRows = await _executor.ExecuteQueryAsync(fragSql, fragParams, _options.MaxResultBytes, ct).ConfigureAwait(false);
+            isTruncated |= fragRows.IsTruncated;
+            if (!fragRows.IsTruncated) summaries.Add(BuildFragmentationSummary(fragRows.Rows));
 
             // 4. Statistics staleness.
             string statsSql = string.Format(CultureInfo.InvariantCulture, StatsStalenessSqlTemplate, dbPrefix);
-            List<Dictionary<string, object?>> statsRows = await _executor.ExecuteQueryAsync(statsSql, null, ct).ConfigureAwait(false);
-            summaries.Add(BuildStatsSummary(statsRows));
+            SqlQueryResult statsRows = await _executor.ExecuteQueryAsync(statsSql, null, _options.MaxResultBytes, ct).ConfigureAwait(false);
+            isTruncated |= statsRows.IsTruncated;
+            if (!statsRows.IsTruncated) summaries.Add(BuildStatsSummary(statsRows.Rows));
 
             // 5. Active blocking (server-scoped — no DB prefix).
-            List<Dictionary<string, object?>> blockRows = await _executor.ExecuteQueryAsync(BlockingSql, null, ct).ConfigureAwait(false);
-            summaries.Add(BuildBlockingSummary(blockRows));
+            SqlQueryResult blockRows = await _executor.ExecuteQueryAsync(BlockingSql, null, _options.MaxResultBytes, ct).ConfigureAwait(false);
+            isTruncated |= blockRows.IsTruncated;
+            if (!blockRows.IsTruncated) summaries.Add(BuildBlockingSummary(blockRows.Rows));
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -418,7 +430,7 @@ public sealed class OpsTools
         }
 
         _logger.LogInformation("[tool] analyze_db_health returned {Count} checks", summaries.Count);
-        return ToolErrors.SuccessWithByteCap(summaries, _options.MaxResultBytes, _logger);
+        return ToolErrors.SuccessWithByteCap(summaries, _options.MaxResultBytes, _logger, isTruncated);
     }
 
     // ---------- Helpers ----------

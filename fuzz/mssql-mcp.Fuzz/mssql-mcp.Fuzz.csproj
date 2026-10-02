@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/mssql-mcp.Core/mssql-mcp.Core.csproj" />
+    <PackageReference Include="SharpFuzz" />
+  </ItemGroup>
+</Project>

@@ -1,5 +1,7 @@
 # Phased release: 0.1.1 typo fix, 0.2.0 code+CI, 0.3.0 docs+package
 
+> **Remaining release gates superseded by [ADR-0036](0036-continue-zero-major-releases.md).** The mandatory six-harness verification gate (including the deferred 0.3.1 gate) and dependence on the ADR-0018 v1 graduation path are retired. They are not certified as completed. Continue 0.x with explicit evidence limits; the phased-release plan and historical amendment below are preserved.
+
 Ship the onboarding surface in three phases. **0.1.1** is an immediate doc-only patch fixing the `npx -y mssql-mcp` typo (wrong npm package) that currently ships broken. **0.2.0** ships code fixes (`install.js` error classification, `--validate` error classification) and CI additions (smoke job, README lint) that have zero dependency on manual harness verification. **0.3.0** ships the docs restructure, scoped npm package, and 6-harness config snippets after the Harness Verification Records (glossary term) are complete.
 
 ## Context

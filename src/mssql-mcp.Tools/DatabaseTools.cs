@@ -106,9 +106,12 @@ public sealed class DatabaseTools
     {
         _logger.LogInformation("[tool] list_databases invoked");
         List<Dictionary<string, object?>> rows;
+        bool isTruncated;
         try
         {
-            rows = await _executor.ExecuteQueryAsync(ListDatabasesSql, ct).ConfigureAwait(false);
+            SqlQueryResult result = await _executor.ExecuteQueryAsync(ListDatabasesSql, _options.MaxResultBytes, ct).ConfigureAwait(false);
+            rows = result.Rows;
+            isTruncated = result.IsTruncated;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -131,7 +134,7 @@ public sealed class DatabaseTools
         }
 
         _logger.LogInformation("[tool] list_databases returned {Count} databases", rows.Count);
-        return ToolErrors.SuccessWithByteCap(rows, _options.MaxResultBytes, _logger);
+        return ToolErrors.SuccessWithByteCap(rows, _options.MaxResultBytes, _logger, isTruncated);
     }
 
     /// <summary>
@@ -170,9 +173,12 @@ public sealed class DatabaseTools
             : $"SELECT name, schema_id FROM {dbPrefix}sys.schemas ORDER BY schema_id";
 
         List<Dictionary<string, object?>> rows;
+        bool isTruncated;
         try
         {
-            rows = await _executor.ExecuteQueryAsync(sql, ct).ConfigureAwait(false);
+            SqlQueryResult result = await _executor.ExecuteQueryAsync(sql, _options.MaxResultBytes, ct).ConfigureAwait(false);
+            rows = result.Rows;
+            isTruncated = result.IsTruncated;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -195,7 +201,7 @@ public sealed class DatabaseTools
         }
 
         _logger.LogInformation("[tool] list_schemas returned {Count} schemas", rows.Count);
-        return ToolErrors.SuccessWithByteCap(rows, _options.MaxResultBytes, _logger);
+        return ToolErrors.SuccessWithByteCap(rows, _options.MaxResultBytes, _logger, isTruncated);
     }
 
     /// <summary>
@@ -246,9 +252,12 @@ public sealed class DatabaseTools
         }
 
         List<Dictionary<string, object?>> rows;
+        bool isTruncated;
         try
         {
-            rows = await _executor.ExecuteQueryAsync(sql, parameters, ct).ConfigureAwait(false);
+            SqlQueryResult result = await _executor.ExecuteQueryAsync(sql, parameters, _options.MaxResultBytes, ct).ConfigureAwait(false);
+            rows = result.Rows;
+            isTruncated = result.IsTruncated;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -287,7 +296,7 @@ public sealed class DatabaseTools
 
         _logger.LogInformation("[tool] list_objects returned {Count} objects (truncated={Truncated})",
             rows.Count, rows.Count == clampedLimit);
-        return ToolErrors.SuccessWithByteCap(payload, _options.MaxResultBytes, _logger);
+        return ToolErrors.SuccessWithByteCap(payload, _options.MaxResultBytes, _logger, isTruncated);
     }
 
     /// <summary>
@@ -333,9 +342,10 @@ public sealed class DatabaseTools
 
         List<Dictionary<string, object?>> lookupRows;
         List<Dictionary<string, object?>> detailRows = new();
+        bool isTruncated = false;
         try
         {
-            lookupRows = await _executor.ExecuteQueryAsync(lookupSql, lookupParams, ct).ConfigureAwait(false);
+            lookupRows = (await _executor.ExecuteQueryAsync(lookupSql, lookupParams, 0, ct).ConfigureAwait(false)).Rows;
 
             if (lookupRows.Count == 0)
             {
@@ -354,23 +364,27 @@ public sealed class DatabaseTools
 
             if (typeChar == "U" || typeChar == "V")
             {
-                List<Dictionary<string, object?>> cols = await _executor.ExecuteQueryAsync(columnsSql, detailParams, ct).ConfigureAwait(false);
-                detailRows.AddRange(cols);
+                SqlQueryResult cols = await _executor.ExecuteQueryAsync(columnsSql, detailParams, _options.MaxResultBytes, ct).ConfigureAwait(false);
+                detailRows.AddRange(cols.Rows);
+                isTruncated |= cols.IsTruncated;
             }
 
             if (typeChar == "P" || typeChar == "PC" || typeChar == "FN" || typeChar == "IF" || typeChar == "TF" || typeChar == "FS" || typeChar == "FT")
             {
-                List<Dictionary<string, object?>> pars = await _executor.ExecuteQueryAsync(parametersSql, detailParams, ct).ConfigureAwait(false);
-                detailRows.AddRange(pars);
+                SqlQueryResult pars = await _executor.ExecuteQueryAsync(parametersSql, detailParams, _options.MaxResultBytes, ct).ConfigureAwait(false);
+                detailRows.AddRange(pars.Rows);
+                isTruncated |= pars.IsTruncated;
             }
 
             if (typeChar == "U")
             {
-                List<Dictionary<string, object?>> idx = await _executor.ExecuteQueryAsync(indexesSql, detailParams, ct).ConfigureAwait(false);
-                detailRows.AddRange(idx);
+                SqlQueryResult idx = await _executor.ExecuteQueryAsync(indexesSql, detailParams, _options.MaxResultBytes, ct).ConfigureAwait(false);
+                detailRows.AddRange(idx.Rows);
+                isTruncated |= idx.IsTruncated;
 
-                List<Dictionary<string, object?>> trg = await _executor.ExecuteQueryAsync(triggersSql, detailParams, ct).ConfigureAwait(false);
-                detailRows.AddRange(trg);
+                SqlQueryResult trg = await _executor.ExecuteQueryAsync(triggersSql, detailParams, _options.MaxResultBytes, ct).ConfigureAwait(false);
+                detailRows.AddRange(trg.Rows);
+                isTruncated |= trg.IsTruncated;
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -394,7 +408,7 @@ public sealed class DatabaseTools
         }
 
         _logger.LogInformation("[tool] get_object_details returned {Count} detail rows", detailRows.Count);
-        return ToolErrors.SuccessWithByteCap(detailRows, _options.MaxResultBytes, _logger);
+        return ToolErrors.SuccessWithByteCap(detailRows, _options.MaxResultBytes, _logger, isTruncated);
     }
 
     private async Task<DatabaseValidationResult?> TryValidateDatabaseAsync(string database, CancellationToken ct)

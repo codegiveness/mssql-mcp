@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g. v0.1.0). Used for archive naming and version sync.'
+        description: '0.x release tag (e.g. v0.5.5). Major versions >= 1 are blocked.'
         required: true
         type: string
 
@@ -28,64 +28,67 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-        with:
-          dotnet-version: '10.0.x'
-
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Resolve tag name
+      # Both tag pushes and manual dispatch must pass before sync/build/publish.
+      - name: Enforce 0.x release policy and resolve version
         id: tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          if [ -n "${{ inputs.tag }}" ]; then
-            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
-          fi
+          node scripts/check-release-policy.js --manifest
+          node scripts/check-release-policy.js --github-event
 
-      - name: Resolve version (tag without v prefix)
-        id: ver
-        run: |
-          tag="${{ steps.tag.outputs.name }}"
-          version="${tag#v}"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
 
       # Sync ALL version stamps to the tag BEFORE any build step.
       # The native binary embeds <VersionPrefix> at compile time — if the sync
       # runs after `dotnet publish`, the shipped binary reports the stale version
       # (issue: 0.5.3 npm package shipped a binary reporting 0.5.2.0).
-      # sync-all-stamps.js writes csproj, npm/package.json, and server.json from
-      # the manifest; the sed is defense-in-depth re-asserting csproj from the tag.
+      # sync-all-stamps.js writes csproj, main/platform npm packages, and
+      # server.json from the manifest before any artifact is built.
       - name: Sync NuGet version
         run: |
-          version="${{ steps.ver.outputs.version }}"
+          version="${{ steps.tag.outputs.version }}"
           sed -i "s|<VersionPrefix>[^<]*</VersionPrefix>|<VersionPrefix>${version}</VersionPrefix>|" src/mssql-mcp/mssql-mcp.csproj
           echo "Synced VersionPrefix to ${version}"
           grep VersionPrefix src/mssql-mcp/mssql-mcp.csproj
 
-      - name: Sync server.json version
+      - name: Sync all version stamps
         run: node scripts/sync-all-stamps.js
 
       # CI gate: build + test before producing any artifacts.
-      - run: dotnet restore mssql-mcp.sln
+      - run: dotnet restore mssql-mcp.sln --locked-mode
       - run: dotnet build mssql-mcp.sln --no-restore
       - run: dotnet test --solution mssql-mcp.sln --no-build -- --filter-not-trait Category=Integration
 
       # Self-contained single-file builds for Unix RIDs (managed SNI, MIT-clean per ADR-0002).
       - name: Build linux-x64
-        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/linux-x64
+        run: |
+          dotnet restore src/mssql-mcp/mssql-mcp.csproj -r linux-x64 -p:SelfContained=true -p:PublishSingleFile=true -p:PublishTrimmed=true --lock-file-path packages.linux-x64.lock.json --locked-mode
+          dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true --no-restore -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/linux-x64
       - name: Build linux-arm64
-        run: dotnet publish src/mssql-mcp -c Release -r linux-arm64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/linux-arm64
+        run: |
+          dotnet restore src/mssql-mcp/mssql-mcp.csproj -r linux-arm64 -p:SelfContained=true -p:PublishSingleFile=true -p:PublishTrimmed=true --lock-file-path packages.linux-arm64.lock.json --locked-mode
+          dotnet publish src/mssql-mcp -c Release -r linux-arm64 --self-contained true --no-restore -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/linux-arm64
       - name: Build osx-x64
-        run: dotnet publish src/mssql-mcp -c Release -r osx-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/osx-x64
+        run: |
+          dotnet restore src/mssql-mcp/mssql-mcp.csproj -r osx-x64 -p:SelfContained=true -p:PublishSingleFile=true -p:PublishTrimmed=true --lock-file-path packages.osx-x64.lock.json --locked-mode
+          dotnet publish src/mssql-mcp -c Release -r osx-x64 --self-contained true --no-restore -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/osx-x64
       - name: Build osx-arm64
-        run: dotnet publish src/mssql-mcp -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/osx-arm64
+        run: |
+          dotnet restore src/mssql-mcp/mssql-mcp.csproj -r osx-arm64 -p:SelfContained=true -p:PublishSingleFile=true -p:PublishTrimmed=true --lock-file-path packages.osx-arm64.lock.json --locked-mode
+          dotnet publish src/mssql-mcp -c Release -r osx-arm64 --self-contained true --no-restore -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/osx-arm64
       # Framework-dependent for Windows (SNI license blocks self-contained per ADR-0002).
       - name: Build win-x64 (framework-dependent)
-        run: dotnet publish src/mssql-mcp -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o artifacts/win-x64
+        run: |
+          dotnet restore src/mssql-mcp/mssql-mcp.csproj -r win-x64 -p:SelfContained=false -p:PublishSingleFile=true -p:PublishTrimmed=false --lock-file-path packages.win-x64.lock.json --locked-mode
+          dotnet publish src/mssql-mcp -c Release -r win-x64 --self-contained false --no-restore -p:PublishSingleFile=true -p:PublishTrimmed=false -o artifacts/win-x64
 
       # Flat archives: binary at archive root (ADR-0002).
       - name: Archive Unix RIDs
@@ -129,7 +132,10 @@ jobs:
 
       # NuGet pack + Trusted Publishing push (OIDC, no long-lived API key; see ADR-0019).
       - name: Pack NuGet
-        run: dotnet pack src/mssql-mcp -c Release -o artifacts
+        run: |
+          # RID restores overwrite assets; restore the portable tool profile again.
+          dotnet restore src/mssql-mcp/mssql-mcp.csproj --locked-mode
+          dotnet pack src/mssql-mcp -c Release --no-restore -o artifacts
       - name: NuGet Trusted Publishing login
         id: nuget-login
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
@@ -142,7 +148,7 @@ jobs:
       # (5 per-platform first, main last) with provenance (ADR-0028 §7).
       # Fail-fast: if any per-platform publish fails, the main package is not published.
       - name: Sync npm version
-        run: node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('npm/package.json')); p.version='${{ steps.ver.outputs.version }}'; fs.writeFileSync('npm/package.json', JSON.stringify(p,null,2)+'\n')"
+        run: node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('npm/package.json')); p.version='${{ steps.tag.outputs.version }}'; fs.writeFileSync('npm/package.json', JSON.stringify(p,null,2)+'\n')"
 
       - name: Publish per-platform npm packages
         env:
@@ -150,12 +156,9 @@ jobs:
         run: |
           set -e
           tag="${{ steps.tag.outputs.name }}"
-          version="${{ steps.ver.outputs.version }}"
           for rid in linux-x64 linux-arm64 osx-x64 osx-arm64 win-x64; do
             echo "=== Publishing @codegiveness/mssql-mcp-$rid ==="
             pkg_dir="npm/platforms/$rid"
-            # Sync version into the per-platform package.json.
-            node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('$pkg_dir/package.json')); p.version='$version'; fs.writeFileSync('$pkg_dir/package.json', JSON.stringify(p,null,2)+'\n')"
             # Extract the archive into the package dir (binary at root).
             ext="tar.gz"
             [ "$rid" = "win-x64" ] && ext="zip"
@@ -184,7 +187,9 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Build self-contained binary (linux-x64)
-        run: dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o smoke
+        run: |
+          dotnet restore src/mssql-mcp/mssql-mcp.csproj -r linux-x64 -p:SelfContained=true -p:PublishSingleFile=true -p:PublishTrimmed=true --lock-file-path packages.linux-x64.lock.json --locked-mode
+          dotnet publish src/mssql-mcp -c Release -r linux-x64 --self-contained true --no-restore -p:PublishSingleFile=true -p:PublishTrimmed=true -o smoke
 
       - name: Verify --version exits 0
         run: ./smoke/mssql-mcp --version

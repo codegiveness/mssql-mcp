@@ -85,11 +85,7 @@ public class GetTopQueriesTests
     {
         List<string> capturedSqls = new();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeQueryRows(5));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(5), false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.GetTopQueries(
@@ -107,11 +103,7 @@ public class GetTopQueriesTests
     {
         List<string> capturedSqls = new();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeQueryRows(2));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(2), false));
 
         OpsTools tools = CreateTools(executor);
         await tools.GetTopQueries(database: null, order_by: "total_duration", limit: null, CancellationToken.None);
@@ -125,11 +117,7 @@ public class GetTopQueriesTests
     {
         List<string> capturedSqls = new();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeQueryRows(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
 
         OpsTools tools = CreateTools(executor);
         await tools.GetTopQueries(database: null, order_by: "total_cpu", limit: null, CancellationToken.None);
@@ -143,11 +131,7 @@ public class GetTopQueriesTests
     {
         List<string> capturedSqls = new();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeQueryRows(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
 
         OpsTools tools = CreateTools(executor);
         await tools.GetTopQueries(database: null, order_by: "avg_duration", limit: null, CancellationToken.None);
@@ -160,11 +144,7 @@ public class GetTopQueriesTests
     {
         List<string> capturedSqls = new();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeQueryRows(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
 
         OpsTools tools = CreateTools(executor);
         await tools.GetTopQueries(database: null, order_by: "total_logical_reads", limit: null, CancellationToken.None);
@@ -177,11 +157,7 @@ public class GetTopQueriesTests
     {
         List<string> capturedSqls = new();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeQueryRows(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
 
         OpsTools tools = CreateTools(executor);
         await tools.GetTopQueries(database: null, order_by: "execution_count", limit: null, CancellationToken.None);
@@ -194,11 +170,7 @@ public class GetTopQueriesTests
     {
         List<string> capturedSqls = new();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeQueryRows(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
 
         OpsTools tools = CreateTools(executor);
         await tools.GetTopQueries(database: null, order_by: "bogus", limit: null, CancellationToken.None);
@@ -211,11 +183,7 @@ public class GetTopQueriesTests
     {
         List<string> capturedSqls = new();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeQueryRows(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
 
         OpsTools tools = CreateTools(executor);
         await tools.GetTopQueries(database: null, order_by: null, limit: 500, CancellationToken.None);
@@ -230,11 +198,7 @@ public class GetTopQueriesTests
         List<string> capturedSqls = new();
         Dictionary<string, object>? capturedParams = null;
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Do<IReadOnlyDictionary<string, object>?>(p => capturedParams = p?.ToDictionary(kv => kv.Key, kv => kv.Value)),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeQueryRows(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Do<IReadOnlyDictionary<string, object>?>(p => capturedParams = p?.ToDictionary(kv => kv.Key, kv => kv.Value)), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
 
         OpsTools tools = CreateTools(executor);
         await tools.GetTopQueries(database: null, order_by: null, limit: null, CancellationToken.None);
@@ -249,11 +213,7 @@ public class GetTopQueriesTests
     {
         Dictionary<string, object>? capturedParams = null;
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Do<IReadOnlyDictionary<string, object>?>(p => capturedParams = p?.ToDictionary(kv => kv.Key, kv => kv.Value)),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeQueryRows(1));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Do<IReadOnlyDictionary<string, object>?>(p => capturedParams = p?.ToDictionary(kv => kv.Key, kv => kv.Value)), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
 
         OpsTools tools = CreateTools(executor);
         await tools.GetTopQueries(database: null, order_by: null, limit: -5, CancellationToken.None);
@@ -267,11 +227,7 @@ public class GetTopQueriesTests
     {
         Dictionary<string, object>? capturedParams = null;
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Do<IReadOnlyDictionary<string, object>?>(p => capturedParams = p?.ToDictionary(kv => kv.Key, kv => kv.Value)),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeQueryRows(1));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Do<IReadOnlyDictionary<string, object>?>(p => capturedParams = p?.ToDictionary(kv => kv.Key, kv => kv.Value)), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
 
         OpsTools tools = CreateTools(executor);
         await tools.GetTopQueries(database: null, order_by: null, limit: 1000, CancellationToken.None);
@@ -284,11 +240,7 @@ public class GetTopQueriesTests
     public async Task GetTopQueries_QueryTextTruncatedTo500Chars()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(LongQueryRows());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(LongQueryRows(), false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.GetTopQueries(
@@ -308,11 +260,7 @@ public class GetTopQueriesTests
         List<string> capturedSqls = new();
         Dictionary<string, object>? capturedParams = null;
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Do<IReadOnlyDictionary<string, object>?>(p => capturedParams = p?.ToDictionary(kv => kv.Key, kv => kv.Value)),
-                Arg.Any<CancellationToken>())
-            .Returns(ValidDbRow(), FakeQueryRows(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Do<IReadOnlyDictionary<string, object>?>(p => capturedParams = p?.ToDictionary(kv => kv.Key, kv => kv.Value)), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false), new SqlQueryResult(FakeQueryRows(1), false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.GetTopQueries(
@@ -333,11 +281,7 @@ public class GetTopQueriesTests
     {
         List<string> capturedSqls = new();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Do<string>(s => capturedSqls.Add(s)),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeQueryRows(1));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
 
         OpsTools tools = CreateTools(executor);
         await tools.GetTopQueries(database: null, order_by: null, limit: null, CancellationToken.None);
@@ -350,10 +294,7 @@ public class GetTopQueriesTests
     public async Task GetTopQueries_SqlException_ReturnsSqlError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Throws(SqlExceptionFactory.Create(number: 208, message: "Invalid object.", severity: 16, line: 1));
 
         OpsTools tools = CreateTools(executor);
@@ -370,11 +311,7 @@ public class GetTopQueriesTests
     public async Task GetTopQueries_EmptyDmv_ReturnsEmptyArray()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.GetTopQueries(
@@ -390,11 +327,7 @@ public class GetTopQueriesTests
     public async Task GetTopQueries_ReturnsExpectedColumns()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(FakeQueryRows(1));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeQueryRows(1), false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.GetTopQueries(

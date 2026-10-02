@@ -7,17 +7,17 @@ namespace mssql_mcp.Core;
 public interface ISqlExecutor
 {
     /// <summary>
-    /// Executes a SQL query and returns the result rows as a list of dictionaries
-    /// keyed by column name with values coerced per ADR-0009.
+    /// Executes a SQL query, retaining rows within a conservative JSON byte budget.
+    /// Zero disables the budget; there is no row-count cap.
     /// </summary>
-    Task<List<Dictionary<string, object?>>> ExecuteQueryAsync(string sql, CancellationToken ct);
+    Task<SqlQueryResult> ExecuteQueryAsync(string sql, long maxResultBytes, CancellationToken ct);
 
     /// <summary>
-    /// Executes a parameterized SQL query and returns the result rows as a list of
-    /// dictionaries keyed by column name with values coerced per ADR-0009.
+    /// Executes a parameterized SQL query with the same byte-budget semantics.
     /// </summary>
     /// <param name="sql">SQL text containing @-prefixed parameter placeholders.</param>
     /// <param name="parameters">Map from parameter name (without @) to value. Null = no parameters.</param>
+    /// <param name="maxResultBytes">Positive JSON byte budget; zero disables early termination.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <remarks>
     /// Used by discovery tools that need to safely pass user input (schema names, object names,
@@ -25,9 +25,10 @@ public interface ISqlExecutor
     /// in the FROM clause — for database names injected into <c>[{db}].sys.objects</c>, use
     /// <see cref="SqlHelpers.QuoteIdentifier"/> instead of parameters.
     /// </remarks>
-    Task<List<Dictionary<string, object?>>> ExecuteQueryAsync(
+    Task<SqlQueryResult> ExecuteQueryAsync(
         string sql,
         IReadOnlyDictionary<string, object>? parameters,
+        long maxResultBytes,
         CancellationToken ct);
 
     /// <summary>
@@ -47,6 +48,7 @@ public interface ISqlExecutor
     /// setting cannot leak onto a pooled connection (ADR-0016 Oracle watch-out-for #2).
     /// </summary>
     /// <param name="sql">SQL text to plan. Must already be Guard-validated.</param>
+    /// <param name="maxResultBytes">Positive raw XML UTF-8 limit; zero for unlimited raw XML or summary processing.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task<string> ExecuteShowPlanXmlAsync(string sql, CancellationToken ct);
+    Task<string> ExecuteShowPlanXmlAsync(string sql, long maxResultBytes, CancellationToken ct);
 }

@@ -1,5 +1,7 @@
 # Harness coverage scope for onboarding docs
 
+> **Verification gate superseded by [ADR-0036](0036-continue-zero-major-releases.md).** Six manually verified harness records are no longer a publication/release prerequisite. Preserve configuration instructions as clearly labeled examples; do not claim the six original checks passed. User-reported production use with Oh My Pi and OpenCode and automated stdio proof are separate evidence classes. The historical decision below is retained.
+
 Document config snippets for 6 harnesses: Claude Desktop, Cursor, VS Code (GitHub Copilot MCP), Windsurf, Cline/Roo Code, and Continue.dev. Docs-only — no `mssql-mcp configure <harness>` subcommand. Each snippet manually verified once before publish; not CI-tested per-harness.
 
 ## Context

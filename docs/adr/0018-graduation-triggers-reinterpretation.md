@@ -1,5 +1,7 @@
 # 1.0.0 graduation triggers reinterpretation
 
+> **Superseded by [ADR-0036](0036-continue-zero-major-releases.md).** The 30-day graduation calendar, v1 RC path, and seven-day promotion gate are no longer release requirements. This is a policy retirement, not a claim that the logs or original gates were completed. The accepted historical decision below is preserved.
+
 Ship `0.1.0` first (private repo, full pipeline test), then reinterpret the five graduation triggers from ADR-0014 with concrete satisfaction criteria per trigger, then tag `1.0.0-rc.1` → 7-day promotion gate → `1.0.0`. **Supersedes** ADR-0014 §"`0.1.0` → `1.0.0` graduation triggers" and §"Release candidates" ONLY; ADR-0014 body stays intact.
 
 ## Context

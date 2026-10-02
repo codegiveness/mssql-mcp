@@ -58,6 +58,19 @@ public sealed record TimeoutPayload
     public string Detail { get; init; } = string.Empty;
 }
 
+/// <summary>Raw SHOWPLAN_XML exceeded the configured UTF-8 budget.</summary>
+public sealed record PlanTooLargePayload
+{
+    [JsonPropertyName("error")]
+    public string Error { get; init; } = string.Empty;
+
+    [JsonPropertyName("max_bytes")]
+    public long MaxBytes { get; init; }
+
+    [JsonPropertyName("detail")]
+    public string Detail { get; init; } = string.Empty;
+}
+
 /// <summary>SQL error payload (ADR-0010). Severity is a T-SQL severity class (byte).</summary>
 public sealed record SqlErrorPayload
 {

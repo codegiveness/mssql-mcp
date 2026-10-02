@@ -54,8 +54,7 @@ public class ListSchemasTests
     public async Task ListSchemas_CurrentDb_ReturnsSchemas()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(FakeSchemas());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeSchemas(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListSchemas(database: null, CancellationToken.None);
@@ -73,19 +72,13 @@ public class ListSchemasTests
     public async Task ListSchemas_CurrentDb_DoesNotCallParameterizedOverload()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(FakeSchemas());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeSchemas(), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.ListSchemas(database: null, CancellationToken.None);
 
-        await executor.Received(1).ExecuteQueryAsync(
-            Arg.Any<string>(),
-            Arg.Any<CancellationToken>());
-        await executor.DidNotReceive().ExecuteQueryAsync(
-            Arg.Any<string>(),
-            Arg.Any<IReadOnlyDictionary<string, object>?>(),
-            Arg.Any<CancellationToken>());
+        await executor.Received(1).ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
+        await executor.DidNotReceive().ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -93,14 +86,9 @@ public class ListSchemasTests
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // First call: ValidateDatabaseAsync (parameterized)
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ValidDbRow());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false));
         // Second call: list_schemas query (no params)
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(FakeSchemas());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeSchemas(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListSchemas(database: "AppDb", CancellationToken.None);
@@ -115,21 +103,14 @@ public class ListSchemasTests
     public async Task ListSchemas_SpecifiedDb_UsesQuotedIdentifierInQuery()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ValidDbRow());
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(FakeSchemas());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeSchemas(), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.ListSchemas(database: "AppDb", CancellationToken.None);
 
         // The list_schemas query must use [AppDb].sys.schemas, NOT raw AppDb.
-        await executor.Received(1).ExecuteQueryAsync(
-            Arg.Is<string>(s => s != null && s.Contains("[AppDb].sys.schemas", StringComparison.Ordinal)),
-            Arg.Any<CancellationToken>());
+        await executor.Received(1).ExecuteQueryAsync(Arg.Is<string>(s => s != null && s.Contains("[AppDb].sys.schemas", StringComparison.Ordinal)), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -137,11 +118,7 @@ public class ListSchemasTests
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // ValidateDatabase returns zero rows.
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListSchemas(database: "MissingDb", CancellationToken.None);
@@ -157,11 +134,7 @@ public class ListSchemasTests
     public async Task ListSchemas_OfflineDb_ReturnsError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>?>(),
-                Arg.Any<CancellationToken>())
-            .Returns([new() { ["state_desc"] = "OFFLINE", ["user_access_desc"] = "MULTI_USER" }]);
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([new() { ["state_desc"] = "OFFLINE", ["user_access_desc"] = "MULTI_USER" }], false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListSchemas(database: "AppDb", CancellationToken.None);

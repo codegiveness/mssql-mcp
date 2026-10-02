@@ -55,11 +55,7 @@ public class PocCrossDbAuthzTests
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // HAS_DBACCESS returns 0/NULL → 0 rows. The login has no access to `payroll`.
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
 
         DatabaseValidationResult result =
             await SqlHelpers.ValidateDatabaseAsync(executor, "payroll", CancellationToken.None);
@@ -79,11 +75,7 @@ public class PocCrossDbAuthzTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
 
         // First call: ValidateDatabaseAsync (sys.databases) → 0 rows (HAS_DBACCESS=0).
-        executor.ExecuteQueryAsync(
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyDictionary<string, object>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
 
         MssqlMcpOptions opts = RestrictedOptions();
         DatabaseTools tools = new(executor, Options.Create(opts), NullLogger<DatabaseTools>.Instance);
@@ -95,10 +87,7 @@ public class PocCrossDbAuthzTests
         Assert.True(result.IsError ?? false);
 
         // The cross-DB sys.objects query was NEVER issued.
-        await executor.DidNotReceive().ExecuteQueryAsync(
-            Arg.Is<string>(sql => sql != null && sql.Contains("[payroll].sys.objects", StringComparison.Ordinal)),
-            Arg.Any<IReadOnlyDictionary<string, object>>(),
-            Arg.Any<CancellationToken>());
+        await executor.DidNotReceive().ExecuteQueryAsync(Arg.Is<string>(sql => sql != null && sql.Contains("[payroll].sys.objects", StringComparison.Ordinal)), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
     /// <summary>
@@ -112,11 +101,7 @@ public class PocCrossDbAuthzTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
 
         // ValidateDatabaseAsync returns 0 rows (HAS_DBACCESS=0 → inaccessible).
-        executor.ExecuteQueryAsync(
-                Arg.Is<string>(sql => sql != null && sql.Contains("sys.databases", StringComparison.Ordinal)),
-                Arg.Any<IReadOnlyDictionary<string, object>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>());
+        executor.ExecuteQueryAsync(Arg.Is<string>(sql => sql != null && sql.Contains("sys.databases", StringComparison.Ordinal)), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
 
         MssqlMcpOptions opts = RestrictedOptions();
         DatabaseTools tools = new(executor, Options.Create(opts), NullLogger<DatabaseTools>.Instance);

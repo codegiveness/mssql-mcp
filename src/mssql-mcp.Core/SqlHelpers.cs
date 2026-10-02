@@ -47,7 +47,7 @@ public static class SqlHelpers
         List<Dictionary<string, object?>> rows;
         try
         {
-            rows = await executor.ExecuteQueryAsync(ValidateDatabaseSql, parameters, ct).ConfigureAwait(false);
+            rows = (await executor.ExecuteQueryAsync(ValidateDatabaseSql, parameters, 0, ct).ConfigureAwait(false)).Rows;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

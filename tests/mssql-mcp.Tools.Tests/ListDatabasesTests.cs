@@ -69,8 +69,7 @@ public class ListDatabasesTests
     public async Task ListDatabases_ReturnsJsonArrayOfObjects()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(FakeDatabases());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeDatabases(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListDatabases(CancellationToken.None);
@@ -85,8 +84,7 @@ public class ListDatabasesTests
     public async Task ListDatabases_IncludesIsCurrentField()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(FakeDatabases());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeDatabases(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListDatabases(CancellationToken.None);
@@ -102,8 +100,7 @@ public class ListDatabasesTests
     public async Task ListDatabases_MarksCurrentDatabaseWithIsCurrentTrue()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(FakeDatabases());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeDatabases(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListDatabases(CancellationToken.None);
@@ -119,8 +116,7 @@ public class ListDatabasesTests
     public async Task ListDatabases_NonCurrentDatabases_HaveIsCurrentFalse()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(FakeDatabases());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeDatabases(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListDatabases(CancellationToken.None);
@@ -135,8 +131,7 @@ public class ListDatabasesTests
     public async Task ListDatabases_EmptyResult_ReturnsEmptyArray()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(new List<Dictionary<string, object?>>());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListDatabases(CancellationToken.None);
@@ -151,8 +146,7 @@ public class ListDatabasesTests
     public async Task ListDatabases_IncludesName_DatabaseId_StateDesc()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(FakeDatabases());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeDatabases(), false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListDatabases(CancellationToken.None);
@@ -168,15 +162,12 @@ public class ListDatabasesTests
     public async Task ListDatabases_PassesCancellationToken()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(FakeDatabases());
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(FakeDatabases(), false));
 
         DatabaseTools tools = CreateTools(executor);
         using CancellationTokenSource cts = new();
         await tools.ListDatabases(cts.Token);
 
-        await executor.Received(1).ExecuteQueryAsync(
-            Arg.Any<string>(),
-            Arg.Is<CancellationToken>(ct => ct == cts.Token));
+        await executor.Received(1).ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Is<CancellationToken>(ct => ct == cts.Token));
     }
 }

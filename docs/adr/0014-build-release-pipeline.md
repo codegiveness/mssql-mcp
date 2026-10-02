@@ -1,5 +1,7 @@
 # Build & release pipeline: tag-triggered + CI on main, dual-channel publish
 
+> **Current release policy:** [ADR-0036](0036-continue-zero-major-releases.md) supersedes the major-version graduation triggers and v1 release-candidate/promotion requirements below. Continue 0.x releases; those launch milestones are retired, not recorded as completed. Build, distribution, security, and tool-surface stability controls remain in force. The original decision and subsequent historical notes are retained.
+
 Two GitHub Actions workflows. `ci.yml` runs build + test + pack (no publish) on every push to main and on PRs to catch regressions. `release.yml` runs on tag `v*.*.*` (and via `workflow_dispatch` escape hatch) to publish to GitHub Releases, NuGet, and npm sequentially. First release is `0.1.0` — signals "early, API may shift" before stability commitment.
 
 ## Workflows
