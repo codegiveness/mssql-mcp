@@ -75,7 +75,7 @@ public class DtoJsonEqualityTests
             rule = rejection.Rule,
             detail = rejection.Detail,
             statement_type = rejection.StatementType ?? string.Empty,
-            position = (int?)null != null ? new { line = (int?)null, column = (int?)null } : null,
+            position = rejection.Line is not null ? new { line = rejection.Line, column = rejection.Column } : null,
         };
 
         Assert.Equal(JsonSerializer.Serialize(anonymous, AnonymousOptions), JsonSerializer.Serialize(dto, DtoOptions));

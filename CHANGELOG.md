@@ -88,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reject linked log-path ancestors and rotation targets, with deterministic filesystem regressions; private server-owned directories remain necessary against path-replacement races.
 - Reject numeric/combined access-mode configuration and require explicit Unrestricted mode before write routing, preventing mismatched read-only hints and committed execution.
 - Clear earlier vulnerability reports before reruns so scanner failures cannot present stale findings as current evidence.
+- Confine traversal-regression teardown to an atomically created owned directory, preserving pre-existing shared temporary files; remove overwritten parser-list allocations and incidental query-source/default/mock-echo assertions, while retaining wire-contract tests and intentional error boundaries.
 
 ### Added
 
