@@ -96,6 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full-history SQL/provider credential scanning with redacted reports, content-pinned workflow auditors, and fresh-advisory Docker/SBOM/npm vulnerability gates.
 - Live SQL, npm security and official MCP Inspector proofs in PR CI, production branch-coverage reports, and 600-second scheduled fuzzing with main-only retained-corpus writes.
 - Canonical `.bestpractices.json` service proposals with evidence-backed statuses and unknown personal/TLS attestations, rather than a falsely certified external badge.
+- Link the README to the maintainer's live OpenSSF Best Practices project 15156 badge, including its in-progress state rather than claiming a passing award.
 
 ### Changed
 
