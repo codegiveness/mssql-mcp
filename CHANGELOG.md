@@ -97,6 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Live SQL, npm security and official MCP Inspector proofs in PR CI, production branch-coverage reports, and 600-second scheduled fuzzing with main-only retained-corpus writes.
 - Canonical `.bestpractices.json` service proposals with evidence-backed statuses and unknown personal/TLS attestations, rather than a falsely certified external badge.
 - Link the README to the maintainer's live OpenSSF Best Practices project 15156 badge, including its in-progress state rather than claiming a passing award.
+- Reconcile public vulnerability identifiers with their fixing releases and add dated security clarifications without changing tags/artifacts; resolve the release-note assessment proposal and record merged-main checks, actual retained-corpus reuse and the remaining zero-approval Scorecard finding.
 
 ### Changed
 
