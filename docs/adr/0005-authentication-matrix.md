@@ -10,6 +10,20 @@ v1 supports three auth methods: SQL password (universal baseline), Windows Integ
 
 Connection string is supplied via env var `MSSQL_CONNECTION_STRING` or CLI flag `--connection-string`, with env var taking precedence. No config file in v1. Env var matches the MCP host config pattern (Claude Desktop, Cursor inject env vars); CLI flag helps debugging and `npx` one-shots. Connection string details are never logged raw — `Password=...;` is regex-replaced with `Password=***;` in all log output.
 
+## SqlClient 7 compatibility
+
+The current SqlClient 7.1.1 baseline separates driver-provided Entra authentication
+into `Microsoft.Data.SqlClient.Extensions.Azure`. The version-matched extension
+restores the documented modes; its assembly is rooted to preserve reflection-based
+provider discovery in trimmed builds. Provider discovery was exercised in portable
+and actual trimmed Docker assemblies, not an authenticated Azure session.
+
+The retained extension introduces a public redistribution hold for its native
+broker dependency. The managed SNI statements below do not establish licensing
+clearance for the complete authentication graph. See
+[Third-Party Notices](../../THIRD-PARTY-NOTICES.md) and the
+[current distribution hold](0002-distribution-strategy.md#current-publication-hold).
+
 ## Considered Options
 
 - SQL password only — rejected: excludes every corporate Windows user on Integrated Auth and every Azure-hosted MSI scenario.

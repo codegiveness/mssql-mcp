@@ -11,6 +11,36 @@ their license terms. Source links are provided for verification.
 - Purpose: ADO.NET data provider for Microsoft SQL Server. Used in all build
   configurations (NuGet package and self-contained binaries).
 
+## Microsoft.Data.SqlClient.Extensions.Azure and authentication libraries
+
+- License: MIT for `Microsoft.Data.SqlClient.Extensions.Azure`, its
+  `Extensions.Abstractions` / `Internal.Logging` companions, Azure.Core,
+  Azure.Identity, Microsoft.Identity.Client, Microsoft.Identity.Client.Broker,
+  and Microsoft.Identity.Client.Extensions.Msal.
+- Copyright: Microsoft Corporation / .NET Foundation and Contributors.
+- Sources: https://github.com/dotnet/SqlClient,
+  https://github.com/Azure/azure-sdk-for-net,
+  https://github.com/AzureAD/microsoft-authentication-library-for-dotnet.
+- Purpose: Preserve driver-provided Microsoft Entra authentication after the
+  SqlClient 7 package split.
+
+### Microsoft.Identity.Client.NativeInterop — redistribution hold
+
+- License: Microsoft Software License Terms, **not MIT**.
+- Package: https://www.nuget.org/packages/Microsoft.Identity.Client.NativeInterop/0.20.6.
+- The official package's `LICENSE`, section 3(e), prohibits sharing/publishing/
+  distributing the software. It contains native broker assets for Windows,
+  Linux x64, and macOS; it is a transitive authentication dependency.
+- Local installation and verification are distinct from permission to redistribute.
+  The owner selected retention of Entra support with public redistribution blocked
+  pending licensing clearance. `scripts/check-redistribution.js` enforces the hold
+  before artifact production/publication in the Release workflow and withholds
+  distributable NuGet/npm uploads in CI without disabling verification reports.
+- Do not publish the affected binaries, container, or NuGet/npm artifacts without
+  confirmed redistribution rights or a reviewed dependency change that removes the
+  restricted software while preserving the supported authentication contract.
+  The MIT license of this repository does not grant rights to this dependency.
+
 ## Microsoft.Data.SqlClient.SNI.runtime
 
 - License: Microsoft "Distributable Code" license

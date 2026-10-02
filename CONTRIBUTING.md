@@ -6,9 +6,10 @@ Thanks for your interest in contributing. This document covers the development w
 
 ### Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [.NET SDK 10.0.401](https://dotnet.microsoft.com/download/dotnet/10.0), selected by `global.json` (stable patch roll-forward, no previews)
 - Git
-- (Optional) Docker — for integration tests against Azure SQL Edge
+- Node 24 LTS or a compatible current release — locked Inspector/coverage/release tooling
+- (Optional) Docker — for integration tests against SQL Server
 
 ### Getting started
 
@@ -46,20 +47,24 @@ The dependency graph is `Core ← Tools ← App`. Cross-project references enfor
 dotnet test --solution mssql-mcp.sln -- --filter-not-trait Category=Integration
 ```
 
-This is what CI runs. ~440 tests, completes in seconds.
+The unit command excludes the opt-in SQL cases. Load `.env` before local tests or `--validate`; never commit it.
 
 ### Integration tests (requires live SQL Server)
 
 ```bash
-# Start Azure SQL Edge container
+# Start an isolated SQL Server container
 docker run -e "ACCEPT_EULA=1" -e "MSSQL_SA_PASSWORD=YourStrong!Passw0rd" \
-  -p 1433:1433 --name mssql-edge -d mcr.microsoft.com/azure-sql-edge:latest
+  -p 1433:1433 --name mssql-test -d mcr.microsoft.com/mssql/server:2022-latest
 
 # Run integration tests
 INTEGRATION=true MSSQL_CONNECTION_STRING="Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;" dotnet test --solution mssql-mcp.sln
 ```
 
 Integration tests are tagged `[Trait("Category", "Integration")]` and skipped by default.
+Use a user database for the integration connection string. `list_databases`
+intentionally excludes system databases, so its `is_current` assertion cannot pass
+against `master`. The MCP smoke also requires a user database to exist.
+
 
 ## Pre-push checklist
 
@@ -100,6 +105,20 @@ Run these checks before pushing or opening a PR. If any check fails, the push is
 
 - Adding a new dependency requires updating `THIRD-PARTY-NOTICES.md` with the license and source link
 - Transitive dependencies that ship in self-contained builds must be MIT or Apache-2.0 (no copyleft, no "Distributable Code" license unless we have a redistribution plan like the SNI workaround in ADR-0002)
+
+The modernization retains Entra authentication with a **public redistribution hold**
+for `Microsoft.Identity.Client.NativeInterop`. Its packaged license section 3(e)
+prohibits redistribution. The Release workflow executes
+`node scripts/check-redistribution.js` before any artifact production/publication;
+it currently fails intentionally. CI withholds NuGet/npm package uploads while
+retaining builds, tests, SBOM, and verification reports. Local verification may
+continue, but do not publish affected binaries, containers, or NuGet/npm artifacts
+until owner licensing review clears the dependency or a reviewed replacement
+preserves authentication.
+The deterministic gate regressions run with
+`node scripts/test/check-redistribution.test.js`. This is one known dependency hold,
+not a complete legal/licensing audit.
+
 
 ## ADR Workflow
 

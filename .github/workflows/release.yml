@@ -45,6 +45,9 @@ jobs:
           node scripts/check-release-policy.js --manifest
           node scripts/check-release-policy.js --github-event
 
+      - name: Enforce native broker redistribution hold
+        run: node scripts/check-redistribution.js
+
       # Source and production dependencies are independently content-locked.
       - name: Install integrity-locked npm CLI for trusted publishing
         run: |
@@ -53,7 +56,7 @@ jobs:
 
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       # Sync ALL version stamps to the tag BEFORE any build step.
       # The native binary embeds <VersionPrefix> at compile time — if the sync
@@ -212,7 +215,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       - name: Build self-contained binary (linux-x64)
         run: |

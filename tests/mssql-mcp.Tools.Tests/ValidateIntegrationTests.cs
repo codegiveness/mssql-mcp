@@ -43,7 +43,7 @@ public class ValidateIntegrationTests
         // Bad host: never resolves, fails at OpenAsync.
         MssqlMcpOptions options = new()
         {
-            ConnectionString = "Server=nonexistent.invalid.host.example;Database=master;User Id=sa;Password=hunter2;Connect Timeout=1;Encrypt=False;TrustServerCertificate=True;",
+            ConnectionString = "Server=nonexistent.invalid.host.example;Database=master;User Id=sa;Password=hunter2;Connect Timeout=1;Encrypt=True;",
             RetryCount = 0,
             RetryIntervalMin = 0,
             RetryIntervalMax = 1,

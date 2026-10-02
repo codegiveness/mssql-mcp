@@ -103,6 +103,11 @@ The Quick start above covers the common path. This section covers platform detai
 
 Windows is framework-dependent because the self-contained build would bundle `Microsoft.Data.SqlClient.SNI` under the Microsoft "Distributable Code" license, whose anti-copyleft clause conservatively blocks redistribution under our MIT license. Linux and macOS use the managed SNI implementation (MIT-clean). This is the distribution rationale — see [Architecture & decisions](#architecture--decisions) for the full ADR.
 
+**Current unreleased builds have a separate Entra native-broker redistribution
+hold.** The managed SNI rationale does not clear the complete authentication
+graph for publication. Release and CI package uploads are blocked as described in
+[Third-Party Notices](THIRD-PARTY-NOTICES.md).
+
 ### How the binary is delivered
 
 The npm package uses per-platform `optionalDependencies` (`@codegiveness/mssql-mcp-<rid>`) — npm's dependency resolution installs the matching package automatically, no `postinstall` script involved. This works even with `--ignore-scripts`.
@@ -685,6 +690,12 @@ Server=tcp:myserver.database.windows.net,1433;Database=mydb;Authentication=Activ
 
 For service principals with a client secret, use `Active Directory Service Principal` with `User ID` and `Password` set to the SPN client ID and secret respectively.
 
+SqlClient 7 separates driver-provided Entra authentication into
+`Microsoft.Data.SqlClient.Extensions.Azure`. The server includes the version-matched
+extension and preserves its reflection-discovered providers in trimmed distributions.
+Identity configuration, token acquisition, and database grants still belong to the host;
+installing the provider does not establish access to an Azure database.
+
 ## Configuration
 
 All runtime parameters are configurable via environment variable. Precedence: CLI flag (if present) > env var > hardcoded default. The single exception is `MSSQL_CONNECTION_STRING`, which takes precedence over `--connection-string` because secrets live in env, not argv.
@@ -703,7 +714,7 @@ All runtime parameters are configurable via environment variable. Precedence: CL
 | `MSSQL_RETRY_INTERVAL` | `2` seconds | (none) | Min backoff for transient retries |
 | `MSSQL_RETRY_INTERVAL_MAX` | `10` seconds | (none) | Max backoff for transient retries |
 
-> **Connection pooling:** The server does not override SqlClient connection-string pool settings. You can set `Max Pool Size` and `Connection Lifetime` in `MSSQL_CONNECTION_STRING` if you need to. In the stdio single-agent deployment model there is one MCP server process per harness, agents call tools sequentially, and the pool realistically holds 1–2 connections, so the per-query command timeout is the backstop against pool exhaustion.
+> **Connection pooling:** The server does not override SqlClient pool settings. Each operation owns and disposes its reader, command, and pooled connection; concurrent MCP requests can use separate connections. Set `Max Pool Size` and `Connection Lifetime` in `MSSQL_CONNECTION_STRING` when needed. The query timeout is a command timeout, not a bound on total request duration, pool waits, or retries. SHOWPLAN session cleanup has an independent five-second cooperative cancellation budget, including when the query timeout is unlimited; failed cleanup discards the affected pool.
 
 Invalid values fail fast at startup with a clear `[startup]` error naming the var, the invalid value, and the accepted range. Unknown env vars are ignored (forward compatibility).
 
@@ -851,10 +862,10 @@ See [SECURITY.md](./SECURITY.md). Do not open a public issue for security vulner
 
 ### Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [.NET SDK 10.0.401](https://dotnet.microsoft.com/download/dotnet/10.0), pinned by `global.json`; stable patch roll-forward only, no previews
 - Git
-- (Optional) Docker — for integration tests against Azure SQL Edge
-- (Optional) Node 18+ — to run `npm/test.js` smoke tests
+- (Optional) Docker — for integration tests against SQL Server
+- Node 24 LTS or a compatible current release — for the locked Inspector/coverage tooling; the npm distribution shim itself supports Node 18+
 
 ### Build and test
 
@@ -866,14 +877,14 @@ dotnet build mssql-mcp.sln
 dotnet test --solution mssql-mcp.sln -- --filter-not-trait Category=Integration
 ```
 
-This is what CI runs. ~440 tests, completes in seconds.
+Unit tests exclude the opt-in SQL integration cases. Load `.env` before local tests or `--validate`; keep it untracked.
 
 ### Integration tests (requires live SQL Server)
 
 ```bash
-# Start Azure SQL Edge container
+# Start an isolated SQL Server container
 docker run -e "ACCEPT_EULA=1" -e "MSSQL_SA_PASSWORD=YourStrong!Passw0rd" \
-  -p 1433:1433 --name mssql-edge -d mcr.microsoft.com/azure-sql-edge:latest
+  -p 1433:1433 --name mssql-test -d mcr.microsoft.com/mssql/server:2022-latest
 
 # Run integration tests
 INTEGRATION=true MSSQL_CONNECTION_STRING="Server=localhost;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;" dotnet test --solution mssql-mcp.sln
@@ -901,6 +912,44 @@ node scripts/test/check-version-consistency.test.js
 The first command admits only a canonical 0.x version. The deterministic tests exercise valid 0.x tags, blocked majors (including v1 RCs), malformed tags, and the real manual-dispatch/manifest entrypoints without creating a release. CI applies the same guard to release PRs, automatic release-please releases, tag pushes, and manual dispatch before artifact publication.
 
 Version consistency includes the main npm package's optional dependencies **and all five platform package manifests**, as well as the csproj and server.json. After a canonical manifest change, `node scripts/sync-all-stamps.js` synchronizes all these derivatives before release builds or preparing committed stamps. A stale platform version can otherwise make a local npm package install resolve a different registry version.
+
+### .NET baseline and tooling boundaries
+
+The server, SQL execution, Guard, configuration, logging, and serialization run in
+C# 14 on `net10.0`. SDK 10.0.401 / runtime 10.0.12 are the latest stable .NET 10
+releases verified against [Microsoft's release metadata](https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json).
+Package versions are centralized in `Directory.Packages.props`; committed lockfiles
+cover portable builds and all six publish profiles. CI reads the same `global.json`,
+and Docker pins both SDK and runtime-dependency images by digest.
+**Publication hold:** the retained Entra extension brings in
+`Microsoft.Identity.Client.NativeInterop`, whose packaged license is not MIT and
+prohibits redistribution. The owner selected retention of authentication support
+with public distribution blocked pending licensing clearance.
+`node scripts/check-redistribution.js` currently exits 1 by design, and the Release
+workflow runs that gate before producing or publishing artifacts. CI still builds
+and tests, but withholds NuGet/npm package uploads; SBOM and verification reports
+remain available. Local success is not permission to distribute the binaries,
+container, or NuGet/npm packages.
+See [Third-Party Notices](THIRD-PARTY-NOTICES.md).
+
+
+Non-.NET components serve distribution or independent verification, not a second
+server implementation: Node supports npm/npx installation, release-stamp tooling,
+and the official MCP Inspector; Python orchestrates content-pinned external security
+auditors; Bash coordinates CI/smoke/fuzz commands; native fuzzing tools supply coverage
+instrumentation. Replacing those integrations would not make SQL execution more .NET.
+The mandatory Inspector smoke uses its already-required Node runtime for JSON handling,
+so that command no longer needs Python.
+
+```bash
+# Build first so the smoke exercises current source, not an older local executable.
+dotnet build mssql-mcp.sln
+./scripts/mcp-smoke.sh
+```
+
+The smoke checks a real stdio handshake, nine-tool discovery, a successful
+`list_databases` result, and idempotency annotations. Detailed modernization measurements
+and verification limits are recorded in [the engineering evidence](docs/security-quality-follow-up.md).
 
 ### Project layout
 

@@ -49,18 +49,19 @@ fi
 
 INSPECTOR_CONFIG="$(mktemp)"
 trap 'rm -f "$INSPECTOR_CONFIG"' EXIT
-python3 -c '
-import json, os, pathlib, sys
-config = {
-    "mcpServers": {
-        "mssql-mcp": {
-            "command": os.path.abspath(sys.argv[2]),
-            "env": {"MSSQL_CONNECTION_STRING": os.environ["MSSQL_CONNECTION_STRING"]},
-        }
-    }
-}
-pathlib.Path(sys.argv[1]).write_text(json.dumps(config))
-' "$INSPECTOR_CONFIG" "$BINARY"
+node - "$INSPECTOR_CONFIG" "$BINARY" <<'NODE'
+const fs = require('node:fs');
+const path = require('node:path');
+const config = {
+  mcpServers: {
+    'mssql-mcp': {
+      command: path.resolve(process.argv[3]),
+      env: { MSSQL_CONNECTION_STRING: process.env.MSSQL_CONNECTION_STRING },
+    },
+  },
+};
+fs.writeFileSync(process.argv[2], JSON.stringify(config));
+NODE
 INSPECTOR_CLI=".config/npm-tools/node_modules/@modelcontextprotocol/inspector/clients/launcher/build/index.js"
 if [[ ! -f "$INSPECTOR_CLI" ]]; then
   npm ci --prefix .config/npm-tools --ignore-scripts --no-audit --no-fund \
@@ -81,7 +82,7 @@ TOOLS_JSON=$("${INSPECTOR[@]}" --method tools/list 2>/dev/null) || {
   bad "tools/list: inspector exited $?"
   exit 1
 }
-TOOL_COUNT=$(echo "$TOOLS_JSON" | python3 -c "import sys,json; print(len(json.load(sys.stdin)['result']['tools']))" 2>/dev/null) || {
+TOOL_COUNT=$(echo "$TOOLS_JSON" | node -e "const r = JSON.parse(require('node:fs').readFileSync(0, 'utf8')); console.log(r.result.tools.length);" 2>/dev/null) || {
   bad "tools/list: failed to parse response"
   exit 1
 }
@@ -98,12 +99,13 @@ DB_JSON=$("${INSPECTOR[@]}" --method tools/call --tool-name list_databases 2>/de
   bad "list_databases: inspector exited $?"
   exit 1
 }
-DB_COUNT=$(echo "$DB_JSON" | python3 -c "
-import sys, json
-resp = json.load(sys.stdin)['result']
-text = next((c['text'] for c in resp.get('content', []) if c.get('type') == 'text'), '[]')
-dbs = json.loads(text)
-print(len(dbs))
+DB_COUNT=$(echo "$DB_JSON" | node -e "
+const response = JSON.parse(require('node:fs').readFileSync(0, 'utf8')).result;
+if (response.isError) throw new Error('list_databases returned an error');
+const text = response.content.find(c => c.type === 'text')?.text;
+const databases = JSON.parse(text);
+if (!Array.isArray(databases)) throw new Error('Expected database array');
+console.log(databases.length);
 " 2>/dev/null) || {
   bad "list_databases: failed to parse response"
   exit 1
@@ -118,34 +120,25 @@ fi
 # [3] idempotentHint annotations
 echo "=== [3] idempotentHint annotations ==="
 IDEMPOTENT_OK=true
-IDEMPOTENT_RESULT=$(echo "$TOOLS_JSON" | python3 -c "
-import sys, json
-expected_true = {
-    'list_databases', 'list_schemas', 'list_objects', 'get_object_details',
-    'explain_query', 'analyze_indexes', 'get_top_queries', 'analyze_db_health',
+IDEMPOTENT_RESULT=$(echo "$TOOLS_JSON" | node -e "
+const expectedTrue = new Set([
+  'list_databases', 'list_schemas', 'list_objects', 'get_object_details',
+  'explain_query', 'analyze_indexes', 'get_top_queries', 'analyze_db_health',
+]);
+const tools = JSON.parse(require('node:fs').readFileSync(0, 'utf8')).result.tools;
+const mismatches = [];
+for (const tool of tools) {
+  const name = tool.name;
+  if (!expectedTrue.has(name) && name !== 'execute_sql') continue;
+  const want = expectedTrue.has(name);
+  const hint = tool.annotations?.idempotentHint;
+  if (hint !== want) mismatches.push(name + ': expected ' + want + ', got ' + hint);
 }
-expected_false = {'execute_sql'}
-resp = json.load(sys.stdin)['result']
-tools = resp.get('tools', [])
-mismatches = []
-for tool in tools:
-    name = tool.get('name', '')
-    ann = tool.get('annotations', {}) or {}
-    hint = ann.get('idempotentHint')
-    if name in expected_true:
-        want = True
-    elif name in expected_false:
-        want = False
-    else:
-        continue
-    if hint != want:
-        mismatches.append(f'{name}: expected {want}, got {hint}')
-if mismatches:
-    print('\n'.join(mismatches))
-    sys.exit(1)
-else:
-    print('8 read-only=true, execute_sql=false')
-    sys.exit(0)
+if (mismatches.length) {
+  console.log(mismatches.join('\n'));
+  process.exit(1);
+}
+console.log('8 read-only=true, execute_sql=false');
 " 2>/dev/null) || IDEMPOTENT_OK=false
 
 if $IDEMPOTENT_OK; then

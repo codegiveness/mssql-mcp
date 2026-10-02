@@ -33,6 +33,15 @@ public class TypeCoercionTests
         Assert.Equal("123456789.123456789", result);
     }
 
+    [Theory]
+    [InlineData("12345678901234567890123456789012345678")]
+    [InlineData("-99999999999999999999999999999999999999")]
+    [InlineData("0.12345678901234567890123456789012345678")]
+    public void Coerce_DecimalBeyondClrPrecision_PreservesAllDigits(string text)
+    {
+        Assert.Equal(text, TypeCoercion.Coerce(SqlDecimal.Parse(text)));
+    }
+
     [Fact]
     public void Coerce_Money_ReturnsString()
     {

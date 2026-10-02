@@ -34,9 +34,9 @@ public static class ConnectionValidator
 
         try
         {
-            using SqlConnection conn = new(options.ConnectionString) { RetryLogicProvider = retryProvider };
+            await using SqlConnection conn = new(options.ConnectionString) { RetryLogicProvider = retryProvider };
             await conn.OpenAsync(ct).ConfigureAwait(false);
-            using SqlCommand cmd = new("SELECT 1", conn) { RetryLogicProvider = retryProvider };
+            await using SqlCommand cmd = new("SELECT 1", conn) { RetryLogicProvider = retryProvider };
             await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
             return (true, SuccessMessage);
         }

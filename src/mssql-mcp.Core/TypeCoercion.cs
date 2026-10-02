@@ -43,7 +43,8 @@ public static class TypeCoercion
 
             // decimal/numeric/money/smallmoney → string (preserves precision).
             case SqlDecimal sqlDecimal:
-                return sqlDecimal.Value.ToString(CultureInfo.InvariantCulture);
+                // SqlDecimal supports 38 digits; converting through decimal overflows above 29.
+                return sqlDecimal.ToString();
             case SqlMoney sqlMoney:
                 return sqlMoney.Value.ToString(CultureInfo.InvariantCulture);
 
@@ -111,7 +112,11 @@ public static class TypeCoercion
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(columnNames);
 
-        object[] values = new object[columnNames.Length];
+        return CoerceRow(reader, columnNames, new object[columnNames.Length]);
+    }
+
+    internal static Dictionary<string, object?> CoerceRow(SqlDataReader reader, string[] columnNames, object[] values)
+    {
         reader.GetProviderSpecificValues(values);
 
         Dictionary<string, object?> row = new(capacity: columnNames.Length);

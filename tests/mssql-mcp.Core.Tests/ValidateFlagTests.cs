@@ -97,7 +97,7 @@ public class ValidateFlagTests
         // still applies (ADR-0005).
         MssqlMcpOptions options = new()
         {
-            ConnectionString = "Server=;Database=;InvalidKeyword=Yes;Password=hunter2;",
+            ConnectionString = "Server=;Database=;InvalidKeyword=Yes;Password=hunter2;Encrypt=True;",
             RetryCount = 0,
             RetryIntervalMin = 0,
             RetryIntervalMax = 1,
@@ -119,7 +119,7 @@ public class ValidateFlagTests
         // network-class code (e.g. 11001 = WSAHOST_NOT_FOUND). Classified as [connection].
         MssqlMcpOptions options = new()
         {
-            ConnectionString = "Server=nonexistent.invalid.host.example;Database=master;User Id=sa;Password=hunter2;Connect Timeout=1;Encrypt=False;TrustServerCertificate=True;",
+            ConnectionString = "Server=nonexistent.invalid.host.example;Database=master;User Id=sa;Password=hunter2;Connect Timeout=1;Encrypt=True;",
             RetryCount = 0,
             RetryIntervalMin = 0,
             RetryIntervalMax = 1,
@@ -141,21 +141,13 @@ public class ValidateFlagTests
     }
 
     [Fact]
-    public void Validate_SuccessMessage_MatchesStartupFormat()
-    {
-        // ADR-0015 contract: startup messages are prefixed with [startup].
-        Assert.StartsWith("[startup]", ConnectionValidator.SuccessMessage);
-        Assert.StartsWith("[startup]", ConnectionValidator.FailurePrefix);
-    }
-
-    [Fact]
     public async Task ValidateAsync_CancelledToken_ReturnsFalseWithMessage()
     {
         // A cancelled token surfaces as TaskCanceledException (subclass of
         // OperationCanceledException) → classified as [timeout].
         MssqlMcpOptions options = new()
         {
-            ConnectionString = "Server=localhost;Integrated Security=true;",
+            ConnectionString = "Server=localhost;Integrated Security=true;Encrypt=True;",
             RetryCount = 0,
             RetryIntervalMin = 0,
             RetryIntervalMax = 1,

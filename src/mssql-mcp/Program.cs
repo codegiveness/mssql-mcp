@@ -3,6 +3,7 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 using mssql_mcp.Core;
 using mssql_mcp.Core.Configuration;
@@ -71,26 +72,9 @@ catch (InvalidOperationException ex)
 
 LoggingSetup.Configure(builder.Logging, logLevel, options.LogFile, options.LogFileMaxBytes, options.LogFileMaxRolls);
 
-// Register options both as concrete type (for direct injection) and via IOptions<T> (for
-// tools that depend on IOptions<MssqlMcpOptions>). AddSingleton<T> alone does NOT populate
-// IOptions<T> — the hosting framework's AddOptions() would create a default empty instance.
+// Both injection shapes share the already-resolved CLI/environment configuration.
 builder.Services.AddSingleton(options);
-builder.Services.AddOptions<MssqlMcpOptions>()
-    .Configure(o =>
-    {
-        o.ConnectionString = options.ConnectionString;
-        o.AccessMode = options.AccessMode;
-        o.QueryTimeout = options.QueryTimeout;
-        o.LogLevel = options.LogLevel;
-        o.LogFile = options.LogFile;
-        o.LogFileMaxBytes = options.LogFileMaxBytes;
-        o.LogFileMaxRolls = options.LogFileMaxRolls;
-        o.MaxResultBytes = options.MaxResultBytes;
-        o.RetryCount = options.RetryCount;
-        o.RetryIntervalMin = options.RetryIntervalMin;
-        o.RetryIntervalMax = options.RetryIntervalMax;
-        o.Validate = options.Validate;
-    });
+builder.Services.AddSingleton<IOptions<MssqlMcpOptions>>(Options.Create(options));
 
 builder.Services.AddSingleton<ISqlExecutor>(sp =>
     new SqlExecutor(options.ConnectionString, options.QueryTimeout,

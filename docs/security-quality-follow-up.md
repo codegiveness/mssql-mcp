@@ -2,6 +2,103 @@
 
 This is a current disposition and verification checklist, not a rewrite of the historical security audits. It does not authorize a 1.x release. A configured control is not a successful execution, and a Scorecard score is not a vulnerability assessment.
 
+## .NET modernization verification
+
+Official [.NET release metadata](https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json)
+identifies **SDK 10.0.401 / runtime 10.0.12** as the current stable .NET 10
+release. .NET 11 is prerelease and was not adopted. The repository already targeted
+`net10.0`; modernization upgrades the SDK pin, fixes **C# 14.0** instead of
+`latest`, and aligns setup-dotnet and checksum/digest-pinned Docker assets.
+All direct dependency/tool versions were checked against their official NuGet,
+npm, Microsoft registry, or maintainer release metadata.
+
+The retained stable application baseline includes **SqlClient 7.1.1**,
+**Microsoft.Extensions 10.0.12**, **ScriptDom 180.117.0**, and **MCP SDK 2.2.0**.
+SqlClient 7 separated Entra support into its
+[Azure extension](https://learn.microsoft.com/en-us/sql/connect/ado-net/sql/azure-active-directory-authentication?view=sql-server-ver17);
+the matching **7.1.1** extension restores the documented authentication modes.
+Its assembly is explicitly rooted for reflection-based discovery during trimming.
+All **24** portable, test, fuzz, and six-profile deployment locks were regenerated
+against official NuGet content in a clean cache; locked restore and content-hash
+validation remain enabled.
+
+Measured defects and bounded findings:
+
+- **Logging ownership:** before the fix, 25 create/log/dispose cycles retained
+  25 file handles and added 25 console threads. Factory registrations give DI
+  ownership of both providers. The same 25-cycle, 2,500-call workload afterward
+  retained **zero file handles**, with **zero thread delta**; an exclusive-open
+  regression verifies that a disposed host releases the sink for the next host.
+- **SQL resources/cancellation:** connections, commands, and readers use async
+  disposal where supported. SHOWPLAN OFF cleanup has an independent five-second
+  cancellation budget even with query timeout zero. A confirmed schema-lock
+  workload exposed cancellation as a SqlException during metadata reads; it now
+  propagates request cancellation. The live regression and an actual MCP
+  cancellation notification both recovered a one-connection pool while the
+  competing lock remained held, and subsequent SQL returned **42**.
+- **Row allocation:** three 100,000-row live-reader comparisons allocated about
+  **42.40 MB** with per-row scratch arrays versus **37.60 MB** with a reused
+  result-set array: approximately **11.3% less allocated memory** in this
+  coercion workload. Row contents were checked throughout. This is not a server
+  throughput or retained-memory claim.
+- **Precision/work avoidance:** a 38-digit SQL decimal previously produced an
+  INTERNAL overflow response; it now returns the complete decimal string.
+  Unlimited summary-plan collection skips unnecessary UTF-8 budget accounting.
+  An isolated comparison of the original and changed writers over 30 one-MiB
+  ASCII plans measured **198–245 ms versus 49–63 ms** after warmup, with roughly
+  unchanged **126.6 MB** allocations. This isolates character-accounting work,
+  not SQL execution or end-to-end server performance.
+  Thirty actual 2,000-row MCP queries completed before and after with clean EOF
+  shutdown; **1.051 s versus 1.139 s** does not demonstrate a throughput gain.
+
+Final checks: **452 unit successes / 479 full live-SQL successes**, zero failures,
+and four existing unreachable-case skips. The solution build had zero warnings
+or errors; changed-file C# LSP diagnostics had zero errors, and formatting was
+clean. CLI help, unknown-argument exit/error, SQL validation, npm smoke, README
+snippets/badges, version/release guards, redistribution-gate regressions,
+checksum-verified actionlint installation, and workflow auditing passed.
+The official Inspector stdio smoke passed all three checks: **nine tools**,
+**one user database**, and idempotency annotations.
+Verification loaded local `.env` without exposing or changing it, then selected
+the existing isolated SQL Server user database instead of the configured endpoint.
+A clean official NuGet cache avoided previously cached distro-repackaged linker
+content; no restore, content-hash, or test gate was disabled.
+Current-state acceptance also passed locked restore and publication for all six
+deployment profiles, local NuGet tool packing, and the .NET 10/C# 14 fuzz-target
+build. The newly published linux-x64 executable exercised all nine tools and
+exited zero on EOF; non-Linux platform execution remains unverified.
+
+Actual MCP sessions exercised all nine tools, DDL/DML/read round trips,
+38-digit decimal output, metadata/discovery, XML and summary plans, index/query
+and health diagnostics, cancellation, and EOF shutdown. Restricted-mode checks
+verified write rejection, a 256-byte result budget and truncation notice,
+oversized raw-plan refusal, uncapped summary collection, and session recovery.
+The updated Alpine Docker image built, validated a live SQL connection, and
+exercised all nine tools over real stdio, including the decimal and plan paths;
+its EOF shutdown exited zero. Smoke-created tables were removed.
+The Docker build emits two nonfatal SourceLink/repository-metadata warnings
+because the build context excludes Git metadata; it does not produce usable
+SourceLink information for the container executable.
+Provider discovery also succeeded using the actual trimmed assemblies extracted
+from that Docker executable; this does not establish an authenticated Azure login.
+
+**Public redistribution remains blocked by the owner's selected policy.**
+The Entra graph includes `Microsoft.Identity.Client.NativeInterop` **0.20.6**;
+its packaged license section 3(e) prohibits distribution. The release workflow
+fails closed through `scripts/check-redistribution.js`. Licensing clearance or
+an owner-approved dependency change is required before publication. This check
+addresses one known restricted component, not general license compliance.
+CI applies the same policy before NuGet/npm artifact uploads; builds, tests, SBOM,
+and verification reports remain enabled while distributable packages are withheld.
+
+Application logic remains .NET. The official Inspector, npm distribution,
+Node-based release tooling, shell orchestration, and Python security/reproducible
+packaging utilities retain independent capabilities; replacing them merely to
+claim “100% .NET” would not improve the runtime. Inspector JSON processing now
+uses its already-required Node runtime rather than an additional Python step.
+Windows/macOS/ARM64 execution, authenticated Entra token acquisition, exhaustive
+leak profiling, production load, and a complete legal audit remain unverified.
+
 ## Baseline evidence and twelve active findings
 
 Repository API inspection reported **12 open code-scanning alerts**, all produced by **OpenSSF Scorecard v5.5.0 on `main` at `d625a6b`**. It also reported zero open Dependabot vulnerability alerts, zero open secret-scanning alerts, and secret scanning, push protection, and dependency security updates enabled. Those are point-in-time observations. They do not establish that this working branch is free of vulnerabilities.
