@@ -17,6 +17,6 @@
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
     <PackageVersion Include="SharpFuzz" Version="[2.3.0]" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
-    <PackageVersion Include="xunit.v3" Version="4.0.0" />
+    <PackageVersion Include="xunit.v3" Version="4.0.1" />
   </ItemGroup>
 </Project>
