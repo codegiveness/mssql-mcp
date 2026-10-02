@@ -5,11 +5,13 @@ The draft passing-level answers and their evidence are maintained in [`.bestprac
 ## Import and review
 
 1. Open the maintainer's [project 15156 passing assessment](https://www.bestpractices.dev/en/projects/15156/passing), whose repository URL is `https://github.com/codegiveness/mssql-mcp`.
-2. Once this file is on `main`, select **Save (and continue) 🤖** in the project editor to rerun the service's repository automation. The JSON supplies proposed answers; it does not submit or certify the project independently.
+2. Select **Save (and continue) 🤖** in the project editor to rerun the service's repository automation against the file on `main`. The JSON supplies proposed answers; it does not submit or certify the project independently.
 3. Review each proposal against the [actual passing criteria](https://www.bestpractices.dev/en/criteria/0), current release artifacts and [observed execution evidence](security-quality-follow-up.md). Revise `.bestpractices.json` when evidence changes, rather than maintaining a second Markdown answer table.
 4. Resolve unknown mandatory answers honestly and save the reviewed assessment. The README uses the service's live project badge, including its in-progress state; displaying that badge does not claim passing.
 
 The `?` statuses are deliberate, not unimplemented engineering placeholders. The service ignores unknown proposals rather than overwriting an existing answer. Developer secure-design/common-error knowledge needs personal confirmation from a primary developer. TLS key-length, cipher-weakness and forward-secrecy claims need deployment-specific evidence; library delegation does not establish them or make them inapplicable. The shim's SHA-256 and HTTPS library calls are applicable cryptography and are no longer incorrectly marked N/A.
+
+Public audit identifiers were reconciled with their fixing releases. Dated security clarifications were added to [v0.4.2](https://github.com/codegiveness/mssql-mcp/releases/tag/v0.4.2), [v0.5.2](https://github.com/codegiveness/mssql-mcp/releases/tag/v0.5.2) and [v0.5.6](https://github.com/codegiveness/mssql-mcp/releases/tag/v0.5.6), preserving their original notes, tags and artifacts. Each published body was read back before proposing `release_notes_vulns: Met`; the notes explicitly distinguish unreleased fixes and test-only findings.
 
 ## Access and certification limits
 
