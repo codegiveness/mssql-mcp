@@ -72,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pin Docker images to registry digests and use genuine content-hashed NuGet locks for portable and six runtime publish profiles. Disable the distro SDK's implicit repackaged dependency feed so official SDK and container restores validate the same hashes.
 - Restore actual SQL functionality in the Alpine container by using the ICU-enabled .NET 10 runtime image instead of invariant globalization. CI now checks a live container SQL connection, not just version output.
 - Replace source-text security assertions with behavioral redirect rejection/depth regressions; remove obsolete export-only smoke assertions.
+- Isolate mutable server-metadata test fixtures in an atomically created private temporary directory, preventing a reproduced symlink overwrite; remove incidental formatting and retry-wiring assertions.
 
 ### Added
 
