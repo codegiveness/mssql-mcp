@@ -25,7 +25,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Check version consistency
         run: node scripts/check-version-consistency.js
 
@@ -37,11 +37,13 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '20'
+          node-version: '24'
       # Unlike stamp consistency, this also checks release-please PRs/commits.
       - name: Enforce 0.x manifest policy
         run: node scripts/check-release-policy.js --manifest
       - name: Test release policy entrypoints
         run: node scripts/test/check-release-policy.test.js
+      - name: Test redistribution publication hold
+        run: node scripts/test/check-redistribution.test.js
       - name: Test authoritative version stamps
         run: node scripts/test/check-version-consistency.test.js

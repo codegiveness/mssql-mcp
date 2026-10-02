@@ -35,6 +35,11 @@ internal sealed class BoundedPlanWriter(long maxBytes, CancellationToken ct) : T
     public override void Write(ReadOnlySpan<char> buffer)
     {
         ct.ThrowIfCancellationRequested();
+        if (maxBytes <= 0)
+        {
+            _buffer.Append(buffer);
+            return;
+        }
         long bytes = _bytes;
         bool highSurrogate = _highSurrogate;
         foreach (char c in buffer)
@@ -42,7 +47,7 @@ internal sealed class BoundedPlanWriter(long maxBytes, CancellationToken ct) : T
             int width = c <= 0x7f ? 1 : c <= 0x7ff ? 2 : char.IsLowSurrogate(c) && highSurrogate ? 1 : 3;
             bytes = ResultByteBudget.Add(bytes, width);
             highSurrogate = char.IsHighSurrogate(c);
-            if (maxBytes > 0 && bytes > maxBytes)
+            if (bytes > maxBytes)
             {
                 throw new PlanTooLargeException(maxBytes);
             }

@@ -37,7 +37,7 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         if: matrix.language == 'csharp'
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
       - name: Restore locked C# dependencies
         if: matrix.language == 'csharp'
         run: dotnet restore mssql-mcp.sln --locked-mode

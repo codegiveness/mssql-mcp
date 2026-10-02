@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using mssql_mcp.Core.Logging;
 
@@ -53,6 +54,32 @@ public class FileLoggerProviderTests
             // Windows may require developer mode or the create-symbolic-link privilege.
             Assert.Skip($"Symbolic links are unavailable in this test environment: {exception.Message}");
         }
+    }
+
+    [Fact]
+    public void LoggingContainer_DisposalReleasesFileForNextHost()
+    {
+        string dir = NewTempDir();
+        try
+        {
+            string logPath = Path.Combine(dir, "host.log");
+            for (int restart = 0; restart < 3; restart++)
+            {
+                var services = new ServiceCollection();
+                services.AddLogging(builder => LoggingSetup.Configure(
+                    builder, LogLevel.Information, logPath, 1024, 2));
+                using (ServiceProvider container = services.BuildServiceProvider())
+                {
+                    ILogger logger = container.GetRequiredService<ILoggerFactory>().CreateLogger("Host");
+                    logger.LogInformation("host lifecycle {Restart}", restart);
+                }
+
+                // An exclusive reopen fails while an old provider still owns the writer.
+                using FileStream exclusive = File.Open(logPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            }
+            Assert.Contains("host lifecycle 2", File.ReadAllText(logPath));
+        }
+        finally { Cleanup(dir); }
     }
 
     [Fact]

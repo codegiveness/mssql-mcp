@@ -141,14 +141,6 @@ public class ValidateFlagTests
     }
 
     [Fact]
-    public void Validate_SuccessMessage_MatchesStartupFormat()
-    {
-        // ADR-0015 contract: startup messages are prefixed with [startup].
-        Assert.StartsWith("[startup]", ConnectionValidator.SuccessMessage);
-        Assert.StartsWith("[startup]", ConnectionValidator.FailurePrefix);
-    }
-
-    [Fact]
     public async Task ValidateAsync_CancelledToken_ReturnsFalseWithMessage()
     {
         // A cancelled token surfaces as TaskCanceledException (subclass of

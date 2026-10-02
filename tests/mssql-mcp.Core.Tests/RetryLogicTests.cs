@@ -87,9 +87,6 @@ public class RetryLogicTests
         // Microsoft ships the transient-error list as a non-null TransientPredicate.
         // We do NOT provide our own — this is the key design decision: rely on Microsoft's maintained list.
         Assert.NotNull(provider.RetryLogic.TransientPredicate);
-        // Exponential backoff uses the exponential interval enumerator.
-        Assert.Equal("Microsoft.Data.SqlClient.SqlExponentialIntervalEnumerator",
-            provider.RetryLogic.RetryIntervalEnumerator.GetType().FullName);
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
@@ -32,20 +33,20 @@ public static class LoggingSetup
     {
         builder.SetMinimumLevel(logLevel);
 
-        // Console to stderr — wrap the standard ConsoleLoggerProvider so every message runs
-        // through PasswordObfuscator before the simple formatter writes it to stderr.
-        var consoleOptions = new ConsoleLoggerOptions
-        {
-            LogToStandardErrorThreshold = LogLevel.Trace,
-        };
-        var optionsMonitor = new FixedOptionsMonitor<ConsoleLoggerOptions>(consoleOptions);
-        var consoleProvider = new ConsoleLoggerProvider(optionsMonitor);
-        builder.AddProvider(new PasswordObfuscatingLoggerProvider(consoleProvider));
+        // Factory registration gives the container ownership of both providers.
+        // AddProvider(instance) leaves their file handles and console thread externally owned.
+        builder.Services.AddSingleton<ILoggerProvider>(_ =>
+            new PasswordObfuscatingLoggerProvider(new ConsoleLoggerProvider(
+                new FixedOptionsMonitor<ConsoleLoggerOptions>(new ConsoleLoggerOptions
+                {
+                    LogToStandardErrorThreshold = LogLevel.Trace,
+                }))));
 
         if (!string.IsNullOrEmpty(logFile))
         {
             // FileLoggerProvider applies PasswordObfuscator internally as defense-in-depth.
-            builder.AddProvider(new FileLoggerProvider(logFile, logFileMaxBytes, logFileMaxRolls));
+            builder.Services.AddSingleton<ILoggerProvider>(_ =>
+                new FileLoggerProvider(logFile, logFileMaxBytes, logFileMaxRolls));
         }
     }
 

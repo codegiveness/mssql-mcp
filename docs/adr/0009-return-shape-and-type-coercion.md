@@ -24,6 +24,8 @@ This stays a JSON array of objects (does not violate the lean-array contract). `
 | `geography`, `geometry`, `hierarchyid`, `xml` | string (`.ToString()`) |
 | `NULL` | JSON `null` |
 
+SQL Server `decimal`/`numeric` supports precision up to 38 digits, beyond CLR `decimal`. Coercion formats `SqlDecimal` directly instead of converting through its CLR `Value`, preserving all digits and scale without overflow or rounding.
+
 ## Considered Options
 
 - **A. Lean array of objects** ✅ — chosen. Smallest token footprint for typical results. Agents already trained on this shape.

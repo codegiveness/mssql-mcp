@@ -13,6 +13,7 @@ public sealed class SqlExecutor : ISqlExecutor
 {
     private const string SetShowPlanOn = "SET SHOWPLAN_XML ON";
     private const string SetShowPlanOff = "SET SHOWPLAN_XML OFF";
+    private const int ShowPlanCleanupTimeoutSeconds = 5;
 
     private readonly string _connectionString;
     private readonly int _commandTimeout;
@@ -44,8 +45,7 @@ public sealed class SqlExecutor : ISqlExecutor
     /// we only configure the count and backoff range.
     /// </summary>
     /// <remarks>
-    /// Exposed as internal so tests can verify the option values without depending on
-    /// the static <see cref="SqlConnection.RetryLogicProvider"/> (process-global mutation).
+    /// Exposed as internal so tests can verify retry configuration without opening connections.
     /// </remarks>
     internal static SqlRetryLogicOption BuildRetryOption(int retryCount, int retryIntervalMin, int retryIntervalMax)
     {
@@ -69,8 +69,7 @@ public sealed class SqlExecutor : ISqlExecutor
     {
         if (retryCount <= 0)
         {
-            // CreateNoneRetryProvider returns a provider that never retries — keeps the static
-            // hook non-null so behavior is explicit rather than "default null = no retry".
+            // Explicitly disable retries for this executor without changing process-global state.
             return SqlConfigurableRetryFactory.CreateNoneRetryProvider();
         }
 
@@ -105,10 +104,10 @@ public sealed class SqlExecutor : ISqlExecutor
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);
         ArgumentOutOfRangeException.ThrowIfNegative(maxResultBytes);
 
-        using SqlConnection connection = new(_connectionString) { RetryLogicProvider = _retryProvider };
+        await using SqlConnection connection = new(_connectionString) { RetryLogicProvider = _retryProvider };
         await connection.OpenAsync(ct).ConfigureAwait(false);
 
-        using SqlCommand command = new(sql, connection)
+        await using SqlCommand command = new(sql, connection)
         {
             CommandTimeout = _commandTimeout,
             RetryLogicProvider = _retryProvider,
@@ -122,7 +121,7 @@ public sealed class SqlExecutor : ISqlExecutor
             }
         }
 
-        using SqlDataReader reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        await using SqlDataReader reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
 
         string[] columnNames = new string[reader.FieldCount];
         for (int i = 0; i < reader.FieldCount; i++)
@@ -130,12 +129,13 @@ public sealed class SqlExecutor : ISqlExecutor
             columnNames[i] = reader.GetName(i);
         }
 
+        object[] values = new object[columnNames.Length];
         List<Dictionary<string, object?>> rows = new();
         long retainedBytes = 2; // Reserve both array brackets, even for an empty result.
         long rowStructureBytes = maxResultBytes > 0 ? ResultByteBudget.RowStructureBytes(columnNames) : 0;
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
-            Dictionary<string, object?> row = TypeCoercion.CoerceRow(reader, columnNames);
+            Dictionary<string, object?> row = TypeCoercion.CoerceRow(reader, columnNames, values);
             if (maxResultBytes > 0)
             {
                 long nextBytes = ResultByteBudget.Add(ResultByteBudget.RowBytes(row, rowStructureBytes), rows.Count == 0 ? 0 : 1);
@@ -156,10 +156,10 @@ public sealed class SqlExecutor : ISqlExecutor
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);
 
-        using SqlConnection connection = new(_connectionString) { RetryLogicProvider = _retryProvider };
+        await using SqlConnection connection = new(_connectionString) { RetryLogicProvider = _retryProvider };
         await connection.OpenAsync(ct).ConfigureAwait(false);
 
-        using SqlCommand command = new(sql, connection)
+        await using SqlCommand command = new(sql, connection)
         {
             CommandTimeout = _commandTimeout,
             RetryLogicProvider = _retryProvider,
@@ -173,21 +173,21 @@ public sealed class SqlExecutor : ISqlExecutor
     /// SHOWPLAN_XML string. The query is not actually executed — SQL Server returns the
     /// estimated plan as a single-row, single-column XML result set. <c>SET SHOWPLAN_XML OFF</c>
     /// is always run in a finally block so the session-scoped setting cannot leak onto a
-    /// pooled connection. Cleanup ignores request cancellation and discards the pool if OFF
-    /// fails. A positive raw XML budget refuses oversized plans while reading; summary callers
-    /// pass zero and retain the full plan.
+    /// pooled connection. Cleanup ignores request cancellation but has an independent five-second
+    /// limit, and discards the pool if OFF fails. A positive raw XML budget refuses oversized
+    /// plans while reading; summary callers pass zero and retain the full plan.
     /// </summary>
     public async Task<string> ExecuteShowPlanXmlAsync(string sql, long maxResultBytes, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);
         ArgumentOutOfRangeException.ThrowIfNegative(maxResultBytes);
 
-        using SqlConnection connection = new(_connectionString) { RetryLogicProvider = _retryProvider };
+        await using SqlConnection connection = new(_connectionString) { RetryLogicProvider = _retryProvider };
         await connection.OpenAsync(ct).ConfigureAwait(false);
 
         try
         {
-            using (SqlCommand onCommand = new(SetShowPlanOn, connection)
+            await using (SqlCommand onCommand = new(SetShowPlanOn, connection)
             {
                 CommandTimeout = _commandTimeout,
                 RetryLogicProvider = _retryProvider,
@@ -196,13 +196,13 @@ public sealed class SqlExecutor : ISqlExecutor
                 await onCommand.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
             }
 
-            using SqlCommand planCommand = new(sql, connection)
+            await using SqlCommand planCommand = new(sql, connection)
             {
                 CommandTimeout = _commandTimeout,
                 RetryLogicProvider = _retryProvider,
             };
             using CancellationTokenRegistration cancellation = ct.Register(static state => ((SqlCommand)state!).Cancel(), planCommand);
-            using SqlDataReader reader = await planCommand.ExecuteReaderAsync(System.Data.CommandBehavior.SequentialAccess, ct).ConfigureAwait(false);
+            await using SqlDataReader reader = await planCommand.ExecuteReaderAsync(System.Data.CommandBehavior.SequentialAccess, ct).ConfigureAwait(false);
 
             if (!await reader.ReadAsync(ct).ConfigureAwait(false))
             {
@@ -251,20 +251,27 @@ public sealed class SqlExecutor : ISqlExecutor
                 throw;
             }
         }
+        catch (SqlException ex) when (ct.IsCancellationRequested)
+        {
+            // Cancel can surface a SQL error while metadata is still being read,
+            // before the streaming reader's cancellation boundary is reached.
+            throw new OperationCanceledException("Query plan request was canceled.", ex, ct);
+        }
         finally
         {
             // Always reset SHOWPLAN_XML off — leaving it ON corrupts every subsequent query on
             // the pooled connection (they would return plan XML instead of rows).
-            // Do not mask the original failure. Cleanup ignores request cancellation; if OFF
-            // fails, discard the pool rather than relying on session-reset configuration.
+            // Do not mask the original failure. Bound cleanup independently of request cancellation
+            // and QueryTimeout=0; discard the pool if session cleanup fails.
             try
             {
-                using SqlCommand offCommand = new(SetShowPlanOff, connection)
+                using CancellationTokenSource cleanup = new(TimeSpan.FromSeconds(ShowPlanCleanupTimeoutSeconds));
+                await using SqlCommand offCommand = new(SetShowPlanOff, connection)
                 {
-                    CommandTimeout = _commandTimeout,
+                    CommandTimeout = _commandTimeout > 0 ? Math.Min(_commandTimeout, ShowPlanCleanupTimeoutSeconds) : ShowPlanCleanupTimeoutSeconds,
                     RetryLogicProvider = _retryProvider,
                 };
-                await offCommand.ExecuteNonQueryAsync(CancellationToken.None).ConfigureAwait(false);
+                await offCommand.ExecuteNonQueryAsync(cleanup.Token).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {

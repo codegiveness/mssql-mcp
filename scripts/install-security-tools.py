@@ -26,9 +26,9 @@ TOOLS = {
         "zizmor",
     ),
     "actionlint": (
-        "1.7.11",
-        "https://github.com/rhysd/actionlint/releases/download/v1.7.11/actionlint_1.7.11_linux_amd64.tar.gz",
-        "900919a84f2229bac68ca9cd4103ea297abc35e9689ebb842c6e34a3d1b01b0a",
+        "1.7.12",
+        "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz",
+        "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8",
         "actionlint",
     ),
     "shellcheck": (

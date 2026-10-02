@@ -8,6 +8,17 @@ The server needs to be distributed to both .NET developers (who expect `dotnet t
 
 Publish the server two ways. (1) **Primary**: a `dotnet tool` on NuGet — clean, idiomatic .NET, mirrors the standard .NET tool distribution model, and sidesteps the SNI redistribution problem because NuGet restore fetches `Microsoft.Data.SqlClient.SNI` on the user's machine (we are not the distributor). (2) **Secondary**: an npm package that wraps the self-contained .NET binary using the Node shim + per-platform binary pattern (Node shim in `npm/bin/`, binary delivered via per-platform `optionalDependencies`). For Linux/macOS the self-contained binary uses managed SNI (MIT-clean). For Windows, the self-contained binary would bundle `Microsoft.Data.SqlClient.SNI` under the Microsoft 'Distributable Code' license — whose anti-copyleft clause (§3.a.iii) conservatively blocks redistribution under our MIT license. So Windows npm installs fall back to framework-dependent execution (user has .NET 10 runtime) or the `dotnet tool` path.
 
+## Current publication hold
+
+The modernization retains this distribution architecture, but the restored
+SqlClient 7 Entra extension introduces a separate restriction:
+`Microsoft.Identity.Client.NativeInterop` has not been cleared for redistribution.
+Managed SNI's MIT license is not permission to redistribute the complete
+authentication graph. The owner selected retention of authentication support with
+public distribution blocked pending licensing review. Release publication fails
+closed, and CI withholds NuGet/npm package uploads while retaining verification
+reports. See [Third-Party Notices](../../THIRD-PARTY-NOTICES.md).
+
 ## Considered Options
 
 - Self-contained binary for all platforms including Windows — rejected: SNI license risk under MIT.
