@@ -4,8 +4,9 @@ set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 output=${1:-$(mktemp -d /tmp/mssql-mcp-fuzz.XXXXXX)}
 seconds=${2:-60}
-if [[ ! "$seconds" =~ ^[0-9]+$ ]] || (( seconds < 1 || seconds > 120 )); then
-  echo 'Campaign duration must be between 1 and 120 seconds.' >&2
+retained=${3:-}
+if [[ ! "$seconds" =~ ^[0-9]+$ ]] || (( seconds < 1 || seconds > 1200 )); then
+  echo 'Campaign duration must be between 1 and 1200 seconds.' >&2
   exit 1
 fi
 mkdir -p "$output"
@@ -16,6 +17,16 @@ if [[ -e "$output/target" || -e "$output/tools" || -e "$output/corpus" || -e "$o
 fi
 mkdir -p "$output/corpus" "$output/probe" "$output/findings"
 cp "$root"/fuzz/corpus/*.sql "$output/corpus/"
+
+# Restore data only, never tools or executable targets. PRs cannot publish this
+# shared corpus; cap seed size to the same limit used by the mutation engine.
+if [[ -n "$retained" && -d "$retained" && ! -L "$retained" ]]; then
+  while IFS= read -r -d '' sample; do
+    digest=$(sha256sum < "$sample")
+    digest=${digest%% *}
+    cp -- "$sample" "$output/corpus/$digest"
+  done < <(find "$retained" -maxdepth 1 -type f -size -4097c -print0)
+fi
 
 project="$root/fuzz/mssql-mcp.Fuzz/mssql-mcp.Fuzz.csproj"
 dotnet restore "$project" --locked-mode

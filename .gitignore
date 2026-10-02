@@ -65,6 +65,9 @@ npm/platforms/*/mssql-mcp.exe
 # npm/bin/mssql-mcp.js is the permanent entry point (not overwritten at install time).
 # The binary arrives via npm's optionalDependencies — see ADR-0028.
 npm/node_modules/
+/.config/npm-tools/node_modules/
+/.config/npm-cli/node_modules/
+scripts/__pycache__/
 npm/bin/mssql-mcp.exe
 npm/*.tgz
 

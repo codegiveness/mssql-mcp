@@ -175,6 +175,30 @@ public class OptionsTests
         Assert.Equal(AccessMode.Unrestricted, options.AccessMode);
     }
 
+    [Theory]
+    [InlineData("0")]
+    [InlineData("1")]
+    [InlineData("2")]
+    [InlineData("-1")]
+    [InlineData("Restricted, Unrestricted")]
+    public void Parse_AccessModeRejectsNumericAndCombinedValues(string mode)
+    {
+        Assert.Throws<InvalidOperationException>(() => MssqlMcpOptions.Parse(
+            new[] { "--connection-string", "Server=x;", "--access-mode", mode }, EmptyEnv));
+        Assert.Throws<InvalidOperationException>(() => MssqlMcpOptions.Parse(
+            new[] { "--connection-string", "Server=x;" }, Env(("MSSQL_ACCESS_MODE", mode))));
+    }
+
+    [Theory]
+    [InlineData("  ReStRiCtEd  ", AccessMode.Restricted)]
+    [InlineData("  UnReStRiCtEd  ", AccessMode.Unrestricted)]
+    public void Parse_AccessModeAcceptsNamesWithWhitespaceAndCase(string mode, AccessMode expected)
+    {
+        var options = MssqlMcpOptions.Parse(
+            new[] { "--connection-string", "Server=x;", "--access-mode", mode }, EmptyEnv);
+        Assert.Equal(expected, options.AccessMode);
+    }
+
     [Fact]
     public void Parse_CliQueryTimeout_WinsOverEnv()
     {

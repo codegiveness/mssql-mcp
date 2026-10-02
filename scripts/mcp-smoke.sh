@@ -61,7 +61,14 @@ config = {
 }
 pathlib.Path(sys.argv[1]).write_text(json.dumps(config))
 ' "$INSPECTOR_CONFIG" "$BINARY"
-INSPECTOR=(npx --yes @modelcontextprotocol/inspector --cli --config "$INSPECTOR_CONFIG" --server mssql-mcp)
+INSPECTOR_CLI=".config/npm-tools/node_modules/@modelcontextprotocol/inspector/clients/launcher/build/index.js"
+if [[ ! -f "$INSPECTOR_CLI" ]]; then
+  npm ci --prefix .config/npm-tools --ignore-scripts --no-audit --no-fund \
+    --bin-links=false --engine-strict --userconfig=/dev/null
+fi
+INSPECTOR=(env MCP_INSPECTOR_SECRET_STORE=memory node "$INSPECTOR_CLI" --cli \
+  --config "$INSPECTOR_CONFIG" --server mssql-mcp --format json \
+  --stored-auth-only --connect-timeout 15000)
 PASS=0
 FAIL=0
 
@@ -74,7 +81,7 @@ TOOLS_JSON=$("${INSPECTOR[@]}" --method tools/list 2>/dev/null) || {
   bad "tools/list: inspector exited $?"
   exit 1
 }
-TOOL_COUNT=$(echo "$TOOLS_JSON" | python3 -c "import sys,json; print(len(json.load(sys.stdin)['tools']))" 2>/dev/null) || {
+TOOL_COUNT=$(echo "$TOOLS_JSON" | python3 -c "import sys,json; print(len(json.load(sys.stdin)['result']['tools']))" 2>/dev/null) || {
   bad "tools/list: failed to parse response"
   exit 1
 }
@@ -93,7 +100,7 @@ DB_JSON=$("${INSPECTOR[@]}" --method tools/call --tool-name list_databases 2>/de
 }
 DB_COUNT=$(echo "$DB_JSON" | python3 -c "
 import sys, json
-resp = json.load(sys.stdin)
+resp = json.load(sys.stdin)['result']
 text = next((c['text'] for c in resp.get('content', []) if c.get('type') == 'text'), '[]')
 dbs = json.loads(text)
 print(len(dbs))
@@ -118,7 +125,7 @@ expected_true = {
     'explain_query', 'analyze_indexes', 'get_top_queries', 'analyze_db_health',
 }
 expected_false = {'execute_sql'}
-resp = json.load(sys.stdin)
+resp = json.load(sys.stdin)['result']
 tools = resp.get('tools', [])
 mismatches = []
 for tool in tools:

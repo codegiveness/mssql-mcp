@@ -84,17 +84,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restore actual SQL functionality in the Alpine container by using the ICU-enabled .NET 10 runtime image instead of invariant globalization. CI now checks a live container SQL connection, not just version output.
 - Replace source-text security assertions with behavioral redirect rejection/depth regressions; remove obsolete export-only smoke assertions.
 - Isolate mutable server-metadata test fixtures in an atomically created private temporary directory, preventing a reproduced symlink overwrite; remove incidental formatting and retry-wiring assertions.
+- Reject sequence-allocation expressions in Restricted mode and add an independent fuzz invariant; rollback cannot restore consumed sequence values.
+- Reject linked log-path ancestors and rotation targets, with deterministic filesystem regressions; private server-owned directories remain necessary against path-replacement races.
+- Reject numeric/combined access-mode configuration and require explicit Unrestricted mode before write routing, preventing mismatched read-only hints and committed execution.
+- Clear earlier vulnerability reports before reruns so scanner failures cannot present stale findings as current evidence.
 
 ### Added
 
 - C# and JavaScript/TypeScript CodeQL security analysis and a bounded, coverage-guided ScriptDom/Guard fuzzing workflow with an intentional engine-crash probe and retained campaign artifacts.
 - Current security finding dispositions and explicit external prerequisites; historical audits remain unchanged.
+- Full-history SQL/provider credential scanning with redacted reports, content-pinned workflow auditors, and fresh-advisory Docker/SBOM/npm vulnerability gates.
+- Live SQL, npm security and official MCP Inspector proofs in PR CI, production branch-coverage reports, and 600-second scheduled fuzzing with main-only retained-corpus writes.
+- Canonical `.bestpractices.json` service proposals with evidence-backed statuses and unknown personal/TLS attestations, rather than a falsely certified external badge.
 
 ### Changed
 
 - Continue releases on 0.x. Release automation rejects major versions 1 and above; superseded v1 graduation tasks are retired rather than falsely certified.
 - Record the maintainer's successful production use with Oh My Pi and OpenCode as user-reported evidence, without inventing a 30-day log or verification of other clients.
-- Switch npm release authentication to package-scoped GitHub Trusted Publishing (OIDC), with Node 24 and pinned npm 12.0.1; remove the workflow's long-lived `NPM_TOKEN` dependency while preserving provenance, sequential platform-first publication, and the 0.x guard. Publication requires each package's trusted-publisher authorization.
+- Expand CodeQL to `security-and-quality`; activate a native HIGH/CRITICAL CodeQL merge gate without bypass actors. Expanded hosted analysis and new required-check enforcement remain pending deployment.
+- Content-lock Inspector 2.9.0/c8 and install unchanged hash-pinned npm 12.2.0 source with independently SRI-locked production dependencies; resolve the original bundled HIGH vulnerabilities without vendor patches or scan exceptions. Adapt MCP smoke to the v2 response envelope and memory-only secret storage.
+- Switch npm release authentication to package-scoped GitHub Trusted Publishing (OIDC), with Node 24 and a content-locked npm CLI; remove the workflow's long-lived `NPM_TOKEN` dependency while preserving provenance, sequential platform-first publication, and the 0.x guard. Publication requires each package's trusted-publisher authorization and a passing tool-dependency scan.
 
 ## [0.4.2] - 2026-07-24
 

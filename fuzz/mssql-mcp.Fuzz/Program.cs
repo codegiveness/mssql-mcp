@@ -79,5 +79,10 @@ internal static class Program
                 throw new InvalidOperationException("Guard accepted SELECT INTO.");
             }
         }
+
+        public override void Visit(NextValueForExpression node)
+        {
+            throw new InvalidOperationException("Guard accepted sequence allocation via NEXT VALUE FOR.");
+        }
     }
 }

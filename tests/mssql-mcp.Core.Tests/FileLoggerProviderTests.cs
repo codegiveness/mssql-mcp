@@ -32,6 +32,29 @@ public class FileLoggerProviderTests
         }
     }
 
+    private static void CreateSymbolicLink(string path, string target, bool directory = false)
+    {
+        try
+        {
+            if (directory)
+            {
+                Directory.CreateSymbolicLink(path, target);
+            }
+            else
+            {
+                File.CreateSymbolicLink(path, target);
+            }
+        }
+        catch (Exception exception) when (
+            exception is UnauthorizedAccessException or PlatformNotSupportedException ||
+            (OperatingSystem.IsWindows() && exception is IOException &&
+             (exception.HResult & 0xffff) == 1314))
+        {
+            // Windows may require developer mode or the create-symbolic-link privilege.
+            Assert.Skip($"Symbolic links are unavailable in this test environment: {exception.Message}");
+        }
+    }
+
     [Fact]
     public void UnderThreshold_NoRotation_ActiveFileHasAllLines_NoArchives()
     {
@@ -160,6 +183,148 @@ public class FileLoggerProviderTests
             Assert.False(File.Exists(logPath + ".1"));
             string active = File.ReadAllText(logPath);
             Assert.Contains("EEEE-padding-line-content", active);
+        }
+        finally { Cleanup(dir); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LinkedParent_RejectsBeforeDestinationFileCreation(bool targetExists)
+    {
+        string dir = NewTempDir();
+        try
+        {
+            string destination = Path.Combine(dir, "destination");
+            string nested = Path.Combine(destination, "nested");
+            if (targetExists)
+            {
+                Directory.CreateDirectory(nested);
+            }
+            string parentLink = Path.Combine(dir, "linked-parent");
+            CreateSymbolicLink(parentLink, destination, directory: true);
+            string logPath = Path.Combine(parentLink, "nested", "app.log");
+
+            Assert.Throws<ArgumentException>(() => new FileLoggerProvider(logPath));
+
+            Assert.False(File.Exists(Path.Combine(nested, "app.log")));
+            Assert.Equal(targetExists, Directory.Exists(destination));
+            Assert.Equal(destination, new DirectoryInfo(parentLink).LinkTarget);
+        }
+        finally { Cleanup(dir); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FinalLink_RejectsExistingAndDanglingTargets(bool targetExists)
+    {
+        string dir = NewTempDir();
+        try
+        {
+            string destination = Path.Combine(dir, "destination.log");
+            if (targetExists)
+            {
+                File.WriteAllText(destination, "destination-must-stay-unchanged");
+            }
+            string logPath = Path.Combine(dir, "app.log");
+            CreateSymbolicLink(logPath, destination);
+
+            Assert.Throws<ArgumentException>(() => new FileLoggerProvider(logPath));
+
+            if (targetExists)
+            {
+                Assert.Equal("destination-must-stay-unchanged", File.ReadAllText(destination));
+            }
+            else
+            {
+                Assert.False(File.Exists(destination));
+            }
+            Assert.Equal(destination, new FileInfo(logPath).LinkTarget);
+        }
+        finally { Cleanup(dir); }
+    }
+
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    [InlineData(2, true)]
+    [InlineData(3, false)]
+    [InlineData(3, true)]
+    public void Rotation_RejectsLinkedArchiveBeforeMutatingChain(int linkedRoll, bool targetExists)
+    {
+        string dir = NewTempDir();
+        try
+        {
+            string logPath = Path.Combine(dir, "app.log");
+            using var provider = new FileLoggerProvider(logPath, maxBytes: 1, maxRolls: 3);
+            string destination = Path.Combine(dir, "destination.log");
+            if (targetExists)
+            {
+                File.WriteAllText(destination, "destination-must-stay-unchanged");
+            }
+            for (int roll = 1; roll <= 3; roll++)
+            {
+                if (roll == linkedRoll)
+                {
+                    CreateSymbolicLink($"{logPath}.{roll}", destination);
+                }
+                else
+                {
+                    File.WriteAllText($"{logPath}.{roll}", $"original-roll-{roll}");
+                }
+            }
+
+            Assert.Throws<ArgumentException>(() => WriteLines(provider, 1, "rotation-attempt"));
+
+            Assert.Contains("rotation-attempt", File.ReadAllText(logPath));
+            for (int roll = 1; roll <= 3; roll++)
+            {
+                if (roll == linkedRoll)
+                {
+                    Assert.Equal(destination, new FileInfo($"{logPath}.{roll}").LinkTarget);
+                }
+                else
+                {
+                    Assert.Equal($"original-roll-{roll}", File.ReadAllText($"{logPath}.{roll}"));
+                }
+            }
+            if (targetExists)
+            {
+                Assert.Equal("destination-must-stay-unchanged", File.ReadAllText(destination));
+            }
+            else
+            {
+                Assert.False(File.Exists(destination));
+            }
+        }
+        finally { Cleanup(dir); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OrdinaryPath_AppendsAndRotatesExistingFile(bool relativePath)
+    {
+        // Keep relative paths below CWD without changing process-global current directory.
+        string dir = relativePath ? "mssql-mcp-log-tests-" + Guid.NewGuid().ToString("N") : NewTempDir();
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string logPath = Path.Combine(dir, "app.log");
+            File.WriteAllText(logPath, "existing-log-entry\n");
+            using var provider = new FileLoggerProvider(logPath, maxBytes: 1, maxRolls: 2);
+            WriteLines(provider, 1, "first-log-entry");
+            WriteLines(provider, 1, "second-log-entry");
+            provider.Dispose();
+
+            Assert.Equal(string.Empty, File.ReadAllText(logPath));
+            Assert.Contains("second-log-entry", File.ReadAllText(logPath + ".1"));
+            string older = File.ReadAllText(logPath + ".2");
+            Assert.StartsWith("existing-log-entry\n", older);
+            Assert.Contains("first-log-entry", older);
+            Assert.DoesNotContain("second-log-entry", older);
         }
         finally { Cleanup(dir); }
     }

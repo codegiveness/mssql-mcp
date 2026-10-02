@@ -54,7 +54,7 @@ public sealed class SqlTools
         _logger.LogInformation("[tool] execute_sql invoked");
 
         // Restricted path: Guard returns wrapped SQL (sentinel + BEGIN TRAN / ROLLBACK per ADR-0007).
-        if (_options.AccessMode == AccessMode.Restricted)
+        if (_options.AccessMode != AccessMode.Unrestricted)
         {
             GuardResult guardResult = _guard.Validate(sql);
             if (!guardResult.Accepted)
