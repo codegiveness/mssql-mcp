@@ -7,5 +7,9 @@
   <Folder Name="/tests/">
     <Project Path="tests/mssql-mcp.Core.Tests/mssql-mcp.Core.Tests.csproj" />
     <Project Path="tests/mssql-mcp.Tools.Tests/mssql-mcp.Tools.Tests.csproj" />
+    <Project Path="tests/MssqlMcp.RepoTool.Tests/MssqlMcp.RepoTool.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/MssqlMcp.RepoTool/MssqlMcp.RepoTool.csproj" />
   </Folder>
 </Solution>

@@ -71,7 +71,7 @@ _Avoid_: dependency list, dependency graph, manifest
 ## Release Workflow
 
 **Release**:
-A versioned cut of the repo, tagged `v0.Y.Z` (optionally with a SemVer prerelease suffix), published to NuGet, npm, and GitHub Releases. Releases continue in 0.x; major versions >= 1 are blocked for both automatic and manual publication by `scripts/check-release-policy.js`. ADR-0036 retires the v1 RC/promotion path and 30-day calendar, not the Guard, security, distribution, or pre-push controls. Old launch issues #1/#11/#20/#22/#34 are retired milestones, not completed original tests.
+A versioned cut of the repo, tagged `v0.Y.Z` (optionally with a SemVer prerelease suffix), published to NuGet, npm, and GitHub Releases. Releases continue in 0.x; major versions >= 1 are blocked for both automatic and manual publication by the C# repository tool's `check-release-policy` command. ADR-0036 retires the v1 RC/promotion path and 30-day calendar, not the Guard, security, distribution, or pre-push controls. Old launch issues #1/#11/#20/#22/#34 are retired milestones, not completed original tests.
 _Avoid_: deploy, ship (as a noun), publish (use for the per-registry push)
 
 **Manifest**:
@@ -83,15 +83,15 @@ A literal version string embedded in a tracked file (`mssql-mcp.csproj`, `npm/pa
 _Avoid_: version literal, version marker
 
 **Stamp** (verb):
-To write the canonical version into tracked files. `scripts/sync-all-stamps.js` synchronizes the csproj, main npm version and optional dependencies, all five platform npm versions, and server.json before a release build. Run it after a manifest change when preparing committed stamps as well.
+To write the canonical version into tracked files. `dotnet run --project tools/MssqlMcp.RepoTool -- sync-all-stamps` synchronizes the csproj, main npm version and optional dependencies, all five platform npm versions, and server.json before a release build. Run it after a manifest change when preparing committed stamps as well.
 _Avoid_: bump (reserved for the act of incrementing the version), write (too generic)
 
 **Release PR**:
-The auto-generated pull request from release-please that bumps the Manifest and `CHANGELOG.md`. Merging it creates the tag; `scripts/sync-all-stamps.js` synchronizes derivative stamps before release builds. A manifest/stamp mismatch in a working branch must be settled before the normal consistency/pre-push check passes.
+The auto-generated pull request from release-please that bumps the Manifest and `CHANGELOG.md`. Merging it creates the tag; the C# repository tool's `sync-all-stamps` command synchronizes derivative stamps before release builds. A manifest/stamp mismatch in a working branch must be settled before the normal consistency/pre-push check passes.
 _Avoid_: version PR, bump PR
 
 **Consistency check**:
-The CI workflow (`version-consistency.yml`) and local script (`scripts/check-version-consistency.js`) that verifies every version stamp matches the Manifest. Runs on every PR and every push to `main`.
+The CI workflow (`version-consistency.yml`) and local C# command (`dotnet run --project tools/MssqlMcp.RepoTool -- check-version-consistency`) that verify every version stamp matches the Manifest. Runs on every PR and every push to `main`.
 _Avoid_: version lint, version validation (too vague)
 
 **Bootstrap SHA**:
@@ -99,5 +99,5 @@ The commit hash (`2458379`) after which release-please begins scanning for relea
 _Avoid_: starting commit, baseline
 
 **Release policy check**:
-The reusable `scripts/check-release-policy.js` gate: validate the manifest before release-please, validate generated tags before dispatch, and validate the manifest plus selected pushed/manual tag before artifact production or publication. The policy CI job also checks bot-generated release PRs. `bump-minor-pre-major: true` steers normal automatic bumps within 0.x but is not the security boundary; the validator rejects forced majors and malformed input. See [ADR-0036](docs/adr/0036-continue-zero-major-releases.md).
+The reusable C# repository tool's `check-release-policy` gate: validate the manifest before release-please, validate generated tags before dispatch, and validate the manifest plus selected pushed/manual tag before artifact production or publication. The policy CI job also checks bot-generated release PRs. `bump-minor-pre-major: true` steers normal automatic bumps within 0.x but is not the security boundary; the validator rejects forced majors and malformed input. See [ADR-0036](docs/adr/0036-continue-zero-major-releases.md).
 _Avoid_: graduation gate, promotion clock (retired requirements)

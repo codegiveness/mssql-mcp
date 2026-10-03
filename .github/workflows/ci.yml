@@ -28,7 +28,7 @@ jobs:
       - run: dotnet format mssql-mcp.sln --verify-no-changes --no-restore
       - run: dotnet test --solution mssql-mcp.sln --no-build -- --filter-not-trait Category=Integration
       - name: Lint README JSON snippets
-        run: node scripts/lint-readme-snippets.js
+        run: dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- lint-readme-snippets
       - name: Pack
         run: dotnet pack src/mssql-mcp/mssql-mcp.csproj -c Release --no-restore -o artifacts
       - name: Generate SBOM
@@ -38,7 +38,7 @@ jobs:
       - name: Assess package redistribution
         id: redistribution
         run: |
-          if node scripts/check-redistribution.js; then
+          if dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- check-redistribution; then
             echo "allowed=true" >> "$GITHUB_OUTPUT"
           else
             echo "allowed=false" >> "$GITHUB_OUTPUT"
@@ -106,13 +106,13 @@ jobs:
           node .config/npm-tools/node_modules/c8/bin/c8.js --config .config/coverage.npm.json node npm/test.js
           node .config/npm-tools/node_modules/c8/bin/c8.js --config .config/coverage.npm.json --clean=false node npm/poc-tests.js
       - name: Exercise MCP Inspector stdio handshake and tools
-        run: bash scripts/mcp-smoke.sh
+        run: dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- mcp-smoke
       - name: Publish production line and branch coverage summary
         if: always()
         run: |
           dotnet tool restore
           dotnet reportgenerator '-reports:artifacts/coverage/raw/**/*.xml' '-targetdir:artifacts/coverage/report' '-reporttypes:Html;Cobertura;JsonSummary' '-sourcedirs:.'
-          node scripts/coverage-summary.js artifacts/coverage/report/Summary.json artifacts/coverage/npm/coverage-summary.json
+          dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- coverage-summary artifacts/coverage/report/Summary.json artifacts/coverage/npm/coverage-summary.json
       - name: Preserve branch coverage reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -248,7 +248,7 @@ jobs:
       - name: Assess package redistribution
         id: redistribution
         run: |
-          if node scripts/check-redistribution.js; then
+          if dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- check-redistribution; then
             echo "allowed=true" >> "$GITHUB_OUTPUT"
           else
             echo "allowed=false" >> "$GITHUB_OUTPUT"
@@ -280,12 +280,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Restore locked repository tooling
+        run: dotnet restore tools/MssqlMcp.RepoTool --locked-mode
       - name: Build Docker image
         run: docker build -t mssql-mcp-test .
       - name: Install content-pinned Trivy
-        run: python3 scripts/install-security-tools.py trivy
+        run: dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- install-security-tools trivy
       - name: Assess the built container and block HIGH/CRITICAL vulnerabilities
-        run: python3 scripts/security-scan.py image mssql-mcp-test --reports artifacts/security/image
+        run: dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- security-scan image mssql-mcp-test --reports artifacts/security/image
       - name: Preserve container findings and advisory metadata
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

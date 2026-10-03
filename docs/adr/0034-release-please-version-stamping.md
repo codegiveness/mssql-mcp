@@ -2,9 +2,9 @@
 
 > **Current release policy supplement:** [ADR-0036](0036-continue-zero-major-releases.md) requires continued 0.x releases. `bump-minor-pre-major: true` remains configured; one shared release-policy guard validates the manifest before release-please, generated tags before dispatch, and the manifest plus pushed/manual tag before artifact production/publication. All major versions >= 1, including v1 RCs, are blocked. The original automation decision below remains historical context; this supplement changes no version stamp.
 
-> **Platform stamp scope:** authoritative synchronization and consistency validation now include all five `npm/platforms/<rid>/package.json` versions, not only the main package's `optionalDependencies`. Release publication no longer rewrites those platform versions independently; `scripts/sync-all-stamps.js` owns them before build/package staging. This closes the stale-platform-version path that could cause local npm installation to select a registry version instead of the staged binary.
+> **Platform stamp scope:** authoritative synchronization and consistency validation include all five `npm/platforms/<rid>/package.json` versions, not only the main package's `optionalDependencies`. Release publication does not rewrite those platform versions independently; the C# repository tool's `sync-all-stamps` command owns them before build/package staging. This closes the stale-platform-version path that could cause local npm installation to select a registry version instead of the staged binary.
 
-We adopted [release-please](https://github.com/googleapis/release-please) with a custom manifest (`.release-please-manifest.json`) as the single source of truth for the version, driving automatic bumps of all version stamps (`mssql-mcp.csproj`, `npm/package.json` including five `optionalDependencies`, `server.json`'s three version fields), `CHANGELOG.md` generation from Conventional Commits, and tag creation. The existing tag-triggered `release.yml` builds and publishes unchanged. A `version-consistency.yml` CI workflow plus local `scripts/check-version-consistency.js` script enforce that no stamp ever drifts from the manifest.
+We adopted [release-please](https://github.com/googleapis/release-please) with a custom manifest (`.release-please-manifest.json`) as the single source of truth for the version, driving automatic bumps, `CHANGELOG.md` generation from Conventional Commits, and tag creation. The tag-triggered `release.yml` owns builds and publication. `version-consistency.yml` and the local C# repository tool's `check-version-consistency` command enforce that derivative stamps do not drift from the manifest. [ADR-0012](0012-project-structure.md#repository-tooling-cutover) records the tooling language cutover without changing version ownership.
 
 ## Context
 
@@ -20,7 +20,7 @@ The repo already enforced Conventional Commits PR titles via `semantic.yml` (the
 
 2. **release-please manages only the manifest + CHANGELOG.** release-please cannot natively update XML (`<VersionPrefix>`) or nested JSON (`optionalDependencies`), so `extra-files` is not used. The manifest and `CHANGELOG.md` are the only files release-please touches in its Release PR.
 
-3. **`scripts/sync-all-stamps.js` syncs all stamps at tag time.** The existing `release.yml` (tag-triggered) already synced csproj and npm/package.json to the tag version at build time via `sed` and `node -e`. A new step invokes `sync-all-stamps.js`, which reads the manifest version and writes all stamps: csproj `<VersionPrefix>`, npm/package.json `version` + 5 `optionalDependencies`, and server.json's 3 `version` fields. This replaces the ad-hoc sed/node-e syncs with one idempotent script.
+3. **The C# repository tool's `sync-all-stamps` command syncs all stamps before release builds.** Run `dotnet run --project tools/MssqlMcp.RepoTool -- sync-all-stamps` to read the manifest and write csproj `<VersionPrefix>`, main npm `version` and optional dependencies, all five platform versions, and server.json's three version fields. One idempotent implementation supersedes the original ad-hoc shell commands and separate server-only synchronizer.
 
 4. **`CHANGELOG.md` is auto-generated.** release-please assembles it from Conventional Commit titles since the last release. No manual changelog entries.
 
@@ -28,7 +28,7 @@ The repo already enforced Conventional Commits PR titles via `semantic.yml` (the
 
 6. **release-please creates the tag; `release.yml` is untouched.** release-please opens a Release PR. On merge, it creates the `vX.Y.Z` tag using the built-in `GITHUB_TOKEN`. The existing `release.yml` trigger (`on: push: tags: ['v*.*.*']`) fires unchanged — it builds five RIDs, publishes to NuGet (Trusted Publishing) and npm (provenance), creates the GitHub Release with `--generate-notes`, attests artifacts, and runs the smoke job. Clean separation: release-please owns version + tag; `release.yml` owns build + publish.
 
-7. **`version-consistency.yml` + `scripts/check-version-consistency.js` enforce integrity.** A new CI workflow runs on every PR and push to `main`. It calls the same script developers run locally. The script reads the manifest version and asserts every stamp matches. Added to the pre-push checklist in `AGENTS.md`, mirroring the existing `scripts/lint-readme-snippets.js` pattern.
+7. **`version-consistency.yml` and the C# repository tool enforce integrity.** CI and developers run `dotnet run --project tools/MssqlMcp.RepoTool -- check-version-consistency`. The command asserts every stamp matches the manifest. Behavioral regressions live in `tests/MssqlMcp.RepoTool.Tests`, and the same command is required by the pre-push checklist.
 
 8. **Bootstrap with `bootstrap-sha: 2458379`.** This is the commit of "chore(release): bump version to 0.4.2" — the last manual release. release-please scans only commits after this SHA, so the first Release PR targets `v0.5.0` (triggered by this setup commit, which is itself a `feat:`).
 
@@ -66,6 +66,6 @@ The repo already enforced Conventional Commits PR titles via `semantic.yml` (the
 
 - **`CHANGELOG.md` is rewritten by release-please on the first Release PR.** The existing manual entries are preserved (release-please appends, it doesn't truncate), but future entries are auto-generated. The maintainer can edit the auto-generated entry before merging the Release PR if a human-readable summary is needed.
 
-- **`server.json` stamping depends on `scripts/sync-server-json.js`.** If the MCP schema adds a fourth `version` field in the future, the script must be updated. This is explicit and auditable — preferable to release-please's opaque `extra-files` JSON-path matching for a non-standard layout.
+- **`server.json` stamping is owned by `sync-all-stamps`.** If the MCP schema adds another version carrier, update this C# implementation and its consistency regressions together. There is no independent server-only synchronizer or compatibility alias.
 
 - **Bootstrap SHA is a one-time config.** After the first release-please release, the `bootstrap-sha` field is no longer consulted (release-please tracks the last release tag internally). It remains in the config as a historical artifact; removing it is safe after `v0.5.0` ships.

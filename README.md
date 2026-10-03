@@ -900,15 +900,14 @@ Verifies the shim (`bin/mssql-mcp.js`) parses, the RID mapping returns expected 
 ### Release policy checks
 
 ```bash
-node scripts/check-release-policy.js --manifest
-node scripts/test/check-release-policy.test.js
-node scripts/check-version-consistency.js
-node scripts/test/check-version-consistency.test.js
+dotnet run --project tools/MssqlMcp.RepoTool -- check-release-policy --manifest
+dotnet run --project tools/MssqlMcp.RepoTool -- check-version-consistency
+dotnet test --project tests/MssqlMcp.RepoTool.Tests
 ```
 
 The first command admits only a canonical 0.x version. The deterministic tests exercise valid 0.x tags, blocked majors (including v1 RCs), malformed tags, and the real manual-dispatch/manifest entrypoints without creating a release. CI applies the same guard to release PRs, automatic release-please releases, tag pushes, and manual dispatch before artifact publication.
 
-Version consistency includes the main npm package's optional dependencies **and all five platform package manifests**, as well as the csproj and server.json. After a canonical manifest change, `node scripts/sync-all-stamps.js` synchronizes all these derivatives before release builds or preparing committed stamps. A stale platform version can otherwise make a local npm package install resolve a different registry version.
+Version consistency includes the main npm package's optional dependencies **and all five platform package manifests**, as well as the csproj and server.json. After a canonical manifest change, `dotnet run --project tools/MssqlMcp.RepoTool -- sync-all-stamps` synchronizes all these derivatives before release builds or preparing committed stamps. A stale platform version can otherwise make a local npm package install resolve a different registry version.
 
 ### .NET baseline and tooling boundaries
 
@@ -921,7 +920,7 @@ and Docker pins both SDK and runtime-dependency images by digest.
 **Redistribution guard:** the Azure authentication extension and its restricted
 `Microsoft.Identity.Client.NativeInterop` graph were removed with owner approval.
 Entra authentication is no longer supported; SQL password and Windows Integrated
-remain. `node scripts/check-redistribution.js` now admits the broker-free graph
+remain. `dotnet run --project tools/MssqlMcp.RepoTool -- check-redistribution` admits the broker-free graph
 and continues to fail closed if that dependency is reintroduced.
 Release runs the guard before producing/publishing artifacts; CI applies it
 before NuGet/npm uploads. Native Windows SNI assets are explicitly excluded too.
@@ -929,18 +928,38 @@ See [Third-Party Notices](THIRD-PARTY-NOTICES.md). This guard does not establish
 general license compliance.
 
 
-Non-.NET components serve distribution or independent verification, not a second
-server implementation: Node supports npm/npx installation, release-stamp tooling,
-and the official MCP Inspector; Python orchestrates content-pinned external security
-auditors; Bash coordinates CI/smoke/fuzz commands; native fuzzing tools supply coverage
-instrumentation. Replacing those integrations would not make SQL execution more .NET.
-The mandatory Inspector smoke uses its already-required Node runtime for JSON handling,
-so that command no longer needs Python.
+Repository-owned release checks, version stamping, README validation, coverage reporting,
+content-pinned tool installation, security scanning, Inspector smoke orchestration, and fuzz
+coordination are C# in `tools/MssqlMcp.RepoTool`. This nonshipping console project has no
+application-project dependency, so release stamps can be synchronized before server builds.
+Its behavioral regressions live in `tests/MssqlMcp.RepoTool.Tests`.
+
+Node remains necessary for the npm/npx launcher, its JavaScript consumer tests, the official
+MCP Inspector, and upstream npm publishing. Security auditors and native fuzz engines remain
+independent external tools; C# coordinates them rather than replacing their verification.
+Workflow YAML, JSON manifests, project XML, Docker instructions, and SQL fuzz inputs retain
+their native formats. There are no repository-owned Python or standalone Bash scripts.
+
+```bash
+dotnet run --project tools/MssqlMcp.RepoTool -- --help
+dotnet run --project tools/MssqlMcp.RepoTool -- install-security-tools gitleaks zizmor actionlint shellcheck trivy
+dotnet run --project tools/MssqlMcp.RepoTool -- install-npm-cli
+dotnet run --project tools/MssqlMcp.RepoTool -- security-scan verify-detectors --reports artifacts/security/detectors
+dotnet run --project tools/MssqlMcp.RepoTool -- security-scan workflows --reports artifacts/security/workflows
+dotnet run --project tools/MssqlMcp.RepoTool -- run-fuzz /tmp/mssql-mcp-fuzz-proof 60
+```
+
+Scanner installation retains reviewed Linux x64 binaries and SHA-256 pins. npm installation
+uses native cache storage for symlinks and preserves the locked production dependency tree
+with lifecycle scripts disabled. Set `TMPDIR` to a private native-disk directory if the host's
+temporary filesystem is quota-constrained. Fuzzing still requires clang++/libFuzzer and curl.
+The smoke loads ordinary `.env` assignments without executing shell expressions; an exported
+`MSSQL_CONNECTION_STRING` takes precedence.
 
 ```bash
 # Build first so the smoke exercises current source, not an older local executable.
 dotnet build mssql-mcp.sln
-./scripts/mcp-smoke.sh
+dotnet run --project tools/MssqlMcp.RepoTool -- mcp-smoke
 ```
 
 The smoke checks a real stdio handshake, nine-tool discovery, a successful
@@ -957,7 +976,9 @@ src/
   mssql-mcp/            # App: Program.cs, DI, stdio, CLI, npm entrypoint
 tests/
   mssql-mcp.Core.Tests/ # Guard AST validation, type coercion, etc.
+  MssqlMcp.RepoTool.Tests/ # Release, archive, scanner, smoke-response, and corpus boundaries
   mssql-mcp.Tools.Tests/ # Tool attribute wiring, schema tests
+tools/MssqlMcp.RepoTool/ # Nonshipping C# repository tooling; no application references
 npm/                    # npm package: bin shim + per-platform packages + smoke test
 docs/adr/               # Architectural Decision Records
 ```

@@ -23,14 +23,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          node-version: '24'
-          package-manager-cache: false
+          global-json-file: global.json
+      - name: Restore locked repository tooling
+        run: dotnet restore tools/MssqlMcp.RepoTool --locked-mode
 
       # A forced major Release-As PR must not create a release after merge.
       - name: Enforce 0.x manifest policy
-        run: node scripts/check-release-policy.js --manifest
+        run: dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- check-release-policy --manifest
 
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         id: release-please
@@ -46,6 +47,6 @@ jobs:
           RELEASE_VERSION: ${{ steps.release-please.outputs.version }}
         run: |
           tag="v${RELEASE_VERSION}"
-          node scripts/check-release-policy.js "$tag"
+          dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- check-release-policy "$tag"
           echo "Release created with tag $tag, triggering release.yml"
           gh workflow run release.yml -f tag="$tag"

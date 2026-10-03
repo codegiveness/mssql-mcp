@@ -2,6 +2,49 @@
 
 This is a current disposition and verification checklist, not a rewrite of the historical security audits. It does not authorize a 1.x release. A configured control is not a successful execution, and a Scorecard score is not a vulnerability assessment.
 
+## C# repository-tooling cutover
+
+Current maintenance commands use `dotnet run --project tools/MssqlMcp.RepoTool -- <command>`.
+The former repository-owned JavaScript, Python, and Bash scripts have been removed; historical
+command transcripts and dated findings below describe the earlier implementation, not current
+entrypoints. [ADR-0012](adr/0012-project-structure.md#repository-tooling-cutover) records the cutover.
+The npm launcher and its consumer tests, official Inspector, upstream npm publisher, security
+auditors, and native fuzz engines are retained. Security pins, redaction, advisory freshness,
+zero-major publication policy, and required runtime verification remain in force.
+
+Local cutover verification exercised the actual CLI rejection/repair paths, 171 repository-tool
+regressions, and the live solution suite (650 passed, four existing ScriptDom-unreachable skips,
+zero failed). The official Inspector stdio handshake found nine tools, called `list_databases`,
+and checked all idempotency annotations. A native fuzz smoke campaign completed 30,148 runs
+and produced the separately required intentional-crash probe; its campaign findings directory
+was empty. The content-pinned scanner installers and source/SRI-locked npm 12.2.0 installation
+ran successfully, and that installed publisher passed its version command and packaging dry run.
+Fresh Trivy assessments covered the actual Docker image, generated solution SBOM, Inspector/c8
+lock, and npm publisher lock with zero HIGH/CRITICAL findings. Detector/redaction verification
+and actionlint/zizmor/ShellCheck workflow auditing also passed. These are local runtime proofs,
+not evidence of registry publication or a new hosted CodeQL run.
+
+The npm installer smoke exposed trailing-separator path identity differences: canonical contained
+paths now remove trailing directory separators before parent creation or archive-member
+deduplication. The directory-alias regression failed before the fix and passed afterward.
+An initial live database-health test failure did not recur in the direct-tool diagnostic or
+the full suite rerun; its assertion now includes the sanitized tool response for diagnosis.
+No server behavior or distributed package version changed.
+
+Full committed-history Gitleaks scanning completed with zero findings. The first local attempt
+was stopped by an outer verification-harness deadline; using the scanner's existing ten-minute
+allowance completed the full scan. No scanner policy or configured timeout was weakened.
+GitHub branch protection was read back with 14 required, Actions-bound checks and administrator
+enforcement: only the obsolete Python analysis requirement was retired, while the native
+CodeQL HIGH/CRITICAL gate and its no-bypass policy remain active.
+
+Hosted scanning of the first cutover revision flagged only the migrated detector generator's
+static `"Synthetic"` prefix. The existing exception was ported to the exact C# module path,
+retaining the Python path for committed history and the exact prefix-only secret match.
+The detector smoke then detected all 12 positive fixtures, including a generated credential
+at that same C# module path, while accepting the static prefix in the negative fixture.
+No test-directory exception, real-credential exception, or history rewrite was introduced.
+
 ## .NET modernization verification
 
 Official [.NET release metadata](https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json)
@@ -258,23 +301,23 @@ The relevant source is `.github/workflows/ci.yml`, `npm/package.json`, and `npm/
 
 The nonshipping project `fuzz/mssql-mcp.Fuzz` references Core and exact-pinned SharpFuzz 2.3.0, but is not part of the release tool's dependency graph or the solution's shipping builds. [SharpFuzz's official libFuzzer instructions](https://github.com/Metalnem/sharpfuzz/blob/master/docs/libFuzzer.md) document `Fuzzer.LibFuzzer.Run`, native bridge compilation, and instrumenting managed assemblies. The [upstream driver](https://github.com/Metalnem/sharpfuzz/blob/master/scripts/fuzz-libfuzzer.ps1) documents the `--target_path=dotnet --target_arg=<harness.dll>` invocation.
 
-`scripts/run-fuzz.sh` performs locked restore and publish, installs the exact instrumentation tool version 2.3.0, and instruments Core's Guard types plus ScriptDom. It downloads the native libFuzzer bridge from commit `bd39d4e88d715ab460a929943645be2a186cde52`, verifies SHA256 `90f019e2e9ad3a0b93c7ecc2c5afb2fbfc8b5aab6aac51c7e0d349ec79354f36`, and compiles it with `clang++ -fsanitize=fuzzer`. This follows the supported native bridge rather than substituting hand-written random mutation or source markers.
+The C# repository tool's `run-fuzz` command performs locked restore and publish, installs the exact instrumentation tool version 2.3.0, and instruments Core's Guard types plus ScriptDom. It downloads the native libFuzzer bridge from commit `bd39d4e88d715ab460a929943645be2a186cde52`, verifies SHA256 `90f019e2e9ad3a0b93c7ecc2c5afb2fbfc8b5aab6aac51c7e0d349ec79354f36`, and compiles it with `clang++ -fsanitize=fuzzer`. This follows the supported native bridge rather than substituting hand-written random mutation or source markers.
 
 The callback parses input directly before invoking `SqlGuard.ValidateStrict` because Guard catches parser exceptions; unexpected parser exceptions must remain visible to libFuzzer. Ordinary ScriptDom parse-error results are valid outcomes. If Guard accepts a batch, a separate visitor asserts that all statements are SELECT and none has an INTO target. The harness never opens a SQL connection. Four seed files cover valid SELECT, CTE/Unicode/quoted values, nested writes/batch separators, and malformed comments/strings; `fuzz/sql.dict` guides mutation.
 
-The runner first uses `MSSQL_FUZZ_CRASH_PROBE=1` for a separate deliberate managed exception and requires both a failed engine run and its crash artifact/error message. That artifact validates the engine, **not a product defect**. The actual campaign explicitly removes this variable, fixes the mutation seed to 1, limits input to 4096 bytes, uses a five-second per-input timeout, and runs for 60 seconds in CI (local duration accepts 1–120 seconds). An outer timeout bounds an unresponsive native bridge. Failures are not swallowed; real crashes/timeouts remain campaign failures with artifacts. The wrapper's limits are not a total managed-process memory guarantee.
+The runner first uses `MSSQL_FUZZ_CRASH_PROBE=1` for a separate deliberate managed exception and requires both a failed engine run and its crash artifact/error message. That artifact validates the engine, **not a product defect**. The actual campaign explicitly removes this variable, fixes the mutation seed to 1, limits input to 4096 bytes, uses a five-second per-input timeout, and runs for 60 seconds in ordinary CI or 600 seconds on the weekly schedule (local duration accepts 1–1200 seconds). The C# process runner bounds unresponsive engines, preserves partial logs, and returns timeout exit 124. Real crashes/timeouts remain campaign failures with artifacts; these limits are not a total managed-process memory guarantee.
 
 Generate the harness's real portable lock separately after pin changes because the project is deliberately outside the main solution:
 
 ```sh
 dotnet restore fuzz/mssql-mcp.Fuzz/mssql-mcp.Fuzz.csproj --force-evaluate
 
-# Requires .NET 10, clang++/compiler-rt libFuzzer, curl, and GNU timeout.
+# Requires .NET 10, clang++/compiler-rt libFuzzer, and curl.
 # Use a new directory; the runner refuses to overwrite existing campaign output.
-bash scripts/run-fuzz.sh /tmp/mssql-mcp-fuzz-proof 60
+dotnet run --project tools/MssqlMcp.RepoTool -- run-fuzz /tmp/mssql-mcp-fuzz-proof 60
 ```
 
-The output directory retains `instrumentation.log`, `crash-probe.log`, `campaign.log`, the mutated `corpus`, separately labeled `probe` artifacts, and real `findings`. Review the instrumentation counts, libFuzzer coverage/features/executions, corpus evolution, and crash status; a successful process exit by itself is insufficient proof of managed coverage. `.github/workflows/fuzz.yml` runs the 60-second campaign on `main`, PRs to `main`, and weekly under a ten-minute job timeout, uploads those artifacts even on failure, and grants only `contents: read` with no secrets or elevated PR permissions.
+The output directory retains `instrumentation.log`, `crash-probe.log`, `campaign.log`, the mutated `corpus`, separately labeled `probe` artifacts, and real `findings`. Review managed coverage/features/executions and crash status; a successful exit alone is insufficient proof. `.github/workflows/fuzz.yml` uploads these artifacts even on failure and grants only `contents: read` without elevated PR permissions. Retained corpus imports remain bounded, top-level data only; linked roots/files and nonseekable samples are not imported.
 
 This describes implemented behavior, **not an unobserved passing campaign**. Require a real run and hosted workflow evidence, minimize any findings into regression cases, and inspect a fresh Scorecard result before calling #11 settled.
 
