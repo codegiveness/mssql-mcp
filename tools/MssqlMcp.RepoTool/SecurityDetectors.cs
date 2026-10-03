@@ -47,6 +47,7 @@ internal static partial class SecurityCommands
             ["container.yml"] = $"{containerKey}: {password}",
             ["provider.txt"] = $"github_token = '{token}'",
             ["tests/new-consumer.cs"] = $"Server=fixture.invalid;{passwordKey}={fixtureValue};",
+            ["tools/MssqlMcp.RepoTool/SecurityDetectors.cs"] = $"Server=fixture.invalid;{passwordKey}={password};",
             ["tests/mssql-mcp.Core.Tests/FileLoggerProviderTests.cs"] = $"Server=fixture.invalid;{passwordKey}={password};",
             [".github/workflows/ci.yml"] = $"{containerKey}: {password}"
         };
@@ -77,6 +78,8 @@ internal static partial class SecurityCommands
             WriteFixture(repository.Path, "tests/mssql-mcp.Core.Tests/FileLoggerProviderTests.cs",
                 $"Server=fixture.invalid;{passwordKey}={fixtureValue};");
             WriteFixture(repository.Path, ".github/workflows/ci.yml", $"{containerKey}: {containerValue}");
+            WriteFixture(repository.Path, "tools/MssqlMcp.RepoTool/SecurityDetectors.cs",
+                $"var {passwordKey} = \"Synthetic\" + SyntheticRandom(24) + \"!\";");
             WriteFixture(repository.Path, ".gitignore", ".env");
             WriteFixture(repository.Path, ".env", $"Server=fixture.invalid;{passwordKey}={password};");
             await DetectorGitAsync(repository.Path, "add", ".");

@@ -38,6 +38,13 @@ GitHub branch protection was read back with 14 required, Actions-bound checks an
 enforcement: only the obsolete Python analysis requirement was retired, while the native
 CodeQL HIGH/CRITICAL gate and its no-bypass policy remain active.
 
+Hosted scanning of the first cutover revision flagged only the migrated detector generator's
+static `"Synthetic"` prefix. The existing exception was ported to the exact C# module path,
+retaining the Python path for committed history and the exact prefix-only secret match.
+The detector smoke then detected all 12 positive fixtures, including a generated credential
+at that same C# module path, while accepting the static prefix in the negative fixture.
+No test-directory exception, real-credential exception, or history rewrite was introduced.
+
 ## .NET modernization verification
 
 Official [.NET release metadata](https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json)
