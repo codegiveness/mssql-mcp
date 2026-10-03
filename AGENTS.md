@@ -34,11 +34,11 @@ If any check fails, the push is blocked — no exceptions.
 | Help command | `mssql-mcp --help` (or `dotnet run --project src/mssql-mcp -- --help`) | Prints usage block, exit 0 |
 | Unknown-arg error | `mssql-mcp upgrade` (or `dotnet run --project src/mssql-mcp -- upgrade`) | `mssql-mcp: unknown argument 'upgrade'.` to stderr, exit 1 |
 | npm smoke test | `node npm/test.js` (if applicable) | All smoke tests pass |
-| README linter | `node scripts/lint-readme-snippets.js` | All snippets valid + badge URLs well-formed |
-| Version consistency | `node scripts/check-version-consistency.js` | `Version consistency: all stamps match.` exit 0 |
+| README linter | `dotnet run --project tools/MssqlMcp.RepoTool -- lint-readme-snippets` | All snippets valid + badge URLs well-formed |
+| Version consistency | `dotnet run --project tools/MssqlMcp.RepoTool -- check-version-consistency` | `Version consistency: all stamps match.` exit 0 |
 | LSP diagnostics | Run LSP diagnostics on changed files | 0 errors |
 | Format check | `dotnet format mssql-mcp.sln --verify-no-changes --no-restore` | Clean (no changes needed) |
-| MCP stdio smoke test | `./scripts/mcp-smoke.sh` (with `.env` loaded) | `[PASS] tools/list: 9 tools found` + `[PASS] list_databases: returned N databases` + `ALL CHECKS PASSED` |
+| MCP stdio smoke test | `dotnet run --project tools/MssqlMcp.RepoTool -- mcp-smoke` (with `.env` loaded) | `[PASS] tools/list: 9 tools found` + `[PASS] list_databases: returned N databases` + `ALL CHECKS PASSED` |
 
 ## Security verification (periodic)
 
@@ -64,9 +64,9 @@ The test uses the official MCP Inspector CLI (`@modelcontextprotocol/inspector -
 Run it with:
 
 ```bash
-# .env is auto-loaded by the script; or export manually:
+# .env is auto-loaded by the C# tool; or export manually:
 export MSSQL_CONNECTION_STRING="Server=...;Database=...;User Id=...;Password=...;Encrypt=True;TrustServerCertificate=True;"
-./scripts/mcp-smoke.sh
+dotnet run --project tools/MssqlMcp.RepoTool -- mcp-smoke
 ```
 
 Expected output:
@@ -76,9 +76,11 @@ Expected output:
 [PASS] tools/list: 9 tools found
 === [2] tools/call list_databases ===
 [PASS] list_databases: returned N databases
+=== [3] idempotentHint annotations ===
+[PASS] idempotentHint: 8 read-only=true, execute_sql=false
 
 ================================
-  PASSED: 2  FAILED: 0
+  PASSED: 3  FAILED: 0
 ================================
 ALL CHECKS PASSED
 ```

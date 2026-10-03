@@ -32,7 +32,7 @@ Sequential stages prevent partial releases — if NuGet push fails, npm publish 
 ## Versioning
 
 - Semantic Versioning 2.0 for both NuGet and npm.
-- **Version stamping is automated via release-please (ADR-0034).** The canonical version lives in `.release-please-manifest.json`; release-please syncs it into `mssql-mcp.csproj` (`VersionPrefix`), `npm/package.json`, and `server.json` on every release PR. The `scripts/check-version-consistency.js` guard enforces all stamps match.
+- **Version stamping is automated via release-please (ADR-0034).** The canonical version lives in `.release-please-manifest.json`; derivative stamps are synchronized before builds. `dotnet run --project tools/MssqlMcp.RepoTool -- check-version-consistency` enforces all stamps match.
 - npm `version` synced from the manifest (drop the `v` prefix).
 - Prereleases: `v0.2.0-preview.1` tag → NuGet `-preview.1` suffix, npm `0.2.0-preview.1`.
 - GitHub Release tags use the `v` prefix (`v0.1.0`); the actual version number drops it (`0.1.0`).

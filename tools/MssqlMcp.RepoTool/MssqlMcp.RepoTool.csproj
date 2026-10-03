@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>MssqlMcp.RepoTool</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Remove="Microsoft.Data.SqlClient.SNI.runtime" />
+    <InternalsVisibleTo Include="MssqlMcp.RepoTool.Tests" />
+  </ItemGroup>
+</Project>

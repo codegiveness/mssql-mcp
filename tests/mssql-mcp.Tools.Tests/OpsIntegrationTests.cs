@@ -87,7 +87,7 @@ public class OpsIntegrationTests
         OpsTools tools = CreateTools();
         CallToolResult result = await tools.AnalyzeDbHealth(database: null, CancellationToken.None);
 
-        Assert.False(result.IsError ?? false);
+        Assert.False(result.IsError ?? false, GetJson(result));
         string json = GetJson(result);
         using JsonDocument doc = JsonDocument.Parse(json);
         Assert.Equal(JsonValueKind.Array, doc.RootElement.ValueKind);

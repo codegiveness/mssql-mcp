@@ -27,12 +27,17 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Restore locked repository tooling
+        run: dotnet restore tools/MssqlMcp.RepoTool --locked-mode
       - name: Install content-pinned Gitleaks
-        run: python3 scripts/install-security-tools.py gitleaks
+        run: dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- install-security-tools gitleaks
       - name: Verify synthetic detectors and redaction
-        run: python3 scripts/security-scan.py verify-detectors --reports artifacts/security/detectors
+        run: dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- security-scan verify-detectors --reports artifacts/security/detectors
       - name: Scan all committed Git history
-        run: python3 scripts/security-scan.py secrets --reports artifacts/security/secrets
+        run: dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- security-scan secrets --reports artifacts/security/secrets
       - name: Preserve redacted finding metadata
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -52,10 +57,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Restore locked repository tooling
+        run: dotnet restore tools/MssqlMcp.RepoTool --locked-mode
       - name: Install content-pinned workflow auditors
-        run: python3 scripts/install-security-tools.py zizmor actionlint shellcheck
+        run: dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- install-security-tools zizmor actionlint shellcheck
       - name: Audit workflows with zizmor and actionlint (including ShellCheck)
-        run: python3 scripts/security-scan.py workflows --reports artifacts/security/workflows
+        run: dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- security-scan workflows --reports artifacts/security/workflows
       - name: Preserve workflow findings
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -76,6 +86,8 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
+      - name: Restore locked repository tooling
+        run: dotnet restore tools/MssqlMcp.RepoTool --locked-mode
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
@@ -83,9 +95,9 @@ jobs:
       - name: Install content-locked npm tooling and publishing runtime
         run: |
           npm ci --prefix .config/npm-tools --ignore-scripts --no-audit --no-fund --bin-links=false --engine-strict --userconfig=/dev/null
-          python3 scripts/install-npm-cli.py
+          dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- install-npm-cli
       - name: Install content-pinned Trivy
-        run: python3 scripts/install-security-tools.py trivy
+        run: dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- install-security-tools trivy
       # Rebuild this checked-out commit rather than trusting artifacts from another
       # workflow/PR. CI and Release also call the same helpers on their own outputs.
       - name: Generate CycloneDX SBOM from locked dependencies
@@ -98,10 +110,10 @@ jobs:
       - name: Assess image, SBOM and tooling with fresh advisories and block HIGH/CRITICAL
         run: |
           status=0
-          python3 scripts/security-scan.py image mssql-mcp-test --reports artifacts/security/image || status=1
-          python3 scripts/security-scan.py sbom artifacts/sbom --reports artifacts/security/sbom || status=1
-          python3 scripts/security-scan.py dependencies .config/npm-tools/package-lock.json --reports artifacts/security/tooling || status=1
-          python3 scripts/security-scan.py dependencies .config/npm-cli/package-lock.json --reports artifacts/security/npm-cli || status=1
+          dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- security-scan image mssql-mcp-test --reports artifacts/security/image || status=1
+          dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- security-scan sbom artifacts/sbom --reports artifacts/security/sbom || status=1
+          dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- security-scan dependencies .config/npm-tools/package-lock.json --reports artifacts/security/tooling || status=1
+          dotnet run --project tools/MssqlMcp.RepoTool --no-restore -- security-scan dependencies .config/npm-cli/package-lock.json --reports artifacts/security/npm-cli || status=1
           exit "$status"
       - name: Preserve vulnerability findings and advisory metadata
         if: ${{ !cancelled() }}

@@ -93,3 +93,24 @@ mssql-mcp.Core  ←── mssql-mcp.Tools  ←── mssql-mcp (App)
 - Cross-project references enforce wiring at compile time — if a Core type (e.g., `SqlGuard`) isn't referenced by Tools or App, the build fails. Prevents dead-code accumulation structurally.
 - Three `.csproj` files (~30 lines of XML total) is the cost. Negligible.
 - If we ever swap the MCP SDK (ADR-0008 v2 upgrade), blast radius is one project (Tools).
+
+## Repository tooling cutover
+
+Maintainer-directed C# maximization moves repository-owned checks and orchestration into
+the nonshipping `tools/MssqlMcp.RepoTool` console project, with behavioral regressions in
+`tests/MssqlMcp.RepoTool.Tests`. Both are registered in the solution. The tool has no
+application-project dependency and does not inherit SqlClient's native-SNI package reference.
+This permits policy checks and authoritative version stamping before server compilation.
+
+Run `dotnet run --project tools/MssqlMcp.RepoTool -- <command> [arguments]`. The commands own
+release policy, version consistency/stamping, redistribution, README validation, combined
+coverage summaries, pinned security/npm installation, scanner orchestration, official
+Inspector smoke coordination, and native fuzz campaigns. The former JS/Python/Bash scripts
+are removed without compatibility aliases.
+
+Retain the npm JavaScript launcher and consumer tests: recovery must work before the .NET
+binary exists. Retain the official Inspector, upstream npm, security auditors, SharpFuzz,
+and libFuzzer as external engines. YAML/JSON/XML/Dockerfile/SQL remain native data/configuration.
+This changes the repository maintenance interface, not the MCP server/tool surface or the
+existing npm bootstrap, Windows runtime, and publication contracts.
+
