@@ -39,7 +39,7 @@ the software. Package: https://www.nuget.org/packages/Microsoft.Identity.Client.
 The owner authorized removal rather than licensing clearance. Entra connection
 string authentication is consequently unsupported; SQL password and Windows
 Integrated Authentication remain. No restricted broker assets may be shipped.
-`scripts/check-redistribution.js` remains a fail-closed release/CI guard against
+`dotnet run --project tools/MssqlMcp.RepoTool -- check-redistribution` remains a fail-closed release/CI guard against
 reintroducing that dependency. Removing this known component is not a complete
 legal/licensing audit. Native SNI asset exclusion is described below.
 
