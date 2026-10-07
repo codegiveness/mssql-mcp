@@ -197,6 +197,7 @@ def verify_detectors(reports):
         "provider.txt": f"github_token = '{token}'",
         # A known test value outside its named fixture must still be detected.
         "tests/new-consumer.cs": f"Server=fixture.invalid;{password_key}={fixture_value};",
+        "tools/MssqlMcp.RepoTool/SecurityDetectors.cs": f"Server=fixture.invalid;{password_key}={password};",
         "tests/mssql-mcp.Core.Tests/FileLoggerProviderTests.cs": f"Server=fixture.invalid;{password_key}={password};",
         ".github/workflows/ci.yml": f"{container_key}: {password}",
     }
@@ -233,6 +234,9 @@ def verify_detectors(reports):
         container = repository / ".github/workflows/ci.yml"
         container.parent.mkdir(parents=True)
         container.write_text(f"{container_key}: {container_value}\n", encoding="utf-8")
+        generator = repository / "tools/MssqlMcp.RepoTool/SecurityDetectors.cs"
+        generator.parent.mkdir(parents=True)
+        generator.write_text('var Password = "Synthetic" + SyntheticRandom(24) + "!";\n', encoding="utf-8")
         (repository / ".gitignore").write_text(".env\n", encoding="utf-8")
         (repository / ".env").write_text(f"Server=fixture.invalid;{password_key}={password};", encoding="utf-8")
         subprocess.run(["git", "add", "."], cwd=repository, check=True, capture_output=True)

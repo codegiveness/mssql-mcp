@@ -109,6 +109,6 @@ regexes = ['''^(?:\[\^|secret123|p@ss|secret)$''']
 description = "Exact non-credential prefix of the generated synthetic detector input"
 targetRules = ["sql-connection-password"]
 condition = "AND"
-paths = ['''^scripts/security-scan\.py$''']
+paths = ['''^(?:scripts/security-scan\.py|tools/MssqlMcp\.RepoTool/SecurityDetectors\.cs)$''']
 regexTarget = "secret"
 regexes = ['''^"Synthetic"$''']
