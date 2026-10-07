@@ -236,7 +236,7 @@ def verify_detectors(reports):
         container.write_text(f"{container_key}: {container_value}\n", encoding="utf-8")
         generator = repository / "tools/MssqlMcp.RepoTool/SecurityDetectors.cs"
         generator.parent.mkdir(parents=True)
-        generator.write_text(f'var {password_key} = "Synthetic" + SyntheticRandom(24) + "!";\n', encoding="utf-8")
+        generator.write_text('var Password = "Synthetic" + SyntheticRandom(24) + "!";\n', encoding="utf-8")
         (repository / ".gitignore").write_text(".env\n", encoding="utf-8")
         (repository / ".env").write_text(f"Server=fixture.invalid;{password_key}={password};", encoding="utf-8")
         subprocess.run(["git", "add", "."], cwd=repository, check=True, capture_output=True)
