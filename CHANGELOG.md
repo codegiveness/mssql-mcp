@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - Remove `Microsoft.Identity.Client.NativeInterop` and the Azure/MSAL authentication graph from all package-lock profiles with owner approval. Retain fail-closed release/CI redistribution guards against reintroduction; the broker-free graph no longer requires the former publication hold. This is not a general license audit.
+- Refresh the pinned npm publishing runtime's `http-cache-semantics` dependency from 4.2.0 to 4.3.0, outside the affected range reported by CVE-2026-93748. Retain npm 12.2.0, source/runtime integrity checks, and the fail-closed release security gate.
 
 ## [0.5.6](https://github.com/codegiveness/mssql-mcp/compare/v0.5.5...v0.5.6) (2026-10-02)
 
