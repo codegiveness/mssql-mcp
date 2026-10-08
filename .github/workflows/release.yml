@@ -10,6 +10,15 @@ on:
         description: '0.x release tag (e.g. v0.5.5). Major versions >= 1 are blocked.'
         required: true
         type: string
+      publish-postgresql-033:
+        description: 'Owner-authorized isolated PostgreSQL 0.3.3 NuGet recovery; skip all MSSQL publication.'
+        required: false
+        default: false
+        type: boolean
+      postgresql-source-digest:
+        description: 'Exact PostgreSQL main commit that signed the v0.3.3 release artifacts.'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -19,7 +28,51 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  postgresql-nuget-033:
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' &&
+          github.ref == 'refs/heads/main' && inputs['publish-postgresql-033'] &&
+          inputs['postgresql-source-digest'] != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      POSTGRESQL_SOURCE_DIGEST: ${{ inputs['postgresql-source-digest'] }}
+    steps:
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+      - name: Download only the PostgreSQL 0.3.3 NuGet artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download v0.3.3 --repo codegiveness/postgresql-sharp-mcp --pattern codegiveness.postgresql-sharp-mcp.0.3.3.nupkg --dir artifacts
+      - name: Verify the original PostgreSQL provenance before authentication
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh attestation verify artifacts/codegiveness.postgresql-sharp-mcp.0.3.3.nupkg
+          --repo codegiveness/postgresql-sharp-mcp
+          --signer-repo codegiveness/postgresql-sharp-mcp
+          --signer-workflow codegiveness/postgresql-sharp-mcp/.github/workflows/release.yml
+          --cert-identity https://github.com/codegiveness/postgresql-sharp-mcp/.github/workflows/release.yml@refs/heads/main
+          --source-ref refs/heads/main
+          --source-digest "$POSTGRESQL_SOURCE_DIGEST"
+          --signer-digest "$POSTGRESQL_SOURCE_DIGEST"
+          --deny-self-hosted-runners
+      - name: Use the existing sibling NuGet trusted publisher
+        id: postgresql-nuget-login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ secrets.NUGET_USERNAME }}
+      - name: Push only the verified PostgreSQL 0.3.3 package
+        env:
+          NUGET_API_KEY: ${{ steps.postgresql-nuget-login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push artifacts/codegiveness.postgresql-sharp-mcp.0.3.3.nupkg --skip-duplicate --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
+
   build-and-release:
+    if: github.event_name != 'workflow_dispatch' || !inputs['publish-postgresql-033']
     runs-on: ubuntu-latest
     permissions:
       contents: write
