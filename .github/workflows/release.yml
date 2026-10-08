@@ -54,8 +54,6 @@ jobs:
         run: >-
           gh attestation verify artifacts/codegiveness.postgresql-sharp-mcp.0.3.3.nupkg
           --repo codegiveness/postgresql-sharp-mcp
-          --signer-repo codegiveness/postgresql-sharp-mcp
-          --signer-workflow codegiveness/postgresql-sharp-mcp/.github/workflows/release.yml
           --cert-identity https://github.com/codegiveness/postgresql-sharp-mcp/.github/workflows/release.yml@refs/heads/main
           --source-ref refs/heads/main
           --source-digest "$POSTGRESQL_SOURCE_DIGEST"
