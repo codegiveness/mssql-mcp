@@ -11,7 +11,7 @@ RUN dotnet restore src/mssql-mcp/mssql-mcp.csproj -r linux-musl-x64 \
         -p:PublishSingleFile=true -p:PublishTrimmed=true -o /app
 
 # SqlClient requires non-invariant globalization; the extra image supplies ICU.
-FROM mcr.microsoft.com/dotnet/runtime-deps:10.0.12-alpine3.24-extra-amd64@sha256:93d2654c3612fd279106fd7d824742e1bb634b6ebe6bd967129d677309b69c46
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0.13-alpine3.24-extra-amd64@sha256:d6f940c4abe212b70c22db6859b454579efe6c2f23d87925e137462e3669f4e6
 LABEL maintainer="codegiveness" \
       source="https://github.com/codegiveness/mssql-mcp"
 WORKDIR /app
