@@ -44,13 +44,13 @@ jobs:
             echo "allowed=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Upload SBOM
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sbom
           path: artifacts/sbom/*.json
       - name: Upload distributable package
         if: steps.redistribution.outputs.allowed == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nupkg
           path: artifacts/*.nupkg
@@ -115,7 +115,7 @@ jobs:
           node scripts/coverage-summary.js artifacts/coverage/report/Summary.json artifacts/coverage/npm/coverage-summary.json
       - name: Preserve branch coverage reports
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: production-branch-coverage
           path: artifacts/coverage/
@@ -253,7 +253,7 @@ jobs:
           else
             echo "allowed=false" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: steps.redistribution.outputs.allowed == 'true'
         with:
           name: npm-packs
@@ -288,7 +288,7 @@ jobs:
         run: python3 scripts/security-scan.py image mssql-mcp-test --reports artifacts/security/image
       - name: Preserve container findings and advisory metadata
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ci-container-security
           path: artifacts/security/image
