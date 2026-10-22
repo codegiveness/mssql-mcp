@@ -13,7 +13,7 @@ Attacks in 2026 targeted this path directly:
 - **GhostAction** (September 2025, August–October 2026) used stolen maintainer PATs to push workflows that exfiltrate CI secrets, including npm, PyPI and Docker Hub tokens. About 1,900 accounts and over 30,000 repositories were targeted in October 2026.
 - **Mini Shai-Hulud** (May 2026, back in September 2026) put credential-stealing payloads into npm packages and into the `actions-cool` GitHub Actions. Mutable tags became active again when the repositories were re-enabled.
 
-npm staged publishing (npm CLI 11.15.0+, available in the pinned npm 12.2.0) adds a proof-of-presence step. `npm stage publish` uploads a version in a non-installable state. A maintainer must approve it with 2FA through `npm stage approve` or npmjs.com. OIDC tokens cannot approve, so a compromised workflow, runner, build dependency or stolen GitHub credential can at most stage a version for review.
+npm staged publishing (npm CLI 11.15.0+, available in the pinned npm 12.2.1) adds a proof-of-presence step. `npm stage publish` uploads a version in a non-installable state. A maintainer must approve it with 2FA through `npm stage approve` or npmjs.com. OIDC tokens cannot approve, so a compromised workflow, runner, build dependency or stolen GitHub credential can at most stage a version for review.
 
 ## Decision
 

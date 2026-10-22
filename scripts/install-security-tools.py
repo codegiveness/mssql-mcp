@@ -20,9 +20,9 @@ TOOLS = {
         "gitleaks",
     ),
     "zizmor": (
-        "1.31.0",
-        "https://github.com/zizmorcore/zizmor/releases/download/v1.31.0/zizmor-x86_64-unknown-linux-gnu.tar.gz",
-        "95776c59c2d4c0d6e10560647b4830762b8dbcca8d7d9b7469ff227c73a6fee6",
+        "1.31.1",
+        "https://github.com/zizmorcore/zizmor/releases/download/v1.31.1/zizmor-x86_64-unknown-linux-gnu.tar.gz",
+        "d185f726bdaf92df78273217dfdd24ebcd6b0ef48cf3ce776ff5762b6e138c99",
         "zizmor",
     ),
     "actionlint": (
@@ -38,9 +38,9 @@ TOOLS = {
         "shellcheck-v0.11.0/shellcheck",
     ),
     "trivy": (
-        "0.76.0",
-        "https://github.com/aquasecurity/trivy/releases/download/v0.76.0/trivy_0.76.0_Linux-64bit.tar.gz",
-        "e24b1c51293c1b15e4ba8d45bbc7891ba053f90278ec2698f3562c993e145fe7",
+        "0.76.1",
+        "https://github.com/aquasecurity/trivy/releases/download/v0.76.1/trivy_0.76.1_Linux-64bit.tar.gz",
+        "c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0",
         "trivy",
     ),
 }

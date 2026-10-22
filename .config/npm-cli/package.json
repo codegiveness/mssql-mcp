@@ -1,13 +1,13 @@
 {
   "name": "mssql-mcp-npm-cli-runtime",
   "private": true,
-  "version": "12.2.0",
+  "version": "12.2.1",
   "engines": {
     "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   },
   "dependencies": {
     "@isaacs/string-locale-compare": "^1.1.0",
-    "@npmcli/arborist": "^10.0.3",
+    "@npmcli/arborist": "^10.0.4",
     "@npmcli/config": "^11.2.0",
     "@npmcli/fs": "^6.0.0",
     "@npmcli/git": "^8.0.0",
@@ -35,11 +35,11 @@
     "is-cidr": "^7.0.0",
     "json-parse-even-better-errors": "^6.0.0",
     "libnpmaccess": "^11.0.0",
-    "libnpmdiff": "^9.0.3",
-    "libnpmexec": "^11.0.3",
-    "libnpmfund": "^8.0.3",
+    "libnpmdiff": "^9.0.4",
+    "libnpmexec": "^11.0.4",
+    "libnpmfund": "^8.0.4",
     "libnpmorg": "^9.0.0",
-    "libnpmpack": "^10.0.3",
+    "libnpmpack": "^10.0.4",
     "libnpmpublish": "^12.0.1",
     "libnpmsearch": "^10.0.0",
     "libnpmteam": "^9.0.0",
