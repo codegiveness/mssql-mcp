@@ -14,6 +14,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" />
     <PackageReference Include="Microsoft.Extensions.Options" />
     <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" />
+    <!-- SqlClient 7.1.1 requests Pkcs 9.0.18 (CVE-2026-84008, GHSA-846f-f764-76mx); lift it to the patched release. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -21,13 +21,15 @@ File logging rejects linked/reparse components in the active path, its ancestors
 |---|---|
 | GitHub Actions pinning | Workflow actions use full commit SHAs; updates still require review of the selected commit. |
 | Container pinning | Docker SDK/runtime images and the CI SQL Edge image use registry digests; pinning does not establish that the image is vulnerability-free. |
-| npm provenance | Release publishing requests provenance with `npm publish --provenance`; consumers must verify the provenance of the actual published version. |
+| npm provenance | Release staging requests provenance with `npm stage publish --provenance`; consumers must verify the provenance of the actual published version. |
+| npm staged publishing | Release CI can only stage npm versions. Each of the six packages stays uninstallable until the maintainer approves it with npm 2FA (ADR-0037). The trusted publishers' stage-only setting is configured on npmjs.com, outside the repository. |
+| Dependency cooldown | Dependabot waits 7 days after an upstream release before proposing GitHub Actions, NuGet, Docker and npm tooling updates; security updates are not delayed. |
 | NuGet Trusted Publishing | Release uses OIDC login to obtain a short-lived publishing credential. The NuGet.org trusted-publisher configuration is an external prerequisite. This is publishing authentication, **not package provenance**. |
 | NuGet provenance | Deliberately unavailable for `.nupkg` under ADR-0019: NuGet.org repository signing changes the uploaded bytes. Do not describe this channel as provenance-attested. |
 | Release archive and SBOM attestation | The release workflow requests attestations for archives, checksums, and the generated CycloneDX SBOM. A successful release run and verification of downloaded artifacts are required evidence. Checksums alone do not authenticate a compromised publisher. |
 | OpenSSF Scorecard | The workflow uploads findings on `main` and weekly; the [live report](https://securityscorecards.dev/viewer/?raw=github.com/codegiveness/mssql-mcp) measures repository practices, not an absence of vulnerabilities. |
 
-See [ADR-0019](adr/0019-nuget-provenance-skip-attestation-adopt-trusted-publishing.md) and [ADR-0032](adr/0032-security-signaling-and-supply-chain-attestation.md).
+See [ADR-0019](adr/0019-nuget-provenance-skip-attestation-adopt-trusted-publishing.md), [ADR-0032](adr/0032-security-signaling-and-supply-chain-attestation.md) and [ADR-0037](adr/0037-npm-staged-publishing.md).
 
 ## Branch protection
 

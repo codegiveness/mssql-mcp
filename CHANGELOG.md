@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Stage npm releases for maintainer approval (ADR-0037). The release workflow runs `npm stage publish` with provenance for the five platform packages and then the main package; none is installable until a maintainer approves it with 2FA. NuGet and GitHub Release publication are unchanged.
+
 ### Changed
 
 - Pin the stable .NET SDK to 10.0.401, retain `net10.0` on runtime 10.0.12, and pin C# 14 instead of the floating `latest` language setting. Align CI and Docker with this SDK.
@@ -26,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reuse the SQL row scratch array per result set, and avoid UTF-8 accounting when the execution-plan byte limit is disabled.
 - Use the existing Node runtime rather than Python for the official Inspector smoke's JSON handling; retain npm distribution and independently justified CI/security tooling.
 - Update checksum-pinned actionlint to 1.7.12 and move remaining Node 20 workflow setup to Node 24 LTS.
+- Move to .NET SDK 10.0.402 (runtime 10.0.13) in `global.json` and both digest-pinned Docker stages; self-contained binaries now embed the October 2026 runtime servicing fixes.
+- Update Microsoft.Extensions.* 10.0.13, ScriptDom 180.140.0, SourceLink 10.0.402, Microsoft.NET.Test.Sdk 18.11.0, xunit.v3 4.0.2, xunit.runner.visualstudio 4.0.1, CycloneDX 6.3.1, Inspector 2.11.0 (MCP client 2.3.1), Trivy 0.76.0, zizmor 1.31.0, setup-node 7.1.0, upload-artifact 7.0.2, codeql-action 4.38.3 and scorecard-action 2.5.0, and regenerate every lock. ModelContextProtocol 2.3.0 and npm 12.2.1 are held until they are 7 days old.
+- Add a 7-day Dependabot cooldown to every ecosystem and Dependabot coverage for the Inspector/c8 tooling and the npm publishing runtime lock.
+- Pin the release smoke job's Azure SQL Edge image by digest, matching CI.
 
 ### Fixed
 
@@ -39,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove `Microsoft.Identity.Client.NativeInterop` and the Azure/MSAL authentication graph from all package-lock profiles with owner approval. Retain fail-closed release/CI redistribution guards against reintroduction; the broker-free graph no longer requires the former publication hold. This is not a general license audit.
 - Refresh the pinned npm publishing runtime's `http-cache-semantics` dependency from 4.2.0 to 4.3.0, outside the affected range reported by CVE-2026-93748. Retain npm 12.2.0, source/runtime integrity checks, and the fail-closed release security gate.
 - Backport the exact synthetic detector-prefix exception for the C# generator path so full-history scanning works before the tooling migration merges. Detector fixtures verify that generated credentials at that same path remain detected.
+- Lift `System.Security.Cryptography.Pkcs` from 9.0.18 (requested by SqlClient 7.1.1) to 10.0.13 in every lock profile, fixing CVE-2026-84008 / GHSA-846f-f764-76mx (HIGH) and GHSA-2fmv-rv2c-59x7. Locked restore failed on `main` once the advisory was published.
+- Lift Inspector's `vite` from 8.3.2 to 8.3.4 in the CI tooling lock, fixing CVE-2026-112942 (HIGH, `launch-editor` command injection). This advisory made the HIGH/CRITICAL tooling gate fail on `main`.
 
 ## [0.5.6](https://github.com/codegiveness/mssql-mcp/compare/v0.5.5...v0.5.6) (2026-10-02)
 

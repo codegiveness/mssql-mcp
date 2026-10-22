@@ -6,7 +6,7 @@ Thanks for your interest in contributing. This document covers the development w
 
 ### Prerequisites
 
-- [.NET SDK 10.0.401](https://dotnet.microsoft.com/download/dotnet/10.0), selected by `global.json` (stable patch roll-forward, no previews)
+- [.NET SDK 10.0.402](https://dotnet.microsoft.com/download/dotnet/10.0), selected by `global.json` (stable patch roll-forward, no previews)
 - Git
 - Node 24 LTS or a compatible current release — locked Inspector/coverage/release tooling
 - (Optional) Docker — for integration tests against SQL Server

@@ -859,7 +859,7 @@ See [SECURITY.md](./SECURITY.md). Do not open a public issue for security vulner
 
 ### Prerequisites
 
-- [.NET SDK 10.0.401](https://dotnet.microsoft.com/download/dotnet/10.0), pinned by `global.json`; stable patch roll-forward only, no previews
+- [.NET SDK 10.0.402](https://dotnet.microsoft.com/download/dotnet/10.0), pinned by `global.json`; stable patch roll-forward only, no previews
 - Git
 - (Optional) Docker — for integration tests against SQL Server
 - Node 24 LTS or a compatible current release — for the locked Inspector/coverage tooling; the npm distribution shim itself supports Node 18+
@@ -913,7 +913,7 @@ Version consistency includes the main npm package's optional dependencies **and 
 ### .NET baseline and tooling boundaries
 
 The server, SQL execution, Guard, configuration, logging, and serialization run in
-C# 14 on `net10.0`. SDK 10.0.401 / runtime 10.0.12 are the latest stable .NET 10
+C# 14 on `net10.0`. SDK 10.0.402 / runtime 10.0.13 are the latest stable .NET 10
 releases verified against [Microsoft's release metadata](https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json).
 Package versions are centralized in `Directory.Packages.props`; committed lockfiles
 cover portable builds and all six publish profiles. CI reads the same `global.json`,
