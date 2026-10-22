@@ -66,7 +66,7 @@ updates:
       prefix: "chore(deps)"
 
   # npm publishing runtime: package.json must stay identical to the pinned
-  # upstream npm source (scripts/install-npm-cli.py), so only the lock moves.
+  # upstream npm source (RepoTool install-npm-cli), so only the lock moves.
   - package-ecosystem: "npm"
     directory: "/.config/npm-cli"
     schedule:
