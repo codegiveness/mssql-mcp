@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0](https://github.com/codegiveness/mssql-mcp/compare/v0.5.7...v0.6.0) (2026-10-22)
+
+
+### Features
+
+* **release:** stage npm releases for maintainer approval and settle October 2026 dependencies ([#169](https://github.com/codegiveness/mssql-mcp/issues/169)) ([e732034](https://github.com/codegiveness/mssql-mcp/commit/e73203493a0206a443727a1f4a368fb081732fd0))
+
+
+### Bug Fixes
+
+* correct isolated PostgreSQL attestation verification ([#160](https://github.com/codegiveness/mssql-mcp/issues/160)) ([2f3e533](https://github.com/codegiveness/mssql-mcp/commit/2f3e533791d6adde84ba88ef62aa4e32a574636f))
+
 ## [0.5.7](https://github.com/codegiveness/mssql-mcp/compare/v0.5.6...v0.5.7) (2026-10-02)
 
 
