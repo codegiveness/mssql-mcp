@@ -1,5 +1,8 @@
 version: 2
 
+# Every ecosystem waits 7 days after an upstream release before proposing it.
+# Hijacked releases and tags (e.g. Mini Shai-Hulud npm packages and actions-cool
+# Actions) are usually detected and pulled within days. Security updates are not delayed.
 updates:
   # GitHub Actions used in .github/workflows/
   - package-ecosystem: "github-actions"
@@ -8,6 +11,8 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
     labels:
       - "dependencies"
     commit-message:
@@ -19,6 +24,8 @@ updates:
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
     labels:
       - "dependencies"
     commit-message:
@@ -31,12 +38,44 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
     # Keep SDK and native runtime dependencies on the supported .NET 10 line.
     ignore:
       - dependency-name: "dotnet/sdk"
         update-types: ["version-update:semver-major"]
       - dependency-name: "dotnet/runtime-deps"
         update-types: ["version-update:semver-major"]
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # Content-locked Inspector/c8 tooling used by CI smoke and coverage.
+  - package-ecosystem: "npm"
+    directory: "/.config/npm-tools"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # npm publishing runtime: package.json must stay identical to the pinned
+  # upstream npm source (scripts/install-npm-cli.py), so only the lock moves.
+  - package-ecosystem: "npm"
+    directory: "/.config/npm-cli"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    versioning-strategy: lockfile-only
+    cooldown:
+      default-days: 7
     labels:
       - "dependencies"
     commit-message:
