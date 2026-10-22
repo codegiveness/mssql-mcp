@@ -1,7 +1,7 @@
 # Self-contained, single-file, trimmed linux-musl-x64 build of mssql-mcp.
 # All platforms use managed SNI per ADR-0002. Restricted Entra broker and native
 # Windows SNI assets are excluded from distribution.
-FROM mcr.microsoft.com/dotnet/sdk:10.0.401@sha256:35d40304542c8689331f8cab17c65926cdf48fe711e289321d71924b230a7d29 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.402@sha256:747cbade5bfd918a175ac32f8f1d931edec2c7d0d5397a3de72eaef1ac1f66d2 AS build
 WORKDIR /src
 COPY . .
 RUN dotnet restore src/mssql-mcp/mssql-mcp.csproj -r linux-musl-x64 \
@@ -11,7 +11,7 @@ RUN dotnet restore src/mssql-mcp/mssql-mcp.csproj -r linux-musl-x64 \
         -p:PublishSingleFile=true -p:PublishTrimmed=true -o /app
 
 # SqlClient requires non-invariant globalization; the extra image supplies ICU.
-FROM mcr.microsoft.com/dotnet/runtime-deps:10.0.12-alpine3.24-extra-amd64@sha256:93d2654c3612fd279106fd7d824742e1bb634b6ebe6bd967129d677309b69c46
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0.13-alpine3.24-extra-amd64@sha256:524a6c43a88206532aadeaf0499440c74d990134b5d14ff4cd1f2563766d695b
 LABEL maintainer="codegiveness" \
       source="https://github.com/codegiveness/mssql-mcp"
 WORKDIR /app

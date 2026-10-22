@@ -12,9 +12,9 @@ import tarfile
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
-COMMIT = "c276cadf785c1018d82dd287fe7742567055efb9"  # npm v12.2.0
+COMMIT = "ae98c62586b6fea44114f72e249e246a2981de70"  # npm v12.2.1
 SOURCE_URL = f"https://codeload.github.com/npm/cli/tar.gz/{COMMIT}"
-SOURCE_SHA256 = "4fe4c27c222cbade3d70b1154c661c4634ba8fc33ac70f5ffd59a599cd9d038b"
+SOURCE_SHA256 = "51ebc8f7c8a612f036b2cbbe7c93bc6e00393cfb26fd23539befdcfe4e68022e"
 RUNTIME = ROOT / ".config/npm-cli"
 
 

@@ -19,6 +19,15 @@ their license terms. Source links are provided for verification.
 - Purpose: `Microsoft.Data.SqlClient.Extensions.Abstractions` and
   `Microsoft.Data.SqlClient.Internal.Logging` remain driver dependencies.
 
+## System.Security.Cryptography.Pkcs
+
+- License: MIT
+- Copyright: Copyright (c) .NET Foundation and Contributors
+- Source: https://github.com/dotnet/runtime
+- Purpose: SqlClient dependency. Referenced directly so every build ships the
+  patched 10.0.13 release instead of the 9.0.18 version SqlClient requests
+  (CVE-2026-84008).
+
 ## Removed Entra authentication integration
 
 `Microsoft.Data.SqlClient.Extensions.Azure` and its Azure.Identity / MSAL

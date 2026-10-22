@@ -81,7 +81,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
@@ -182,7 +182,7 @@ jobs:
           exit "$status"
       - name: Preserve release security findings and advisory metadata
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-security-inventories
           path: |
@@ -228,18 +228,19 @@ jobs:
           NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         run: dotnet nuget push "artifacts/codegiveness.mssql-mcp.*.nupkg" --skip-duplicate --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
 
-      # Sync npm version to the tag, then publish all 6 packages sequentially
-      # (5 per-platform first, main last) with provenance (ADR-0028 §7).
-      # Fail-fast: if any per-platform publish fails, the main package is not published.
+      # Stage all 6 npm packages sequentially (5 per-platform first, main last)
+      # with provenance (ADR-0028 §7, ADR-0037). A staged version is not installable
+      # until a maintainer approves it with 2FA; CI never publishes npm directly.
+      # Fail-fast: if any per-platform stage fails, the main package is not staged.
 
-      - name: Publish per-platform npm packages
+      - name: Stage per-platform npm packages
         env:
           RELEASE_TAG: ${{ steps.tag.outputs.name }}
         run: |
           set -e
           tag="$RELEASE_TAG"
           for rid in linux-x64 linux-arm64 osx-x64 osx-arm64 win-x64; do
-            echo "=== Publishing @codegiveness/mssql-mcp-$rid ==="
+            echo "=== Staging @codegiveness/mssql-mcp-$rid ==="
             pkg_dir="npm/platforms/$rid"
             # Extract the archive into the package dir (binary at root).
             ext="tar.gz"
@@ -250,12 +251,29 @@ jobs:
             else
               tar -xzf "$archive" -C "$pkg_dir"
             fi
-            # Publish from the per-platform package dir.
-            (cd "$pkg_dir" && node "$NPM_CLI" publish --ignore-scripts --provenance --access public)
+            # Stage from the per-platform package dir.
+            (cd "$pkg_dir" && node "$NPM_CLI" stage publish --ignore-scripts --provenance --access public)
           done
 
-      - name: Publish main npm package (@codegiveness/mssql-mcp)
-        run: cd npm && node "$NPM_CLI" publish --ignore-scripts --provenance --access public
+      - name: Stage main npm package (@codegiveness/mssql-mcp)
+        run: cd npm && node "$NPM_CLI" stage publish --ignore-scripts --provenance --access public
+
+      - name: Record npm approval steps
+        env:
+          RELEASE_VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          {
+            echo "## npm packages staged: maintainer approval required"
+            echo
+            echo "Version \`$RELEASE_VERSION\` is staged, not installable. Approve each package with 2FA (CLI or npmjs.com > Staged Packages): the five platform packages first, \`@codegiveness/mssql-mcp\` last."
+            echo
+            echo '```sh'
+            for name in mssql-mcp-linux-x64 mssql-mcp-linux-arm64 mssql-mcp-osx-x64 mssql-mcp-osx-arm64 mssql-mcp-win-x64 mssql-mcp; do
+              echo "npm stage list @codegiveness/$name"
+            done
+            echo 'npm stage approve <stage-id>'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   smoke:
     runs-on: ubuntu-latest
@@ -297,7 +315,7 @@ jobs:
             -e "ACCEPT_EULA=1" \
             -e "MSSQL_SA_PASSWORD=YourStrong!Passw0rd" \
             -p 1433:1433 --name mssql-edge \
-            mcr.microsoft.com/azure-sql-edge:latest
+            mcr.microsoft.com/azure-sql-edge:latest@sha256:902628a8be89e35dfb7895ca31d602974c7bafde4d583a0d0873844feb1c42cf
 
       - name: Wait for SQL Server to be ready
         run: |
