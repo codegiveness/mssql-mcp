@@ -1,7 +1,7 @@
 # Self-contained, single-file, trimmed linux-musl-x64 build of mssql-mcp.
 # All platforms use managed SNI per ADR-0002. Restricted Entra broker and native
 # Windows SNI assets are excluded from distribution.
-FROM mcr.microsoft.com/dotnet/sdk:10.0.402@sha256:747cbade5bfd918a175ac32f8f1d931edec2c7d0d5397a3de72eaef1ac1f66d2 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.404@sha256:fe0fd4e93bd2fbb47c883b7a6369e5c8d3db8bf01cdc5981f6ee35fbdf3ff4fb AS build
 WORKDIR /src
 COPY . .
 RUN dotnet restore src/mssql-mcp/mssql-mcp.csproj -r linux-musl-x64 \
