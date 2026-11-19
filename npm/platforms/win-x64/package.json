@@ -1,6 +1,6 @@
 {
   "name": "@codegiveness/mssql-mcp-win-x64",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "mssql-mcp native binary for win-x64 (self-contained, single-file)",
   "license": "MIT",
   "repository": {
