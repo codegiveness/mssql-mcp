@@ -41,3 +41,4 @@ ADRs document every significant design choice in mssql-mcp. They are numbered se
 | [ADR-0035](0035-security-hardening-batch.md) | Security hardening batch: 7 findings resolved | Active |
 | [ADR-0036](0036-continue-zero-major-releases.md) | Continue 0.x releases and distinguish harness evidence from examples | Active |
 | [ADR-0037](0037-npm-staged-publishing.md) | npm staged publishing with maintainer approval | Active |
+| [ADR-0038](0038-release-gate-and-provenance.md) | Release gate and provenance | Active |

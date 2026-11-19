@@ -147,13 +147,13 @@ public sealed record QueryPlanSummary
     public double EstimatedTotalCost { get; init; }
 
     [JsonPropertyName("missing_indexes")]
-    public List<MissingIndexPayload> MissingIndexes { get; init; } = new();
+    public List<MissingIndexPayload> MissingIndexes { get; init; } = [];
 
     [JsonPropertyName("warnings")]
-    public List<string> Warnings { get; init; } = new();
+    public List<string> Warnings { get; init; } = [];
 
     [JsonPropertyName("top_operations")]
-    public List<QueryPlanOperation> TopOperations { get; init; } = new();
+    public List<QueryPlanOperation> TopOperations { get; init; } = [];
 }
 
 /// <summary>Single top operation in a query plan summary.</summary>

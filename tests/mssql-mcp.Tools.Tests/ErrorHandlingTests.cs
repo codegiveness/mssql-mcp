@@ -19,7 +19,6 @@ namespace mssql_mcp.Tools.Tests;
 public class ErrorHandlingTests
 {
     private const int DefaultTimeoutSeconds = 30;
-    private const int DefaultTimeoutMs = DefaultTimeoutSeconds * 1000;
 
     private static MssqlMcpOptions RestrictedOptions(int timeoutSeconds = DefaultTimeoutSeconds) => new()
     {
@@ -253,7 +252,7 @@ public class ErrorHandlingTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // get_object_details first runs the lookup query — return zero rows → OBJECT_NOT_FOUND.
         // database: null avoids triggering cross-DB validation (separate code path).
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         MssqlMcpOptions opts = RestrictedOptions();
         DatabaseTools tools = new(executor, Options.Create(opts), NullLogger<DatabaseTools>.Instance);

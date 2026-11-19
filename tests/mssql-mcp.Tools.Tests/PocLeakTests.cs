@@ -108,10 +108,10 @@ public class PocLeakTests
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // Simulate what sys.databases returns for master: state_desc=ONLINE, user_access_desc=MULTI_USER.
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>
-        {
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(
+        [
             new() { ["state_desc"] = "ONLINE", ["user_access_desc"] = "MULTI_USER" },
-        }, false));
+        ], false));
 
         DatabaseValidationResult result =
             await SqlHelpers.ValidateDatabaseAsync(executor, "master", CancellationToken.None);
@@ -135,10 +135,10 @@ public class PocLeakTests
     public async Task A3_ValidateDatabaseAsync_AcceptsAllSystemDbs(string systemDb)
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>
-        {
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(
+        [
             new() { ["state_desc"] = "ONLINE", ["user_access_desc"] = "MULTI_USER" },
-        }, false));
+        ], false));
 
         DatabaseValidationResult result =
             await SqlHelpers.ValidateDatabaseAsync(executor, systemDb, CancellationToken.None);

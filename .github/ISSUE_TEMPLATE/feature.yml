@@ -1,0 +1,39 @@
+name: Feature request
+description: Propose new behavior or a change to an existing contract.
+labels: [enhancement, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the need before the solution. This issue is public: use placeholders and synthetic data, never real credentials, connection strings or database results. Security vulnerabilities go to the private route in [SECURITY.md](https://github.com/codegiveness/mssql-mcp/blob/main/SECURITY.md#reporting-a-vulnerability).
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or need
+      description: What are you trying to do, and what stops you today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: What should the server, CLI or packages do instead? Include example tool calls or configuration if useful.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds you use now or other designs you rejected, and why.
+  - type: textarea
+    id: impact
+    attributes:
+      label: Compatibility and security considerations
+      description: Would this change existing configuration, defaults, permissions, Restricted-mode boundaries or output formats?
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: This request contains no credentials, private connection details, customer SQL or database results.
+          required: true

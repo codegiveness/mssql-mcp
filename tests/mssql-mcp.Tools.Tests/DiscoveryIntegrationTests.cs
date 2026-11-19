@@ -85,9 +85,8 @@ public class DiscoveryIntegrationTests
         Assert.Equal(JsonValueKind.Array, doc.RootElement.ValueKind);
         Assert.True(doc.RootElement.GetArrayLength() > 0, "Expected at least one schema.");
 
-        string[] schemaNames = doc.RootElement.EnumerateArray()
-            .Select(r => r.GetProperty("name").GetString() ?? string.Empty)
-            .ToArray();
+        string[] schemaNames = [.. doc.RootElement.EnumerateArray()
+            .Select(r => r.GetProperty("name").GetString() ?? string.Empty)];
         Assert.Contains("dbo", schemaNames);
     }
 
@@ -114,8 +113,8 @@ public class DiscoveryIntegrationTests
             CallToolResult result = await CreateTools().GetObjectDetails(null, schema, table, "TABLE", TestContext.Current.CancellationToken);
             Assert.False(result.IsError ?? false);
             using JsonDocument doc = JsonDocument.Parse(GetJson(result));
-            JsonElement[] columns = doc.RootElement.EnumerateArray()
-                .Where(row => row.TryGetProperty("ordinal_position", out _)).ToArray();
+            JsonElement[] columns = [.. doc.RootElement.EnumerateArray()
+                .Where(row => row.TryGetProperty("ordinal_position", out _))];
             Assert.Equal(2, columns.Length);
             Assert.Equal("Id", columns[0].GetProperty("name").GetString());
             Assert.Equal("int", columns[0].GetProperty("system_type_name").GetString());

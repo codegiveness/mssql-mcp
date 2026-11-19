@@ -1,5 +1,3 @@
-using MssqlMcp.RepoTool;
-
 namespace MssqlMcp.RepoTool.Tests;
 
 [CollectionDefinition("Repository environment", DisableParallelization = true)]

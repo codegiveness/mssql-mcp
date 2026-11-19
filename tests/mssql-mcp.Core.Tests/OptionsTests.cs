@@ -24,7 +24,7 @@ public class OptionsTests
     public void Parse_MissingConnectionString_ThrowsWithClearMessage()
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            MssqlMcpOptions.Parse(Array.Empty<string>(), EmptyEnv));
+            MssqlMcpOptions.Parse([], EmptyEnv));
         Assert.Contains("[startup]", ex.Message);
         Assert.Contains("connection string", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -33,7 +33,7 @@ public class OptionsTests
     public void Parse_CliConnectionString_UsedWhenEnvNotSet()
     {
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=localhost;Database=Test;" },
+            ["--connection-string", "Server=localhost;Database=Test;"],
             EmptyEnv);
         Assert.Equal("Server=localhost;Database=Test;", options.ConnectionString);
     }
@@ -43,7 +43,7 @@ public class OptionsTests
     {
         var env = Env(("MSSQL_CONNECTION_STRING", "Server=env;Database=Env;"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=cli;Database=Cli;" },
+            ["--connection-string", "Server=cli;Database=Cli;"],
             env);
         Assert.Equal("Server=env;Database=Env;", options.ConnectionString);
     }
@@ -52,7 +52,7 @@ public class OptionsTests
     public void Parse_ConnectionString_EqualsForm_Parsed()
     {
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string=Server=eq;Database=Eq;" },
+            ["--connection-string=Server=eq;Database=Eq;"],
             EmptyEnv);
         Assert.Equal("Server=eq;Database=Eq;", options.ConnectionString);
     }
@@ -61,7 +61,7 @@ public class OptionsTests
     public void Parse_Defaults_Applied()
     {
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;" },
+            ["--connection-string", "Server=x;"],
             EmptyEnv);
         Assert.Equal(AccessMode.Restricted, options.AccessMode);
         Assert.Equal(30, options.QueryTimeout);
@@ -80,7 +80,7 @@ public class OptionsTests
     {
         var env = Env(("MSSQL_LOG_FILE_MAX_BYTES", "1024"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;" },
+            ["--connection-string", "Server=x;"],
             env);
         Assert.Equal(1024L, options.LogFileMaxBytes);
     }
@@ -90,7 +90,7 @@ public class OptionsTests
     {
         var env = Env(("MSSQL_LOG_FILE_MAX_BYTES", "0"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;" },
+            ["--connection-string", "Server=x;"],
             env);
         Assert.Equal(0L, options.LogFileMaxBytes);
     }
@@ -101,7 +101,7 @@ public class OptionsTests
         var env = Env(("MSSQL_LOG_FILE_MAX_BYTES", "-1"));
         var ex = Assert.Throws<InvalidOperationException>(() =>
             MssqlMcpOptions.Parse(
-                new[] { "--connection-string", "Server=x;" },
+                ["--connection-string", "Server=x;"],
                 env));
         Assert.Contains("[startup]", ex.Message);
         Assert.Contains("log file max bytes", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -114,7 +114,7 @@ public class OptionsTests
         var env = Env(("MSSQL_LOG_FILE_MAX_BYTES", "abc"));
         var ex = Assert.Throws<InvalidOperationException>(() =>
             MssqlMcpOptions.Parse(
-                new[] { "--connection-string", "Server=x;" },
+                ["--connection-string", "Server=x;"],
                 env));
         Assert.Contains("log file max bytes", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("abc", ex.Message);
@@ -125,7 +125,7 @@ public class OptionsTests
     {
         var env = Env(("MSSQL_LOG_FILE_MAX_ROLLS", "5"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;" },
+            ["--connection-string", "Server=x;"],
             env);
         Assert.Equal(5, options.LogFileMaxRolls);
     }
@@ -136,7 +136,7 @@ public class OptionsTests
         var env = Env(("MSSQL_LOG_FILE_MAX_ROLLS", "-1"));
         var ex = Assert.Throws<InvalidOperationException>(() =>
             MssqlMcpOptions.Parse(
-                new[] { "--connection-string", "Server=x;" },
+                ["--connection-string", "Server=x;"],
                 env));
         Assert.Contains("[startup]", ex.Message);
         Assert.Contains("log file max rolls", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -149,7 +149,7 @@ public class OptionsTests
         var env = Env(("MSSQL_LOG_FILE_MAX_ROLLS", "abc"));
         var ex = Assert.Throws<InvalidOperationException>(() =>
             MssqlMcpOptions.Parse(
-                new[] { "--connection-string", "Server=x;" },
+                ["--connection-string", "Server=x;"],
                 env));
         Assert.Contains("log file max rolls", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("abc", ex.Message);
@@ -160,7 +160,7 @@ public class OptionsTests
     {
         var env = Env(("MSSQL_ACCESS_MODE", "restricted"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;", "--access-mode", "unrestricted" },
+            ["--connection-string", "Server=x;", "--access-mode", "unrestricted"],
             env);
         Assert.Equal(AccessMode.Unrestricted, options.AccessMode);
     }
@@ -170,7 +170,7 @@ public class OptionsTests
     {
         var env = Env(("MSSQL_ACCESS_MODE", "unrestricted"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;" },
+            ["--connection-string", "Server=x;"],
             env);
         Assert.Equal(AccessMode.Unrestricted, options.AccessMode);
     }
@@ -184,9 +184,9 @@ public class OptionsTests
     public void Parse_AccessModeRejectsNumericAndCombinedValues(string mode)
     {
         Assert.Throws<InvalidOperationException>(() => MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;", "--access-mode", mode }, EmptyEnv));
+            ["--connection-string", "Server=x;", "--access-mode", mode], EmptyEnv));
         Assert.Throws<InvalidOperationException>(() => MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;" }, Env(("MSSQL_ACCESS_MODE", mode))));
+            ["--connection-string", "Server=x;"], Env(("MSSQL_ACCESS_MODE", mode))));
     }
 
     [Theory]
@@ -195,7 +195,7 @@ public class OptionsTests
     public void Parse_AccessModeAcceptsNamesWithWhitespaceAndCase(string mode, AccessMode expected)
     {
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;", "--access-mode", mode }, EmptyEnv);
+            ["--connection-string", "Server=x;", "--access-mode", mode], EmptyEnv);
         Assert.Equal(expected, options.AccessMode);
     }
 
@@ -204,7 +204,7 @@ public class OptionsTests
     {
         var env = Env(("MSSQL_QUERY_TIMEOUT", "60"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;", "--query-timeout", "90" },
+            ["--connection-string", "Server=x;", "--query-timeout", "90"],
             env);
         Assert.Equal(90, options.QueryTimeout);
     }
@@ -214,7 +214,7 @@ public class OptionsTests
     {
         var env = Env(("MSSQL_ACCESS_MODE", "unrestricted"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;" },
+            ["--connection-string", "Server=x;"],
             env);
         Assert.Equal(0, options.QueryTimeout);
     }
@@ -224,7 +224,7 @@ public class OptionsTests
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
             MssqlMcpOptions.Parse(
-                new[] { "--connection-string", "Server=x;", "--access-mode", "bogus" },
+                ["--connection-string", "Server=x;", "--access-mode", "bogus"],
                 EmptyEnv));
         Assert.Contains("[startup]", ex.Message);
         Assert.Contains("access mode", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -238,7 +238,7 @@ public class OptionsTests
         var env = Env(("MSSQL_ACCESS_MODE", "nonsense"));
         var ex = Assert.Throws<InvalidOperationException>(() =>
             MssqlMcpOptions.Parse(
-                new[] { "--connection-string", "Server=x;" },
+                ["--connection-string", "Server=x;"],
                 env));
         Assert.Contains("[startup]", ex.Message);
         Assert.Contains("nonsense", ex.Message);
@@ -249,7 +249,7 @@ public class OptionsTests
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
             MssqlMcpOptions.Parse(
-                new[] { "--connection-string", "Server=x;", "--query-timeout", "abc" },
+                ["--connection-string", "Server=x;", "--query-timeout", "abc"],
                 EmptyEnv));
         Assert.Contains("query timeout", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("abc", ex.Message);
@@ -260,7 +260,7 @@ public class OptionsTests
     {
         Assert.Throws<InvalidOperationException>(() =>
             MssqlMcpOptions.Parse(
-                new[] { "--connection-string", "Server=x;", "--query-timeout", "-5" },
+                ["--connection-string", "Server=x;", "--query-timeout", "-5"],
                 EmptyEnv));
     }
 
@@ -269,7 +269,7 @@ public class OptionsTests
     {
         var env = Env(("MSSQL_LOG_LEVEL", "info"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;", "--log-level", "debug" },
+            ["--connection-string", "Server=x;", "--log-level", "debug"],
             env);
         Assert.Equal("debug", options.LogLevel);
     }
@@ -279,7 +279,7 @@ public class OptionsTests
     {
         var env = Env(("MSSQL_LOG_FILE", "/var/log/mssql-mcp.log"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;" },
+            ["--connection-string", "Server=x;"],
             env);
         Assert.Equal("/var/log/mssql-mcp.log", options.LogFile);
     }
@@ -289,7 +289,7 @@ public class OptionsTests
     {
         var env = Env(("MSSQL_MAX_RESULT_BYTES", "5242880"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;" },
+            ["--connection-string", "Server=x;"],
             env);
         Assert.Equal(5_242_880L, options.MaxResultBytes);
     }
@@ -299,7 +299,7 @@ public class OptionsTests
     {
         var env = Env(("MSSQL_RETRY_COUNT", "5"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;" },
+            ["--connection-string", "Server=x;"],
             env);
         Assert.Equal(5, options.RetryCount);
     }
@@ -309,7 +309,7 @@ public class OptionsTests
     {
         var env = Env(("MSSQL_RETRY_INTERVAL", "5"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;" },
+            ["--connection-string", "Server=x;"],
             env);
         Assert.Equal(5, options.RetryIntervalMin);
     }
@@ -319,7 +319,7 @@ public class OptionsTests
     {
         var env = Env(("MSSQL_RETRY_INTERVAL", "3"), ("MSSQL_RETRY_INTERVAL_MAX", "20"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;" },
+            ["--connection-string", "Server=x;"],
             env);
         Assert.Equal(3, options.RetryIntervalMin);
         Assert.Equal(20, options.RetryIntervalMax);
@@ -331,7 +331,7 @@ public class OptionsTests
         var env = Env(("MSSQL_RETRY_INTERVAL_MAX", "abc"));
         var ex = Assert.Throws<InvalidOperationException>(() =>
             MssqlMcpOptions.Parse(
-                new[] { "--connection-string", "Server=x;" },
+                ["--connection-string", "Server=x;"],
                 env));
         Assert.Contains("retry interval max", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -340,7 +340,7 @@ public class OptionsTests
     public void Parse_EnvVarNames_CaseInsensitive()
     {
         var env = Env(("mssql_connection_string", "Server=lower;"));
-        var options = MssqlMcpOptions.Parse(Array.Empty<string>(), env);
+        var options = MssqlMcpOptions.Parse([], env);
         Assert.Equal("Server=lower;", options.ConnectionString);
     }
 
@@ -348,7 +348,7 @@ public class OptionsTests
     public void Parse_UnknownEnvVars_Ignored()
     {
         var env = Env(("MSSQL_UNKNOWN_VAR", "ignored"), ("MSSQL_CONNECTION_STRING", "Server=x;"));
-        var options = MssqlMcpOptions.Parse(Array.Empty<string>(), env);
+        var options = MssqlMcpOptions.Parse([], env);
         Assert.Equal("Server=x;", options.ConnectionString);
     }
 }

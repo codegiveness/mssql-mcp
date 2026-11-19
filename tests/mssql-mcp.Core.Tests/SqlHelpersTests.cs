@@ -78,7 +78,7 @@ public class SqlHelpersTests
     public async Task ValidateDatabase_NoRows_ReturnsDoesNotExistError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         DatabaseValidationResult result = await SqlHelpers.ValidateDatabaseAsync(executor, "MissingDb", CancellationToken.None);
 
@@ -132,7 +132,7 @@ public class SqlHelpersTests
         await SqlHelpers.ValidateDatabaseAsync(executor, "AppDb", CancellationToken.None);
 
         Assert.NotNull(captured);
-        Assert.True(captured!.TryGetValue("database", out object? v));
+        Assert.True(captured.TryGetValue("database", out object? v));
         Assert.Equal("AppDb", v);
     }
 }

@@ -33,15 +33,15 @@ public static class StatementClassifier
         {
             // Classification failures return no statements. ExecuteSql rejects that result
             // with parse_error before execution, including in Unrestricted mode.
-            return Array.Empty<StatementInfo>();
+            return [];
         }
 
         if (errors.Count > 0 || fragment is not TSqlScript script)
         {
-            return Array.Empty<StatementInfo>();
+            return [];
         }
 
-        List<StatementInfo> result = new();
+        List<StatementInfo> result = [];
         foreach (TSqlBatch batch in script.Batches)
         {
             foreach (TSqlStatement stmt in batch.Statements)

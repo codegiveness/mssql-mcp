@@ -11,6 +11,11 @@
     <!-- Distro SDK library-packs may repackage NuGet artifacts with different hashes. -->
     <DisableImplicitLibraryPacksFolder>true</DisableImplicitLibraryPacksFolder>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!-- Code-style rules raised to warning in .editorconfig fail the build (zero-diagnostics policy). -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- EnableGenerateDocumentationFile: the compiler cannot run IDE0005 without XML doc
+         generation (dotnet/roslyn#41640); the CI `dotnet format` verification enforces IDE0005 instead. -->
+    <NoWarn>$(NoWarn);EnableGenerateDocumentationFile</NoWarn>
     <!-- CA1707: 590 hits — idiomatic xUnit test naming + namespace matches package name. Permanent suppression. -->
     <!-- CA1848: LoggerMessage migration is deferred independently of release major. -->
     <!-- CA1873: Expensive logging argument evaluation remains a tracked cleanup. -->

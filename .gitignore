@@ -20,6 +20,17 @@
 npm/platforms/*/mssql-mcp
 npm/platforms/*/mssql-mcp.exe
 
+# Notice and readme files are copied into the npm package directories by CI
+# before `npm pack`; the repository-root files are the only tracked copies.
+npm/LICENSE
+npm/LICENSES/
+npm/README.md
+npm/SECURITY.md
+npm/THIRD-PARTY-NOTICES.md
+npm/platforms/*/LICENSE
+npm/platforms/*/LICENSES/
+npm/platforms/*/THIRD-PARTY-NOTICES.md
+
 # NuGet
 *.nupkg
 *.snupkg

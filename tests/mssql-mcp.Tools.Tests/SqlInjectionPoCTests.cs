@@ -66,7 +66,7 @@ public class SqlInjectionPoCTests
 
         // Capture the SQL sent to ExecuteQueryAsync (non-parameterized overload).
         string capturedSql = string.Empty;
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSql = s ?? string.Empty), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>> { new() { ["name"] = "AppDb", ["database_id"] = 5L, ["state_desc"] = "ONLINE", ["is_current"] = true } }, false));
+        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSql = s ?? string.Empty), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([new() { ["name"] = "AppDb", ["database_id"] = 5L, ["state_desc"] = "ONLINE", ["is_current"] = true }], false));
 
         DatabaseTools tools = CreateTools(executor);
         // ListDatabases signature is (CancellationToken) — no database param exists.
@@ -149,5 +149,5 @@ public class SqlInjectionPoCTests
         }
     }
 
-    public static TheoryData<string> MaliciousInputs => new(MaliciousDatabaseInputs);
+    public static TheoryData<string> MaliciousInputs => [.. MaliciousDatabaseInputs];
 }

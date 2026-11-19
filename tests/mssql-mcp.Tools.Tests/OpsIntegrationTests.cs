@@ -93,9 +93,8 @@ public class OpsIntegrationTests
         Assert.Equal(JsonValueKind.Array, doc.RootElement.ValueKind);
         Assert.Equal(5, doc.RootElement.GetArrayLength());
 
-        string[] checks = doc.RootElement.EnumerateArray()
-            .Select(r => r.GetProperty("check").GetString() ?? string.Empty)
-            .ToArray();
+        string[] checks = [.. doc.RootElement.EnumerateArray()
+            .Select(r => r.GetProperty("check").GetString() ?? string.Empty)];
         Assert.Contains("database_size", checks);
         Assert.Contains("vlf_count", checks);
         Assert.Contains("index_fragmentation", checks);

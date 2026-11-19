@@ -10,6 +10,8 @@ npm/test
 docs
 *.md
 !README.md
+!THIRD-PARTY-NOTICES.md
+!SECURITY.md
 .env
 .env.*
 *.user

@@ -15,7 +15,8 @@ FROM mcr.microsoft.com/dotnet/runtime-deps:11.0.0-alpine3.24-extra-amd64@sha256:
 LABEL maintainer="codegiveness" \
       source="https://github.com/codegiveness/mssql-mcp"
 WORKDIR /app
-COPY --from=build /app/mssql-mcp .
+COPY --from=build /app/mssql-mcp /app/LICENSE /app/THIRD-PARTY-NOTICES.md ./
+COPY --from=build /app/LICENSES ./LICENSES
 RUN chmod +x ./mssql-mcp && \
     addgroup --system --gid 1001 mssqlmcp && \
     adduser --system --uid 1001 --ingroup mssqlmcp --no-create-home mssqlmcp && \

@@ -198,9 +198,8 @@ public class ExplainQueryTests
         Assert.Equal(5, ops.GetArrayLength());
 
         // Sorted descending by estimated_cost (Index Scan with 0.0055 first, Filter with 0.00001 last).
-        double[] costs = ops.EnumerateArray()
-            .Select(o => o.GetProperty("estimated_cost").GetDouble())
-            .ToArray();
+        double[] costs = [.. ops.EnumerateArray()
+            .Select(o => o.GetProperty("estimated_cost").GetDouble())];
         for (int i = 1; i < costs.Length; i++)
         {
             Assert.True(costs[i - 1] >= costs[i],

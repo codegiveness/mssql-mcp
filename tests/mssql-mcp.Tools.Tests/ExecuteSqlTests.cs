@@ -72,10 +72,10 @@ public class ExecuteSqlTests
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // SELECT 1 produces a single column with empty name → key "" per ADR-0009.
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>
-        {
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(
+        [
             new() { [""] = 1 },
-        }, false));
+        ], false));
 
         SqlTools tools = CreateTools(executor, RestrictedOptions());
         CallToolResult result = await tools.ExecuteSql("SELECT 1", CancellationToken.None);
@@ -92,7 +92,7 @@ public class ExecuteSqlTests
     public async Task ExecuteSql_GuardAccept_PassesWrappedSqlToExecutor()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         SqlTools tools = CreateTools(executor, RestrictedOptions());
         await tools.ExecuteSql("SELECT 1", CancellationToken.None);
@@ -109,7 +109,7 @@ public class ExecuteSqlTests
     public async Task ExecuteSql_EmptyResult_ReturnsEmptyArray_AndIsErrorFalse()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         SqlTools tools = CreateTools(executor, RestrictedOptions());
         CallToolResult result = await tools.ExecuteSql("SELECT TOP 0 * FROM sys.objects", CancellationToken.None);
@@ -219,10 +219,10 @@ public class ExecuteSqlTests
     public async Task ExecuteSql_UnrestrictedMode_Select_SkipsGuard_ExecutesRawSql()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>
-        {
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(
+        [
             new() { ["x"] = 42 },
-        }, false));
+        ], false));
 
         // Use a fake IGuard that throws if called — proves Unrestricted skips it.
         IGuard guard = Substitute.For<IGuard>();
@@ -268,10 +268,10 @@ public class ExecuteSqlTests
     public async Task ExecuteSql_NullColumn_PreservedInJson()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>
-        {
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(
+        [
             new() { ["a"] = 1, ["b"] = null },
-        }, false));
+        ], false));
 
         SqlTools tools = CreateTools(executor, RestrictedOptions());
         CallToolResult result = await tools.ExecuteSql("SELECT 1 AS a, NULL AS b", CancellationToken.None);
@@ -346,7 +346,7 @@ public class ExecuteSqlTests
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
-            .Returns(new SqlQueryResult(new() { new() { ["v"] = null } }, true));
+            .Returns(new SqlQueryResult([new() { ["v"] = null }], true));
         CallToolResult result = await CreateTools(executor, RestrictedOptions()).ExecuteSql("SELECT NULL AS v", CancellationToken.None);
         Assert.False(result.IsError);
         Assert.Equal(2, result.Content.Count);
@@ -376,8 +376,8 @@ internal static class SqlExceptionFactory
             .FirstOrDefault(c => c.GetParameters().Length == 9)
             ?? throw new InvalidOperationException("SqlError 9-arg ctor not found.");
 
-        object error = errorCtor.Invoke(new object?[]
-        {
+        object error = errorCtor.Invoke(
+        [
             number,        // infoNumber
             (byte)1,       // errorState
             severity,      // errorClass
@@ -387,7 +387,7 @@ internal static class SqlExceptionFactory
             line,          // lineNumber
             0,             // win32ErrorCode
             null,          // exception
-        });
+        ]);
 
         ConstructorInfo? collectionCtor = sqlErrorCollectionType.GetConstructor(
             BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null)
@@ -396,7 +396,7 @@ internal static class SqlExceptionFactory
 
         MethodInfo? addMethod = sqlErrorCollectionType.GetMethod("Add", BindingFlags.NonPublic | BindingFlags.Instance)
             ?? throw new InvalidOperationException("SqlErrorCollection.Add not found.");
-        addMethod.Invoke(collection, new[] { error });
+        addMethod.Invoke(collection, [error]);
 
         Type sqlExceptionType = typeof(SqlException);
         ConstructorInfo? exCtor = sqlExceptionType.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)
@@ -411,12 +411,12 @@ internal static class SqlExceptionFactory
             })
             ?? throw new InvalidOperationException("SqlException 4-arg ctor not found.");
 
-        return (SqlException)exCtor.Invoke(new object?[]
-        {
+        return (SqlException)exCtor.Invoke(
+        [
             message,
             collection,
             null,
             Guid.Empty,
-        });
+        ]);
     }
 }

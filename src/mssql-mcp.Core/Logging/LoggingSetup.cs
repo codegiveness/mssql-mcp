@@ -55,17 +55,10 @@ public static class LoggingSetup
     /// change notifications. Used to feed <see cref="ConsoleLoggerProvider"/> a pre-configured
     /// <see cref="ConsoleLoggerOptions"/> without spinning up the full Options subsystem.
     /// </summary>
-    private sealed class FixedOptionsMonitor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T> : IOptionsMonitor<T>
+    private sealed class FixedOptionsMonitor<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(T value) : IOptionsMonitor<T>
     {
-        private readonly T _value;
-
-        public FixedOptionsMonitor(T value)
-        {
-            _value = value;
-        }
-
-        public T CurrentValue => _value;
-        public T Get(string? name) => _value;
+        public T CurrentValue => value;
+        public T Get(string? name) => value;
 
         public IDisposable OnChange(Action<T, string?> listener) => NullDisposable.Instance;
 

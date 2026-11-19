@@ -197,7 +197,7 @@ public sealed class OpsTools
         }
 
         string sql;
-        Dictionary<string, object> parameters = new();
+        Dictionary<string, object> parameters = [];
         if (!string.IsNullOrWhiteSpace(query))
         {
             sql = string.Format(CultureInfo.InvariantCulture, MissingIndexPerQuerySqlTemplate, dbPrefix);
@@ -322,7 +322,7 @@ public sealed class OpsTools
         {
             if (row.TryGetValue("query_text", out object? qt) && qt is string text && text.Length > QueryTextMaxLength)
             {
-                row["query_text"] = text.Substring(0, QueryTextMaxLength);
+                row["query_text"] = text[..QueryTextMaxLength];
             }
         }
 
@@ -365,7 +365,7 @@ public sealed class OpsTools
             dbIdExpr = "DB_ID()";
         }
 
-        List<object> summaries = new(capacity: 5);
+        List<object> summaries = [with(capacity: 5)];
         bool isTruncated = false;
 
         try
@@ -378,7 +378,7 @@ public sealed class OpsTools
 
             // 2. VLF count.
             string vlfSql = string.Format(CultureInfo.InvariantCulture, VlfCountSqlTemplate, dbPrefix, dbIdExpr);
-            Dictionary<string, object> vlfParams = new();
+            Dictionary<string, object> vlfParams = [];
             if (database is not null)
             {
                 vlfParams["database"] = database;
@@ -389,7 +389,7 @@ public sealed class OpsTools
 
             // 3. Index fragmentation (SAMPLED mode).
             string fragSql = string.Format(CultureInfo.InvariantCulture, IndexFragmentationSqlTemplate, dbPrefix, dbIdExpr);
-            Dictionary<string, object> fragParams = new();
+            Dictionary<string, object> fragParams = [];
             if (database is not null)
             {
                 fragParams["database"] = database;

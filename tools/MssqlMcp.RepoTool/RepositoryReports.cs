@@ -15,8 +15,12 @@ internal static partial class RepositoryChecks
         ("src/mssql-mcp.Core/SqlExecutor.cs", "mssql_mcp.Core.SqlExecutor"),
         ("src/mssql-mcp.Tools/ToolErrors.cs", "mssql_mcp.Tools.ToolErrors")
     ];
-    private static readonly Regex JsonFence = new("```jsonc?\\r?\\n([\\s\\S]*?)```");
-    private static readonly Regex BadgeImage = new(@"!\[[^\]]*\]\(([^)]+)\)");
+
+    [GeneratedRegex(@"```jsonc?\r?\n([\s\S]*?)```")]
+    private static partial Regex JsonFence { get; }
+
+    [GeneratedRegex(@"!\[[^\]]*\]\(([^)]+)\)")]
+    private static partial Regex BadgeImage { get; }
 
     private readonly record struct CoverageCounts(long CoveredLines, long CoverableLines, long CoveredBranches, long TotalBranches)
     {

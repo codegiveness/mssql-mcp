@@ -402,7 +402,7 @@ internal static partial class RuntimeChecks
             throw new IOException("Unable to safely open a retained corpus sample.",
                 new System.ComponentModel.Win32Exception(Marshal.GetLastPInvokeError()));
         }
-        var handle = new SafeFileHandle((IntPtr)descriptor, ownsHandle: true);
+        var handle = new SafeFileHandle(descriptor, ownsHandle: true);
         try
         {
             return new FileStream(handle, FileAccess.Read);
@@ -419,7 +419,7 @@ internal static partial class RuntimeChecks
 
     private static bool HasLinkedAncestor(string path)
     {
-        for (DirectoryInfo? directory = new DirectoryInfo(Path.GetFullPath(path)); directory is not null; directory = directory.Parent)
+        for (DirectoryInfo? directory = new(Path.GetFullPath(path)); directory is not null; directory = directory.Parent)
         {
             if (IsLink(directory.FullName))
             {

@@ -29,7 +29,7 @@ public class ValidateFlagTests
     public void Validate_Flag_Parsed_True()
     {
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;", "--validate" },
+            ["--connection-string", "Server=x;", "--validate"],
             EmptyEnv);
         Assert.True(options.Validate);
     }
@@ -38,7 +38,7 @@ public class ValidateFlagTests
     public void Validate_Flag_NotPresent_DefaultFalse()
     {
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;" },
+            ["--connection-string", "Server=x;"],
             EmptyEnv);
         Assert.False(options.Validate);
     }
@@ -47,7 +47,7 @@ public class ValidateFlagTests
     public void Validate_Flag_EqualsTrue_Form_Parsed_True()
     {
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;", "--validate=true" },
+            ["--connection-string", "Server=x;", "--validate=true"],
             EmptyEnv);
         Assert.True(options.Validate);
     }
@@ -56,7 +56,7 @@ public class ValidateFlagTests
     public void Validate_Flag_EqualsFalse_Form_Parsed_False()
     {
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;", "--validate=false" },
+            ["--connection-string", "Server=x;", "--validate=false"],
             EmptyEnv);
         Assert.False(options.Validate);
     }
@@ -67,7 +67,7 @@ public class ValidateFlagTests
         // --validate is a boolean switch, not "--flag value". The token after --validate
         // (here --connection-string) must not be consumed as the flag's value.
         var options = MssqlMcpOptions.Parse(
-            new[] { "--validate", "--connection-string", "Server=x;" },
+            ["--validate", "--connection-string", "Server=x;"],
             EmptyEnv);
         Assert.True(options.Validate);
         Assert.Equal("Server=x;", options.ConnectionString);
@@ -82,7 +82,7 @@ public class ValidateFlagTests
         // Even if someone sets MSSQL_VALIDATE, it must be ignored — validate is one-shot CLI only.
         var env = Env(("MSSQL_VALIDATE", "true"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=x;" },
+            ["--connection-string", "Server=x;"],
             env);
         Assert.False(options.Validate);
     }
@@ -242,7 +242,7 @@ public class ValidateFlagTests
         // ADR-0015: env-secret-over-flag for MSSQL_CONNECTION_STRING.
         var env = Env(("MSSQL_CONNECTION_STRING", "Server=env;"));
         var options = MssqlMcpOptions.Parse(
-            new[] { "--connection-string", "Server=cli;", "--validate" },
+            ["--connection-string", "Server=cli;", "--validate"],
             env);
         Assert.True(options.Validate);
         Assert.Equal("Server=env;", options.ConnectionString);
@@ -266,8 +266,8 @@ internal static class SqlExceptionFactory
             .FirstOrDefault(c => c.GetParameters().Length == 9)
             ?? throw new InvalidOperationException("SqlError 9-arg ctor not found.");
 
-        object error = errorCtor.Invoke(new object?[]
-        {
+        object error = errorCtor.Invoke(
+        [
             number,        // infoNumber
             (byte)1,       // errorState
             severity,      // errorClass
@@ -277,7 +277,7 @@ internal static class SqlExceptionFactory
             line,          // lineNumber
             0,             // win32ErrorCode
             null,          // exception
-        });
+        ]);
 
         ConstructorInfo? collectionCtor = sqlErrorCollectionType.GetConstructor(
             BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null)
@@ -286,7 +286,7 @@ internal static class SqlExceptionFactory
 
         MethodInfo? addMethod = sqlErrorCollectionType.GetMethod("Add", BindingFlags.NonPublic | BindingFlags.Instance)
             ?? throw new InvalidOperationException("SqlErrorCollection.Add not found.");
-        addMethod.Invoke(collection, new[] { error });
+        addMethod.Invoke(collection, [error]);
 
         Type sqlExceptionType = typeof(SqlException);
         ConstructorInfo? exCtor = sqlExceptionType.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)
@@ -301,12 +301,12 @@ internal static class SqlExceptionFactory
             })
             ?? throw new InvalidOperationException("SqlException 4-arg ctor not found.");
 
-        return (SqlException)exCtor.Invoke(new object?[]
-        {
+        return (SqlException)exCtor.Invoke(
+        [
             message,
             collection,
             null,
             Guid.Empty,
-        });
+        ]);
     }
 }

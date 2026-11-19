@@ -12,8 +12,6 @@ namespace mssql_mcp.Core.Tests;
 /// </summary>
 public class RetryLogicTests
 {
-    private static IDictionary EmptyEnv => new Hashtable();
-
     private static IDictionary Env(params (string key, string value)[] pairs)
     {
         var dict = new Hashtable(StringComparer.OrdinalIgnoreCase);
@@ -107,7 +105,7 @@ public class RetryLogicTests
     {
         var env = Env(("MSSQL_RETRY_COUNT", "-1"));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            MssqlMcpOptions.Parse(new[] { "--connection-string", "Server=x;" }, env));
+            MssqlMcpOptions.Parse(["--connection-string", "Server=x;"], env));
         Assert.Contains("[startup]", ex.Message);
         Assert.Contains("retry count", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -117,7 +115,7 @@ public class RetryLogicTests
     {
         var env = Env(("MSSQL_RETRY_COUNT", "abc"));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            MssqlMcpOptions.Parse(new[] { "--connection-string", "Server=x;" }, env));
+            MssqlMcpOptions.Parse(["--connection-string", "Server=x;"], env));
         Assert.Contains("[startup]", ex.Message);
         Assert.Contains("abc", ex.Message);
     }
@@ -128,7 +126,7 @@ public class RetryLogicTests
         // RetryCount=60 would produce NumberOfTries=61, which Microsoft.Data.SqlClient rejects (>60).
         var env = Env(("MSSQL_RETRY_COUNT", "60"));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            MssqlMcpOptions.Parse(new[] { "--connection-string", "Server=x;" }, env));
+            MssqlMcpOptions.Parse(["--connection-string", "Server=x;"], env));
         Assert.Contains("[startup]", ex.Message);
         Assert.Contains("59", ex.Message); // Must mention the allowed upper bound.
     }
@@ -138,7 +136,7 @@ public class RetryLogicTests
     {
         var env = Env(("MSSQL_RETRY_INTERVAL", "abc"));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            MssqlMcpOptions.Parse(new[] { "--connection-string", "Server=x;" }, env));
+            MssqlMcpOptions.Parse(["--connection-string", "Server=x;"], env));
         Assert.Contains("[startup]", ex.Message);
         Assert.Contains("abc", ex.Message);
     }
@@ -150,7 +148,7 @@ public class RetryLogicTests
         // for an unambiguous backoff range.
         var env = Env(("MSSQL_RETRY_INTERVAL", "10")); // min=10, max stays at default 10
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            MssqlMcpOptions.Parse(new[] { "--connection-string", "Server=x;" }, env));
+            MssqlMcpOptions.Parse(["--connection-string", "Server=x;"], env));
         Assert.Contains("[startup]", ex.Message);
         Assert.Contains("strictly less than", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -160,7 +158,7 @@ public class RetryLogicTests
     {
         var env = Env(("MSSQL_RETRY_INTERVAL", "20")); // min=20 > max=10 default
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            MssqlMcpOptions.Parse(new[] { "--connection-string", "Server=x;" }, env));
+            MssqlMcpOptions.Parse(["--connection-string", "Server=x;"], env));
         Assert.Contains("[startup]", ex.Message);
         Assert.Contains("strictly less than", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -171,7 +169,7 @@ public class RetryLogicTests
         // Microsoft.Data.SqlClient caps MaxTimeInterval at 120s — enforce at startup.
         var env = Env(("MSSQL_RETRY_INTERVAL", "200"));
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            MssqlMcpOptions.Parse(new[] { "--connection-string", "Server=x;" }, env));
+            MssqlMcpOptions.Parse(["--connection-string", "Server=x;"], env));
         Assert.Contains("[startup]", ex.Message);
         Assert.Contains("120", ex.Message);
     }
@@ -181,7 +179,7 @@ public class RetryLogicTests
     {
         // RetryCount=59 → NumberOfTries=60 (Microsoft's max).
         var env = Env(("MSSQL_RETRY_COUNT", "59"));
-        var options = MssqlMcpOptions.Parse(new[] { "--connection-string", "Server=x;" }, env);
+        var options = MssqlMcpOptions.Parse(["--connection-string", "Server=x;"], env);
         Assert.Equal(59, options.RetryCount);
 
         // Verify the resulting option is accepted by SqlRetryLogicOption at runtime.

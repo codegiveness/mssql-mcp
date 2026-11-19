@@ -16,10 +16,38 @@ trim_trailing_whitespace = false
 indent_size = 2
 
 [*.cs]
-# C# — match existing code style. Do not introduce rules that would force
-# changes to existing code (verified clean via `dotnet format --verify-no-changes`).
+# C# — match existing code style. Verified clean via `dotnet format --verify-no-changes`.
 dotnet_style_namespace_import_grouping = true:warning
 csharp_style_namespace_declarations = file_scoped:warning
 csharp_new_line_before_open_brace = all
 csharp_indent_case_contents = true
 csharp_indent_switch_labels = true
+
+# Zero-diagnostics policy (0.6.2): every code-style suggestion Roslyn reported on
+# this codebase is fixed and raised to warning, so the build
+# (EnforceCodeStyleInBuild + TreatWarningsAsErrors) and `dotnet format
+# --verify-no-changes` both fail on regressions. IDE0005 is enforced by
+# `dotnet format` only: build enforcement would require GenerateDocumentationFile.
+dotnet_diagnostic.IDE0001.severity = warning
+dotnet_diagnostic.IDE0002.severity = warning
+dotnet_diagnostic.IDE0004.severity = warning
+dotnet_diagnostic.IDE0005.severity = warning
+dotnet_diagnostic.IDE0017.severity = warning
+dotnet_diagnostic.IDE0028.severity = warning
+dotnet_diagnostic.IDE0037.severity = warning
+dotnet_diagnostic.IDE0042.severity = warning
+dotnet_diagnostic.IDE0049.severity = warning
+dotnet_diagnostic.IDE0051.severity = warning
+dotnet_diagnostic.IDE0052.severity = warning
+dotnet_diagnostic.IDE0057.severity = warning
+dotnet_diagnostic.IDE0063.severity = warning
+dotnet_diagnostic.IDE0066.severity = warning
+dotnet_diagnostic.IDE0090.severity = warning
+dotnet_diagnostic.IDE0200.severity = warning
+dotnet_diagnostic.IDE0290.severity = warning
+dotnet_diagnostic.IDE0300.severity = warning
+dotnet_diagnostic.IDE0301.severity = warning
+dotnet_diagnostic.IDE0302.severity = warning
+dotnet_diagnostic.IDE0305.severity = warning
+dotnet_diagnostic.IDE0370.severity = warning
+dotnet_diagnostic.SYSLIB1045.severity = warning

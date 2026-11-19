@@ -1,14 +1,17 @@
 # mssql-mcp
 
 <!-- mcp-name: io.github.codegiveness/mssql-mcp -->
-[![CI](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml)
-[![NuGet](https://img.shields.io/nuget/v/codegiveness.mssql-mcp)](https://www.nuget.org/packages/codegiveness.mssql-mcp)
-[![npm (scoped)](https://img.shields.io/npm/v/@codegiveness/mssql-mcp)](https://www.npmjs.com/package/@codegiveness/mssql-mcp)
-[![.NET](https://img.shields.io/badge/.NET-10-blue)](https://dotnet.microsoft.com/)
+<img src="docs/assets/social-preview.png" width="640" alt="mssql-mcp: an MCP server in C#/.NET that gives your AI assistant Microsoft SQL Server tools to list databases, inspect schemas and run read-only SQL with AST validation and transaction rollback; installs with npx or as a .NET tool on Linux, macOS and Windows.">
+
+[![CI](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/codegiveness/mssql-mcp/actions/workflows/ci.yml)
+[![GitHub release](https://img.shields.io/github/v/release/codegiveness/mssql-mcp)](https://github.com/codegiveness/mssql-mcp/releases)
+[![NuGet](https://img.shields.io/nuget/v/codegiveness.mssql-mcp?logo=nuget)](https://www.nuget.org/packages/codegiveness.mssql-mcp)
+[![npm (scoped)](https://img.shields.io/npm/v/@codegiveness/mssql-mcp?logo=npm)](https://www.npmjs.com/package/@codegiveness/mssql-mcp)
+[![.NET](https://img.shields.io/badge/.NET-11-blue)](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/github/license/codegiveness/mssql-mcp)](./LICENSE)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/codegiveness/mssql-mcp/badge)](https://scorecard.dev/viewer/?uri=github.com/codegiveness/mssql-mcp)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15156/badge)](https://www.bestpractices.dev/en/projects/15156/passing)
-[![SBOM](https://img.shields.io/badge/SBOM-CycloneDX-blue)](./docs/security-posture.md#supply-chain-attestation)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15156/badge)](https://www.bestpractices.dev/en/projects/15156)
+[![SBOM](https://img.shields.io/badge/SBOM-CycloneDX-blue)](./docs/security-posture.md#supply-chain-controls)
 [![Security Policy](https://img.shields.io/badge/Security-Policy-blue)](./SECURITY.md)
 
 An MCP server that lets AI agents safely query Microsoft SQL Server — read-only by default, with AST validation, transaction rollback, and timeouts.

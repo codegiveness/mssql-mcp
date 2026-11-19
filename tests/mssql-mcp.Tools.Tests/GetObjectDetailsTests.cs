@@ -194,7 +194,7 @@ public class GetObjectDetailsTests
     public async Task GetObjectDetails_NotFound_ReturnsObjectNotFoundError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.GetObjectDetails(null, "dbo", "Nonexistent", null, CancellationToken.None);
@@ -262,9 +262,9 @@ public class GetObjectDetailsTests
     [Fact]
     public async Task GetObjectDetails_TypeFilter_PassedThroughToLookup()
     {
-        List<string> capturedSqls = new();
+        List<string> capturedSqls = [];
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ObjectRow("U"), false));
+        executor.ExecuteQueryAsync(Arg.Do<string>(capturedSqls.Add), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ObjectRow("U"), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.GetObjectDetails(null, "dbo", "Orders", "TABLE", CancellationToken.None);
@@ -281,9 +281,9 @@ public class GetObjectDetailsTests
         // Regression test for Oracle review finding: OBJECT_ID(@qualifiedName) resolves in
         // the current DB context, not the target DB. Fix: pass object_id from the lookup
         // query as @objectId parameter to detail queries.
-        List<string> capturedSqls = new();
+        List<string> capturedSqls = [];
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false), new SqlQueryResult(ObjectRow("U"), false), new SqlQueryResult(Columns(), false), new SqlQueryResult(Indexes(), false), new SqlQueryResult(Triggers(), false));
+        executor.ExecuteQueryAsync(Arg.Do<string>(capturedSqls.Add), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false), new SqlQueryResult(ObjectRow("U"), false), new SqlQueryResult(Columns(), false), new SqlQueryResult(Indexes(), false), new SqlQueryResult(Triggers(), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.GetObjectDetails("AppDb", "dbo", "Orders", null, CancellationToken.None);
@@ -301,9 +301,9 @@ public class GetObjectDetailsTests
     public async Task GetObjectDetails_LookupQuery_ReturnsObjectId()
     {
         // Verify the lookup query SELECTs object_id alongside type.
-        List<string> capturedSqls = new();
+        List<string> capturedSqls = [];
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false), new SqlQueryResult(ObjectRow("U"), false), new SqlQueryResult(Columns(), false), new SqlQueryResult(Indexes(), false), new SqlQueryResult(Triggers(), false));
+        executor.ExecuteQueryAsync(Arg.Do<string>(capturedSqls.Add), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false), new SqlQueryResult(ObjectRow("U"), false), new SqlQueryResult(Columns(), false), new SqlQueryResult(Indexes(), false), new SqlQueryResult(Triggers(), false));
 
         DatabaseTools tools = CreateTools(executor);
         await tools.GetObjectDetails("AppDb", "dbo", "Orders", null, CancellationToken.None);
@@ -341,7 +341,7 @@ public class GetObjectDetailsTests
         executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), 0, Arg.Any<CancellationToken>())
             .Returns(new SqlQueryResult(ObjectRow("V"), false));
         executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), 2, Arg.Any<CancellationToken>())
-            .Returns(new SqlQueryResult(new(), true));
+            .Returns(new SqlQueryResult([], true));
         CallToolResult result = await CreateTools(executor, 2).GetObjectDetails(null, "dbo", "ExistingView", null, CancellationToken.None);
         Assert.False(result.IsError);
         Assert.Equal(2, result.Content.Count);

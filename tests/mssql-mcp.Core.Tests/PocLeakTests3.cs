@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using mssql_mcp.Core.Logging;
 
@@ -56,7 +55,7 @@ public class PocLeakTests3
     public void PB1_RegexTimeoutHypothesis_Falsified_TimeoutDoesNotFire()
     {
         const int count = 1_000_000;
-        string input = string.Concat(System.Linq.Enumerable.Repeat("Password=secret;", count));
+        string input = string.Concat(Enumerable.Repeat("Password=secret;", count));
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
         string result = PasswordObfuscator.Obfuscate(input);

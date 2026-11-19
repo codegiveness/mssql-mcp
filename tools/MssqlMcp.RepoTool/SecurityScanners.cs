@@ -39,7 +39,7 @@ internal static partial class SecurityCommands
             "--report-format", "json", "--report-path", raw], root);
         // Raw output, parser errors, matches and commit messages must never reach logs.
         var findings = File.Exists(raw) ? JsonNode.Parse(File.ReadAllText(raw)) as JsonArray
-            ?? throw new SecurityPolicyException("Invalid Gitleaks report") : new JsonArray();
+            ?? throw new SecurityPolicyException("Invalid Gitleaks report") : [];
         var safe = SanitizeFindings(findings);
         WriteJson(report, safe);
         if (result.ExitCode is not (0 or 23))
@@ -78,7 +78,7 @@ internal static partial class SecurityCommands
 
     internal static (bool Failed, int Packages, int Vulnerabilities) AssessVulnerabilities(int exitCode, JsonObject document)
     {
-        var results = document["Results"] as JsonArray ?? new JsonArray();
+        var results = document["Results"] as JsonArray ?? [];
         var count = 0;
         var packages = 0;
         foreach (var entry in results)
@@ -111,7 +111,7 @@ internal static partial class SecurityCommands
         }
         else
         {
-            targets = Directory.GetFiles(Path.GetFullPath(target), "*.json").Order(StringComparer.Ordinal).ToArray();
+            targets = [.. Directory.GetFiles(Path.GetFullPath(target), "*.json").Order(StringComparer.Ordinal)];
             if (targets.Length == 0) throw new SecurityPolicyException("No CycloneDX JSON SBOMs found");
             foreach (var document in targets.Select(ReadObject))
             {
@@ -157,10 +157,10 @@ internal static partial class SecurityCommands
                 Console.Error.WriteLine($"Trivy did not produce required report: {report}");
                 continue;
             }
-            var assessment = AssessVulnerabilities(result.ExitCode, ReadObject(report));
-            failed |= assessment.Failed;
-            if (assessment.Packages == 0) Console.Error.WriteLine("Trivy assessed no packages; refusing an empty vulnerability assessment");
-            Console.WriteLine($"Trivy {kind}: {assessment.Packages} package(s), {assessment.Vulnerabilities} HIGH/CRITICAL finding(s); exit {result.ExitCode}; report: {report}");
+            var (assessmentFailed, packageCount, vulnerabilityCount) = AssessVulnerabilities(result.ExitCode, ReadObject(report));
+            failed |= assessmentFailed;
+            if (packageCount == 0) Console.Error.WriteLine("Trivy assessed no packages; refusing an empty vulnerability assessment");
+            Console.WriteLine($"Trivy {kind}: {packageCount} package(s), {vulnerabilityCount} HIGH/CRITICAL finding(s); exit {result.ExitCode}; report: {report}");
         }
         CopyDatabaseMetadata(cache.Path, reports);
         return failed;

@@ -14,6 +14,26 @@
           "Microsoft.Testing.Platform": "2.5.2"
         }
       },
+      "FsCheck": {
+        "type": "Direct",
+        "requested": "[3.6.0, )",
+        "resolved": "3.6.0",
+        "contentHash": "XjZ5sWf/QKLqB9aMKG7FvrT/8Ak2fPo0ygRstindBWZWU8P3EcmvYJ5UkX0daIL4+bZeaiD9ThkftGlIx3ZewQ==",
+        "dependencies": {
+          "FSharp.Core": "5.0.2"
+        }
+      },
+      "FsCheck.Xunit.v3": {
+        "type": "Direct",
+        "requested": "[3.6.0, )",
+        "resolved": "3.6.0",
+        "contentHash": "rIR16Wi63jv4e5tOGkyyCZ9nMyhZc2CRuWLxIdFrBJ22zuvJ6zzAL/F1b2157J1lV6WGdBjOlGeMDryw4ECBSg==",
+        "dependencies": {
+          "FSharp.Core": "5.0.2",
+          "FsCheck": "[3.6.0]",
+          "xunit.v3.extensibility.core": "[4.0.0, 5.0.0)"
+        }
+      },
       "Microsoft.Data.SqlClient.SNI.runtime": {
         "type": "Direct",
         "requested": "[7.1.2, )",
@@ -61,6 +81,11 @@
         "dependencies": {
           "System.Diagnostics.EventLog": "6.0.0"
         }
+      },
+      "FSharp.Core": {
+        "type": "Transitive",
+        "resolved": "5.0.2",
+        "contentHash": "DpcajqENgb3VXaHw1FKfVS+TWwEzck1PCajqLwBAVrtd1lfxd7T8JISVZBdV1mX9+2g48+tIgpNaVJWObdMrBw=="
       },
       "Microsoft.ApplicationInsights": {
         "type": "Transitive",

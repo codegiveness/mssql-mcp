@@ -25,6 +25,10 @@ These issues are **out of scope** — report them upstream:
 - MCP protocol spec vulnerabilities → [MCP spec repository](https://github.com/modelcontextprotocol/modelcontextprotocol)
 - Dependency CVEs → open a normal issue or PR with the bumped version
 
+## Trust boundary
+
+The SQL login in `MSSQL_CONNECTION_STRING` is the authority over what the agent can read or change; the Guard narrows statement types but does not replace server-side permissions. The agent-to-server and server-to-SQL Server boundaries and their mitigations are described in the [threat model](docs/security-posture.md#threat-model).
+
 ## Supply Chain
 
 NuGet packages are repository-signed by NuGet.org and published via Trusted Publishing (OIDC from GitHub Actions — no long-lived API keys). npm packages are staged from GitHub Actions with Trusted Publishing and become installable only after the maintainer approves each one with npm 2FA (ADR-0037). GitHub Release artifacts (tarballs, zips, checksums) and npm packages are provenance-attested via `actions/attest@v4`. NuGet packages are NOT provenance-attested because NuGet.org re-signs packages on ingestion, breaking the SHA (see [NuGetGallery#10026](https://github.com/NuGet/NuGetGallery/issues/10026)); tracking native NuGet provenance via [NuGet/Home#13581](https://github.com/NuGet/Home/issues/13581). All GitHub Actions are pinned to commit SHAs. Dependabot keeps github-actions, nuget, docker and npm tooling dependencies current, with a 7-day cooldown for non-security updates.

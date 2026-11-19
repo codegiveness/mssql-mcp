@@ -13,6 +13,28 @@ updates:
     open-pull-requests-limit: 5
     cooldown:
       default-days: 7
+    # One PR for all action bumps; each pin still moves to a full commit SHA.
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # .NET SDK pinned in global.json. Major bumps stay manual (the project targets the .NET 11 line).
+  - package-ecosystem: "dotnet-sdk"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     labels:
       - "dependencies"
     commit-message:

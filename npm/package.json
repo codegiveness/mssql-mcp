@@ -24,7 +24,12 @@
   },
   "scripts": {},
   "files": [
-    "bin/mssql-mcp.js"
+    "bin/mssql-mcp.js",
+    "LICENSE",
+    "THIRD-PARTY-NOTICES.md",
+    "LICENSES/*.txt",
+    "README.md",
+    "SECURITY.md"
   ],
   "optionalDependencies": {
     "@codegiveness/mssql-mcp-linux-x64": "0.6.1",

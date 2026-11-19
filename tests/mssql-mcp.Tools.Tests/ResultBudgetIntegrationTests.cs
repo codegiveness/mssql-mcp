@@ -125,8 +125,8 @@ public class ResultBudgetIntegrationTests
         CancellationToken ct = TestContext.Current.CancellationToken;
         CallToolResult raw = await tools.ExplainQuery("SELECT 1 AS v", "xml", ct);
         Assert.True(raw.IsError);
-        Assert.Single(raw.Content);
-        using (JsonDocument error = JsonDocument.Parse(Assert.IsType<TextContentBlock>(raw.Content[0]).Text))
+        ContentBlock rawBlock = Assert.Single(raw.Content);
+        using (JsonDocument error = JsonDocument.Parse(Assert.IsType<TextContentBlock>(rawBlock).Text))
         {
             Assert.Equal("PLAN_TOO_LARGE", error.RootElement.GetProperty("error").GetString());
             Assert.Equal(1, error.RootElement.GetProperty("max_bytes").GetInt64());
@@ -141,8 +141,8 @@ public class ResultBudgetIntegrationTests
         options.MaxResultBytes = 0;
         CallToolResult disabled = await tools.ExplainQuery("SELECT 1 AS v", "xml", ct);
         Assert.False(disabled.IsError);
-        Assert.Single(disabled.Content);
-        XDocument.Parse(Assert.IsType<TextContentBlock>(disabled.Content[0]).Text);
+        ContentBlock disabledBlock = Assert.Single(disabled.Content);
+        XDocument.Parse(Assert.IsType<TextContentBlock>(disabledBlock).Text);
         await AssertUsable(executor);
     }
 }

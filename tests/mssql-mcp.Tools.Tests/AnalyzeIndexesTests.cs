@@ -44,7 +44,7 @@ public class AnalyzeIndexesTests
 
     private static List<Dictionary<string, object?>> MissingIndexRows(int count)
     {
-        List<Dictionary<string, object?>> rows = new(count);
+        List<Dictionary<string, object?>> rows = [with(count)];
         for (int i = 0; i < count; i++)
         {
             rows.Add(new()
@@ -84,9 +84,9 @@ public class AnalyzeIndexesTests
     [Fact]
     public async Task AnalyzeIndexes_WorkloadWide_IncludesTop20AndImprovementMeasure()
     {
-        List<string> capturedSqls = new();
+        List<string> capturedSqls = [];
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(MissingIndexRows(3), false));
+        executor.ExecuteQueryAsync(Arg.Do<string>(capturedSqls.Add), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(MissingIndexRows(3), false));
 
         OpsTools tools = CreateTools(executor);
         await tools.AnalyzeIndexes(database: null, query: null, CancellationToken.None);
@@ -101,9 +101,9 @@ public class AnalyzeIndexesTests
     [Fact]
     public async Task AnalyzeIndexes_WithQuery_FiltersByPlanHandle()
     {
-        List<string> capturedSqls = new();
+        List<string> capturedSqls = [];
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(MissingIndexRows(1), false));
+        executor.ExecuteQueryAsync(Arg.Do<string>(capturedSqls.Add), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(MissingIndexRows(1), false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeIndexes(
@@ -121,9 +121,9 @@ public class AnalyzeIndexesTests
     [Fact]
     public async Task AnalyzeIndexes_CrossDb_ValidatesAndUsesQuotedPrefix()
     {
-        List<string> capturedSqls = new();
+        List<string> capturedSqls = [];
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false), new SqlQueryResult(MissingIndexRows(1), false));
+        executor.ExecuteQueryAsync(Arg.Do<string>(capturedSqls.Add), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false), new SqlQueryResult(MissingIndexRows(1), false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeIndexes(
@@ -158,7 +158,7 @@ public class AnalyzeIndexesTests
     public async Task AnalyzeIndexes_CrossDb_NotFound_ReturnsConnectionError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false)); // validation: 0 rows = not found
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false)); // validation: 0 rows = not found
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeIndexes(
@@ -189,7 +189,7 @@ public class AnalyzeIndexesTests
     public async Task AnalyzeIndexes_EmptyDmv_ReturnsEmptyArray()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeIndexes(database: null, query: null, CancellationToken.None);

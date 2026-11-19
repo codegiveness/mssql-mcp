@@ -96,7 +96,7 @@ internal static class SecurityArchive
         foreach (var (path, link) in links)
         {
             ResolveLinkTarget(destination, link.Symbolic ? Path.GetDirectoryName(path)! : destination,
-                link.Name, links, new HashSet<string>(StringComparer.Ordinal) { path });
+                link.Name, links, [with(StringComparer.Ordinal), path]);
             if (!link.Symbolic && !regular.Contains(link.Target))
                 throw new SecurityPolicyException("Archive hard link does not refer to a regular member");
         }

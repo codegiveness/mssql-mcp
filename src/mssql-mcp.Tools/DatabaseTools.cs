@@ -279,7 +279,7 @@ public sealed class DatabaseTools
             return ToolErrors.Internal(ex);
         }
 
-        List<object> payload = new(rows.Count + 1);
+        List<object> payload = [with(rows.Count + 1)];
         if (rows.Count == clampedLimit)
         {
             payload.Add(new TruncationNotice
@@ -341,7 +341,7 @@ public sealed class DatabaseTools
         Dictionary<string, object> lookupParams = new() { ["schema"] = schema, ["name"] = name };
 
         List<Dictionary<string, object?>> lookupRows;
-        List<Dictionary<string, object?>> detailRows = new();
+        List<Dictionary<string, object?>> detailRows = [];
         bool isTruncated = false;
         try
         {
