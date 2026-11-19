@@ -24,9 +24,8 @@ their license terms. Source links are provided for verification.
 - License: MIT
 - Copyright: Copyright (c) .NET Foundation and Contributors
 - Source: https://github.com/dotnet/runtime
-- Purpose: SqlClient dependency. Referenced directly so every build ships the
-  patched 10.0.13 release instead of the 9.0.18 version SqlClient requests
-  (CVE-2026-84008).
+- Purpose: SqlClient transitive dependency, resolved to 9.0.21 (not affected by
+  CVE-2026-84008); no direct pin is needed.
 
 ## Removed Entra authentication integration
 
@@ -47,7 +46,7 @@ legal/licensing audit. Native SNI asset exclusion is described below.
 
 - License: Microsoft Software License Terms ("Distributable Code").
 - Copyright: Copyright (c) Microsoft Corporation.
-- Source: https://www.nuget.org/packages/Microsoft.Data.SqlClient.SNI.runtime/7.1.0.
+- Source: https://www.nuget.org/packages/Microsoft.Data.SqlClient.SNI.runtime/7.1.2.
 - Purpose: Windows native SNI. The package remains in NuGet's restore graph because
   SqlClient depends on it, but all assets are excluded from builds and publication.
 - Section 3(a) permits object-code redistribution subject to additional requirements;
@@ -76,11 +75,11 @@ legal/licensing audit. Native SNI asset exclusion is described below.
 - Purpose: Official MCP SDK for .NET. Provides stdio transport, tool
   registration, and protocol handling (ADR-0008).
 
-## .NET 10 Runtime (self-contained builds only)
+## .NET 11 Runtime (self-contained builds only)
 
 - License: MIT
 - Copyright: Copyright (c) .NET Foundation and Contributors
 - Source: https://github.com/dotnet/runtime
 - Purpose: .NET runtime bundled into self-contained builds (Linux x64/arm64,
-  macOS x64/arm64). Windows builds are framework-dependent and do not
-  redistribute the runtime.
+  macOS x64/arm64, Windows x64). The NuGet tool package is framework-dependent and
+  does not redistribute the runtime.

@@ -101,3 +101,7 @@ If any check fails, the push is blocked. No exceptions.
 - **Secrets never leave `.env`.** `AGENTS.md` and `CONTRIBUTING.md` carry the discipline without the secret. `.env.example` (committed) shows the shape with angle-bracket placeholders.
 - **Pre-push discipline is verifiable.** The checklist in `CONTRIBUTING.md` is a table of commands with expected outcomes. An AI agent or human contributor can run it mechanically. If the integration tests can't reach a live DB, the push is blocked — no "it probably works" pushes.
 - **`Program.cs` gains a small arg-dispatch block before `Parse()`.** The existing `--version` check (line 14) is joined by `--help`/`-h` and the unknown-arg detector. `Parse()` is unchanged. The blast radius is one file.
+
+## Amendment (2026-11-19)
+
+`AGENTS.md` and `CLAUDE.md` are now tracked project files: `AGENTS.md` is the shared guide for every agent, and `CLAUDE.md` imports it for Claude Code. Neither is gitignored any more, which makes decision 4 stricter, not weaker: they must never hold secrets. Maintainer-local workflow lives in the gitignored `.omp/` directory. Secrets still live only in `.env`.

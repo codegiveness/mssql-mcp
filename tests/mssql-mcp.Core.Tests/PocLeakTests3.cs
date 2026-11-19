@@ -11,7 +11,7 @@ namespace mssql_mcp.Core.Tests;
 ///   PB-1: PasswordObfuscator regex timeout returns the ORIGINAL message — FALSIFIED.
 ///         Initial hypothesis: a pathological input forces RegexMatchTimeoutException,
 ///         triggering the catch block at PasswordObfuscator.cs:42-46 that returns `message`
-///         unmodified. Empirical testing on .NET 10 shows the [GeneratedRegex] regex is
+///         unmodified. Empirical testing on .NET 11 shows the [GeneratedRegex] regex is
 ///         highly optimized: classic catastrophic-backtracking shapes (pure quotes, long
 ///         plain values, nested braces) complete in &lt;50ms even at 100MB. One million
 ///         `Password=secret;` entries (~16MB, wall-clock 341ms) still completes and
@@ -41,7 +41,7 @@ public class PocLeakTests3
 
     /// <summary>
     /// PB-1 FALSIFICATION: The regex timeout catch block (PasswordObfuscator.cs:42-46) is
-    /// unreachable for realistic inputs on .NET 10. A 1M-entry input (~16MB) that takes
+    /// unreachable for realistic inputs on .NET 11. A 1M-entry input (~16MB) that takes
     /// 341ms wall-clock still completes and obfuscates ALL entries — no timeout exception.
     /// The 200ms matchTimeoutMilliseconds is per-match-attempt, not total execution time.
     ///

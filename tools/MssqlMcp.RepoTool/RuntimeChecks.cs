@@ -38,7 +38,7 @@ internal static partial class RuntimeChecks
             throw new InvalidOperationException("mcp-smoke: MSSQL_CONNECTION_STRING not set and .env did not supply it.");
         }
 
-        string binaryDirectory = Path.Combine(root, "src", "mssql-mcp", "bin", "Debug", "net10.0");
+        string binaryDirectory = Path.Combine(root, "src", "mssql-mcp", "bin", "Debug", "net11.0");
         string binary = Path.Combine(binaryDirectory, OperatingSystem.IsWindows() ? "mssql-mcp.exe" : "mssql-mcp");
         if (!File.Exists(binary))
         {

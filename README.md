@@ -44,13 +44,13 @@ An MCP server that lets AI agents safely query Microsoft SQL Server — read-onl
 
 **1. Verify the binary runs on your machine.**
 
-macOS / Linux:
+macOS / Linux / Windows:
 
 ```bash
 npx -y @codegiveness/mssql-mcp --version
 ```
 
-Windows (requires [.NET 10 runtime](https://dotnet.microsoft.com/download)):
+Alternatively, install the .NET tool (requires the [.NET 11 runtime](https://dotnet.microsoft.com/download)):
 
 ```bash
 dotnet tool install -g codegiveness.mssql-mcp
@@ -99,9 +99,9 @@ The Quick start above covers the common path. This section covers platform detai
 | `linux-arm64` | yes | `.tar.gz` | `npx -y @codegiveness/mssql-mcp` just works |
 | `osx-x64` | yes | `.tar.gz` | Intel Macs |
 | `osx-arm64` | yes | `.tar.gz` | Apple Silicon |
-| `win-x64` | no (framework-dependent) | `.zip` | Requires .NET 10 runtime; `dotnet tool install` is the recommended path |
+| `win-x64` | yes | `.zip` | Single-file, untrimmed; no .NET runtime required |
 
-Windows retains the existing framework-dependent distribution and requires .NET 10. All platforms now use managed SNI; native SNI assets are explicitly excluded even from framework-dependent and NuGet tool packages. Windows selects SqlClient's [managed networking switch](https://github.com/dotnet/SqlClient/blob/v7.1.1/BUILDGUIDE.md#using-managed-sni-on-windows). See [Architecture & decisions](#architecture--decisions).
+All platforms use managed SNI; native SNI assets are explicitly excluded from every archive and the NuGet tool package. Windows selects SqlClient's [managed networking switch](https://github.com/dotnet/SqlClient/blob/v7.1.2/BUILDGUIDE.md#using-managed-sni-on-windows). The `dotnet tool install` package is framework-dependent and requires the .NET 11 runtime. See [Architecture & decisions](#architecture--decisions).
 
 The Entra authentication extension was removed from unreleased builds because its
 native broker dependency prohibits redistribution. SQL password and Windows
@@ -149,7 +149,7 @@ The `-i` flag keeps stdin open for the MCP stdio transport. The image must be bu
 
 ### Windows note
 
-`npx -y @codegiveness/mssql-mcp` on Windows delivers a framework-dependent build via `optionalDependencies`. The build requires the .NET 10 runtime to be installed. If the runtime is missing, the shim prints a clear error with the [download URL](https://dotnet.microsoft.com/download) and the `dotnet tool install` fallback. If you don't want to install the runtime, install the .NET tool instead:
+`npx -y @codegiveness/mssql-mcp` on Windows delivers a self-contained single-file build via `optionalDependencies`; no .NET runtime needs to be installed. Alternatively, install the .NET tool, which requires the .NET 11 runtime:
 
 ```bash
 dotnet tool install -g codegiveness.mssql-mcp
@@ -459,7 +459,7 @@ If `--validate` passes but your harness can't see the server, the problem is in 
 | Destructive SQL | Rejected by the Guard by default |
 | Tool surface | 9 typed tools |
 | Transport safety | Byte-size limit on stdio |
-| Language | C#/.NET 10 |
+| Language | C#/.NET 11 |
 | Target DB | SQL Server |
 
 ## Access modes
@@ -672,7 +672,7 @@ Server=tcp:myserver.database.windows.net,1433;Database=mydb;User Id=sqladmin;Pas
 
 ### Windows Integrated Authentication
 
-On Windows with .NET 10, `Integrated Security=True` uses the running process's Windows credentials:
+On Windows, `Integrated Security=True` uses the running process's Windows credentials:
 
 ```text
 Server=myserver;Database=mydb;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;
@@ -772,25 +772,6 @@ Common fixes:
 
 - **Timeout (`timeout` tag).** The default connection timeout is 15 seconds. If your server is slow or far away, add `Connect Timeout=30` to the connection string.
 
-### Windows .NET runtime missing
-
-Symptom: On Windows, `npx -y @codegiveness/mssql-mcp --version` fails with an error mentioning .NET or the runtime.
-
-The Windows build is framework-dependent — it needs the .NET 10 runtime installed. Fix:
-
-1. Install the [.NET 10 runtime](https://dotnet.microsoft.com/download).
-2. Verify: `dotnet --version` should print `10.x.x`.
-3. Re-run `npx -y @codegiveness/mssql-mcp --version`.
-
-Alternatively, skip the runtime entirely by using the .NET tool:
-
-```bash
-dotnet tool install -g codegiveness.mssql-mcp
-mssql-mcp --version
-```
-
-Then use `"command": "mssql-mcp"` (instead of `"command": "npx"`) in your harness config.
-
 ### npm self-heal download failed
 
 Symptom: The npm package's optional dependency for your platform wasn't installed (corporate mirror, `--no-optional`, etc.), and the shim's fallback download from GitHub Releases failed.
@@ -859,7 +840,7 @@ See [SECURITY.md](./SECURITY.md). Do not open a public issue for security vulner
 
 ### Prerequisites
 
-- [.NET SDK 10.0.402](https://dotnet.microsoft.com/download/dotnet/10.0), pinned by `global.json`; stable patch roll-forward only, no previews
+- [.NET SDK 11.0.100](https://dotnet.microsoft.com/download/dotnet/11.0), pinned by `global.json`; stable patch roll-forward only, no previews
 - Git
 - (Optional) Docker — for integration tests against SQL Server
 - Node 24 LTS or a compatible current release — for the locked Inspector/coverage tooling; the npm distribution shim itself supports Node 18+
@@ -912,8 +893,8 @@ Version consistency includes the main npm package's optional dependencies **and 
 ### .NET baseline and tooling boundaries
 
 The server, SQL execution, Guard, configuration, logging, and serialization run in
-C# 14 on `net10.0`. SDK 10.0.402 / runtime 10.0.13 are the latest stable .NET 10
-releases verified against [Microsoft's release metadata](https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json).
+C# 15 on `net11.0`. SDK 11.0.100 / runtime 11.0.0 are the latest stable .NET 11
+releases verified against [Microsoft's release metadata](https://builds.dotnet.microsoft.com/dotnet/release-metadata/11.0/releases.json).
 Package versions are centralized in `Directory.Packages.props`; committed lockfiles
 cover portable builds and all six publish profiles. CI reads the same `global.json`,
 and Docker pins both SDK and runtime-dependency images by digest.

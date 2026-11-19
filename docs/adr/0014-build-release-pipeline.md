@@ -125,3 +125,7 @@ The `smoke` job in `release.yml` now includes a JSON-RPC smoke step that:
 3. Fails the release if the response contains the crash envelope (`"An error occurred invoking '<tool>'."`) or lacks a JSON-RPC `result` field
 
 This regression guard would have caught issue #44 before any user hit it. It runs on every release-tagged build, against the exact trimmed artifact users will install.
+
+## Amendment 2026-11-19: Windows RID is self-contained
+
+The RID matrix row for `win-x64` is now `✅` self-contained (single-file, untrimmed, managed SNI, native SNI excluded; see ADR-0002). The release workflow step is `Build win-x64` with `-p:SelfContained=true --self-contained true`. Windows npm users therefore no longer need a .NET runtime; the "framework-dependent binary" consequence above is historical. The NuGet `dotnet tool` still needs the .NET 11 runtime.

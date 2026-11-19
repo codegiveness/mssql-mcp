@@ -40,7 +40,7 @@ updates:
     open-pull-requests-limit: 5
     cooldown:
       default-days: 7
-    # Keep SDK and native runtime dependencies on the supported .NET 10 line.
+    # Keep SDK and native runtime dependencies on the supported .NET 11 line.
     ignore:
       - dependency-name: "dotnet/sdk"
         update-types: ["version-update:semver-major"]

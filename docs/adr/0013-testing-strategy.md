@@ -48,3 +48,7 @@ Tagged `[Trait("Category", "Integration")]`. Skipped unless `INTEGRATION=true` e
 - xUnit's `[Trait]` filtering lets CI run `dotnet test --solution mssql-mcp.sln -- --filter-not-trait Category=Integration` cleanly through Microsoft Testing Platform.
 - `global.json` selects Microsoft Testing Platform, required by xUnit.net 4 on the .NET 10 SDK.
 - Test project graph mirrors production: `mssql-mcp.Core.Tests` → tests Core; `mssql-mcp.Tools.Tests` → tests Tools (with Core as transitive dep).
+
+## 2026-11-19 amendment
+
+The repository moved to .NET 11 (SDK 11.0.100). Microsoft Testing Platform remains selected in `global.json`; xUnit.v3 is 4.0.3 and `Microsoft.NET.Test.Sdk` is 18.12.0. The ".NET 10 SDK" wording above records the original decision.

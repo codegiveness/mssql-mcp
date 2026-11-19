@@ -1,6 +1,6 @@
 {
   "name": "mssql-mcp",
-  "description": "A Model Context Protocol server for Microsoft SQL Server, built in C#/.NET 10, with Restricted and opt-in Unrestricted access modes.",
+  "description": "A Model Context Protocol server for Microsoft SQL Server, built in C#/.NET 11, with Restricted and opt-in Unrestricted access modes.",
   "homepage_url": "https://github.com/codegiveness/mssql-mcp",
   "repo_url": "https://github.com/codegiveness/mssql-mcp",
   "license": "MIT",
@@ -68,7 +68,7 @@
   "build_status": "Met",
   "build_justification": "`dotnet build mssql-mcp.sln` builds all src and test projects; CI runs it on every push/PR. Evidence: https://github.com/codegiveness/mssql-mcp/blob/main/docs/security-quality-follow-up.md",
   "build_common_tools_status": "Met",
-  "build_common_tools_justification": ".NET SDK 10, `dotnet restore`, `dotnet build`, `dotnet pack`, `dotnet test` are standard .NET tooling. Evidence: https://github.com/codegiveness/mssql-mcp/blob/main/docs/security-quality-follow-up.md",
+  "build_common_tools_justification": ".NET SDK 11, `dotnet restore`, `dotnet build`, `dotnet pack`, `dotnet test` are standard .NET tooling. Evidence: https://github.com/codegiveness/mssql-mcp/blob/main/docs/security-quality-follow-up.md",
   "build_floss_tools_status": "Met",
   "build_floss_tools_justification": "Build uses only standard .NET SDK and open-source Node tooling; all build tooling is free/libre. Evidence: https://github.com/codegiveness/mssql-mcp/blob/main/docs/security-quality-follow-up.md",
   "test_status": "Met",

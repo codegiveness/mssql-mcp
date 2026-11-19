@@ -1,67 +1,57 @@
 # AGENTS.md
 
-Guidance for AI agents (and humans) working in this repo.
+Guidance for AI coding agents (Codex, Cursor, Copilot, Claude Code, omp, and others) and humans working in this repository. Claude Code reads it through `CLAUDE.md`.
 
-## Agent skills
+## What this is
 
-### Issue tracker
+`mssql-mcp` is a Model Context Protocol server for Microsoft SQL Server, written in C# on .NET 11. It exposes 9 tools over stdio JSON-RPC. It ships as a NuGet `dotnet tool`, an npm wrapper with per-platform self-contained binaries, a Docker image, and GitHub Release archives.
 
-GitHub Issues at `github.com/codegiveness/mssql-mcp` (via `gh` CLI). See `docs/agents/issue-tracker.md`.
+Read before changing code:
 
-### Triage labels
+- [`CONTEXT.md`](CONTEXT.md): domain glossary. Use its terms in code, issues, and PR text.
+- [`docs/adr/`](docs/adr/): architectural decisions. If your change contradicts an ADR, say so explicitly and add or amend an ADR.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md): project layout (`Core ← Tools ← App`), coding standards, dependency licensing rules, commit and PR conventions.
+- [`SECURITY.md`](SECURITY.md): do not open public issues for vulnerabilities.
 
-Five canonical roles: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+## Ground rules
 
-### Domain docs
-
-Single-context: `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
+- Keep the diff to the task. No drive-by refactors, renames, or reformatting.
+- `TreatWarningsAsErrors` is on. Fix warnings; do not add suppressions without a justification comment in the existing style.
+- Packages are managed centrally in `Directory.Packages.props` with lock files (`packages.lock.json` plus per-RID `packages.<rid>.lock.json`). After a package change, regenerate the affected lock files with the same restore flags the Release workflow uses, and commit them.
+- New shipped dependencies must be MIT or Apache-2.0 and be listed in `THIRD-PARTY-NOTICES.md`. Native SNI assets stay excluded (ADR-0002).
+- Use Conventional Commits; PR titles are checked by `semantic.yml`. Versions are set by release-please. Never edit version stamps by hand and never cut a 1.x release.
 
 ## Local environment
 
-- Load `.env` before running tests or `--validate`.
-- `.env` is gitignored and stays local only. Use `.env.example` as the template. Never commit secrets.
-- Secrets stay in `.env` only and don't enter AI session context unnecessarily.
+- Copy `.env.example` to `.env` and set `MSSQL_CONNECTION_STRING` (use a user database, not `master`). Load it before integration tests, `--validate`, or the MCP smoke test.
+- `.env` is gitignored. Never commit secrets or print connection strings into logs, issues, or chat.
+- Node 24 is needed for the locked MCP Inspector and npm tooling under `.config/`.
+
+## Issue tracker and triage
+
+GitHub Issues at `github.com/codegiveness/mssql-mcp`, used through the `gh` CLI. See [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) and the five triage labels in [`docs/agents/triage-labels.md`](docs/agents/triage-labels.md). Domain-doc conventions: [`docs/agents/domain.md`](docs/agents/domain.md).
 
 ## Pre-push checklist
 
-If any check fails, the push is blocked — no exceptions.
+If any check fails, the push is blocked. No exceptions.
 
-| Check | Command | Expected outcome |
-|-------|---------|------------------|
-| Unit tests | `dotnet test --solution mssql-mcp.sln -- --filter-not-trait Category=Integration` | All pass, 0 failed |
-| Integration tests | `INTEGRATION=true MSSQL_CONNECTION_STRING="..." dotnet test --solution mssql-mcp.sln` | All pass (requires live SQL Server) |
-| Validate connection | `dotnet run --project src/mssql-mcp -- --validate` (with `.env` loaded) | `[startup] Connection validated successfully.` exit 0 |
-| Help command | `mssql-mcp --help` (or `dotnet run --project src/mssql-mcp -- --help`) | Prints usage block, exit 0 |
-| Unknown-arg error | `mssql-mcp upgrade` (or `dotnet run --project src/mssql-mcp -- upgrade`) | `mssql-mcp: unknown argument 'upgrade'.` to stderr, exit 1 |
-| npm smoke test | `node npm/test.js` (if applicable) | All smoke tests pass |
-| README linter | `dotnet run --project tools/MssqlMcp.RepoTool -- lint-readme-snippets` | All snippets valid + badge URLs well-formed |
-| Version consistency | `dotnet run --project tools/MssqlMcp.RepoTool -- check-version-consistency` | `Version consistency: all stamps match.` exit 0 |
-| LSP diagnostics | Run LSP diagnostics on changed files | 0 errors |
-| Format check | `dotnet format mssql-mcp.sln --verify-no-changes --no-restore` | Clean (no changes needed) |
-| MCP stdio smoke test | `dotnet run --project tools/MssqlMcp.RepoTool -- mcp-smoke` (with `.env` loaded) | `[PASS] tools/list: 9 tools found` + `[PASS] list_databases: returned N databases` + `ALL CHECKS PASSED` |
-
-## Security verification (periodic)
-
-These controls run automatically in CI or GitHub repo settings — not per-push. Verify them when reviewing the security posture:
-
-| Control | Where | Expected |
-|---------|-------|----------|
-| OpenSSF Scorecard | `.github/workflows/scorecard.yml` (push + weekly cron) | Score published to Security tab, badge renders in README |
-| SBOM (CycloneDX) | CI build step + GitHub Release attestation | `artifacts/sbom/*.bom.json` generated, attested via `actions/attest@v4` |
-| Branch protection | GitHub repo settings (verified via `gh api repos/codegiveness/mssql-mcp/branches/main/protection`) | Enforce admins, code owners, dismiss stale reviews, 0 required reviews (solo — see ADR-0033) |
-| Secret scanning | GitHub repo settings (verified via `gh api repos/codegiveness/mssql-mcp --jq '.security_and_analysis'`) | Secret scanning + push protection enabled |
-| Dockerfile build | `.github/workflows/ci.yml` `docker` job | `docker build`, container `--version`, and container `--validate` against the job's live SQL Server pass; version output alone does not prove database functionality |
-| Security audits | `docs/security-audits/` | Pre-public (2026-07-22), post-hardening (2026-07-24), and hardening-batch (2026-07-25) reports present |
-
-See [docs/security-posture.md](docs/security-posture.md) for the consolidated evidence page.
+|Check|Command|Expected outcome|
+|---|---|---|
+|Unit tests|`dotnet test --solution mssql-mcp.sln -- --filter-not-trait Category=Integration`|All pass, 0 failed|
+|Integration tests|`INTEGRATION=true MSSQL_CONNECTION_STRING="..." dotnet test --solution mssql-mcp.sln`|All pass (requires live SQL Server)|
+|Validate connection|`dotnet run --project src/mssql-mcp -- --validate` (with `.env` loaded)|`[startup] Connection validated successfully.` exit 0|
+|Help command|`mssql-mcp --help` (or `dotnet run --project src/mssql-mcp -- --help`)|Prints usage block, exit 0|
+|Unknown-arg error|`mssql-mcp upgrade` (or `dotnet run --project src/mssql-mcp -- upgrade`)|`mssql-mcp: unknown argument 'upgrade'.` to stderr, exit 1|
+|npm smoke test|`node npm/test.js` (if applicable)|All smoke tests pass|
+|README linter|`dotnet run --project tools/MssqlMcp.RepoTool -- lint-readme-snippets`|All snippets valid + badge URLs well-formed|
+|Version consistency|`dotnet run --project tools/MssqlMcp.RepoTool -- check-version-consistency`|`Version consistency: all stamps match.` exit 0|
+|LSP diagnostics|Run LSP diagnostics on changed files|0 errors|
+|Format check|`dotnet format mssql-mcp.sln --verify-no-changes --no-restore`|Clean (no changes needed)|
+|MCP stdio smoke test|`dotnet run --project tools/MssqlMcp.RepoTool -- mcp-smoke` (with `.env` loaded)|`[PASS] tools/list: 9 tools found` + `[PASS] list_databases: returned N databases` + `ALL CHECKS PASSED`|
 
 ## MCP stdio smoke test — MANDATORY
 
-This test is **not optional**. It must pass before every push, alongside unit tests and integration tests. It proves the server actually works as an MCP server over the stdio JSON-RPC transport — unit tests alone do not verify this.
-
-The test uses the official MCP Inspector CLI (`@modelcontextprotocol/inspector --cli`) to perform a real handshake: `initialize` → `tools/list` → `tools/call list_databases`. The inspector spawns the server, sends JSON-RPC messages to its stdin, and reads responses from stdout — exactly what a real MCP client (Claude Desktop, Cursor) does.
-
-Run it with:
+Unit tests do not prove the server works as an MCP server. The smoke test uses the official MCP Inspector CLI (`@modelcontextprotocol/inspector --cli`) to perform a real handshake over stdio: `initialize` → `tools/list` → `tools/call list_databases`, exactly as Claude Desktop or Cursor would.
 
 ```bash
 # .env is auto-loaded by the C# tool; or export manually:
@@ -85,4 +75,6 @@ Expected output:
 ALL CHECKS PASSED
 ```
 
-If any check fails, the push is blocked — no exceptions.
+## Security posture
+
+Scorecard, SBOM, branch protection, secret scanning, Docker checks, and audit reports are summarized in [`docs/security-posture.md`](docs/security-posture.md).

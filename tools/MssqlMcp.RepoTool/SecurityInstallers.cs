@@ -15,8 +15,8 @@ internal static partial class SecurityCommands
         ["shellcheck"] = new("0.11.0", "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz", "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198", "shellcheck-v0.11.0/shellcheck"),
         ["trivy"] = new("0.76.1", "https://github.com/aquasecurity/trivy/releases/download/v0.76.1/trivy_0.76.1_Linux-64bit.tar.gz", "c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0", "trivy")
     };
-    private const string NpmCommit = "ae98c62586b6fea44114f72e249e246a2981de70"; // npm v12.2.1
-    private const string NpmSourceHash = "51ebc8f7c8a612f036b2cbbe7c93bc6e00393cfb26fd23539befdcfe4e68022e";
+    private const string NpmCommit = "cfd03796843cc9ae26c7034ab99bae6c002a4ba4"; // npm v12.2.3
+    private const string NpmSourceHash = "6daac34461409416408baa2db11afd6e40c667c0e9db3b490ff0b55c83e8ee38";
 
     private static async Task DownloadAsync(string url, string path, string root)
     {

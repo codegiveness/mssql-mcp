@@ -135,7 +135,7 @@ Actual output inspection also disproved the former Windows SNI workaround:
 framework-dependent builds and portable tool packages copy native dependencies.
 Shared build configuration excludes all native SNI assets and selects SqlClient's
 documented managed-networking switch for Windows. The restored SNI package remains
-version-aligned at 7.1.0 but none of its assets may be published.
+version-aligned at 7.1.2 but none of its assets may be published.
 The existing distribution architecture remains. These exclusions resolve the
 identified restrictions, not general license compliance.
 
@@ -143,7 +143,7 @@ The removal cutover repeated the **452 unit / 479 live-SQL successes** and all
 three mandatory Inspector checks, with zero failures and the same four skips.
 All **24** inventories exclude the Azure/MSAL/native broker graph.
 Locked restore and clean publication passed for all six exact deployment profiles,
-including Windows' existing framework-dependent single-file flags.
+including Windows' single-file flags (self-contained and untrimmed since 2026-11-19, ADR-0002).
 Actual publication directories and the NuGet tool ZIP exclude native SNI and the
 restricted authentication assemblies; the packaged runtime configuration enables
 managed Windows networking. Provider discovery found no Entra providers for all
@@ -242,7 +242,7 @@ Shared props enable lock generation; the restore commands select the graph expli
 - Runtime publish graph: `<project directory>/packages.<RID>.lock.json`, selected with `--lock-file-path packages.<RID>.lock.json`. The commands below supply exactly one RID and a relative per-project filename per profile; an evaluated MSBuild property alone did not select the intended path in the observed CLI restores.
 - Runtime files are generated for the app **and each referenced project** under the same restore profile. Do not commit only the app lock and leave its references unlocked.
 
-After dependency pin changes, use the intended .NET 10 SDK and generate the following graphs from the repository root. `--force-evaluate` is only for intentional regeneration; never combine it with `--locked-mode`.
+After dependency pin changes, use the intended .NET 11 SDK and generate the following graphs from the repository root. `--force-evaluate` is only for intentional regeneration; never combine it with `--locked-mode`.
 
 Generate locks from an empty package cache and the canonical registry. The Ubuntu SDK's implicit `library-packs` feed supplied a repackaged `Microsoft.NET.ILLink.Tasks.10.0.12` with a different SHA512 from nuget.org; the first Docker locked restore correctly rejected it with NU1403. Shared props disable that implicit feed, and regeneration uses a fresh cache. If an old cache still contains the repackaged artifact, use a fresh `NUGET_PACKAGES` directory; do not disable content-hash validation or rewrite locks to accommodate it.
 
@@ -312,7 +312,7 @@ Generate the harness's real portable lock separately after pin changes because t
 ```sh
 dotnet restore fuzz/mssql-mcp.Fuzz/mssql-mcp.Fuzz.csproj --force-evaluate
 
-# Requires .NET 10, clang++/compiler-rt libFuzzer, and curl.
+# Requires .NET 11, clang++/compiler-rt libFuzzer, and curl.
 # Use a new directory; the runner refuses to overwrite existing campaign output.
 dotnet run --project tools/MssqlMcp.RepoTool -- run-fuzz /tmp/mssql-mcp-fuzz-proof 60
 ```

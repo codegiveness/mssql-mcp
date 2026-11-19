@@ -41,9 +41,9 @@ jobs:
     env:
       POSTGRESQL_SOURCE_DIGEST: ${{ inputs['postgresql-source-digest'] }}
     steps:
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: '11.0.x'
       - name: Download only the PostgreSQL 0.3.3 NuGet artifact
         env:
           GH_TOKEN: ${{ github.token }}
@@ -81,7 +81,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
 
@@ -144,11 +144,11 @@ jobs:
         run: |
           dotnet restore src/mssql-mcp/mssql-mcp.csproj -r osx-arm64 -p:SelfContained=true -p:PublishSingleFile=true -p:PublishTrimmed=true --lock-file-path packages.osx-arm64.lock.json --locked-mode
           dotnet publish src/mssql-mcp -c Release -r osx-arm64 --self-contained true --no-restore -p:PublishSingleFile=true -p:PublishTrimmed=true -o artifacts/osx-arm64
-      # Retain Windows' runtime contract; native SNI assets are explicitly excluded per ADR-0002.
-      - name: Build win-x64 (framework-dependent)
+      # Self-contained single-file, untrimmed so Windows Integrated auth stays intact; native SNI assets are excluded per ADR-0002.
+      - name: Build win-x64
         run: |
-          dotnet restore src/mssql-mcp/mssql-mcp.csproj -r win-x64 -p:SelfContained=false -p:PublishSingleFile=true -p:PublishTrimmed=false --lock-file-path packages.win-x64.lock.json --locked-mode
-          dotnet publish src/mssql-mcp -c Release -r win-x64 --self-contained false --no-restore -p:PublishSingleFile=true -p:PublishTrimmed=false -o artifacts/win-x64
+          dotnet restore src/mssql-mcp/mssql-mcp.csproj -r win-x64 -p:SelfContained=true -p:PublishSingleFile=true -p:PublishTrimmed=false --lock-file-path packages.win-x64.lock.json --locked-mode
+          dotnet publish src/mssql-mcp -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=true -p:PublishTrimmed=false -o artifacts/win-x64
 
       # Flat archives: binary at archive root (ADR-0002).
       - name: Archive Unix RIDs
@@ -285,7 +285,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
 

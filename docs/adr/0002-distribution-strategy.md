@@ -47,3 +47,7 @@ only `SelfContained` is not a redistribution safeguard.
 - Linux/macOS users get `npx mssql-mcp` that just works. Windows users get a working `npx` experience only if .NET 10 runtime is present, otherwise must `dotnet tool install`. Document this in README.
 - Release pipeline builds 4 self-contained RIDs (linux-x64/arm64, osx-x64/arm64) + publishes a NuGet tool package. Windows builds are framework-dependent.
 - Third-party notices explain the excluded native SNI package and the managed-networking replacement. Windows execution remains a separate platform-verification requirement.
+
+## Amendment 2026-11-19: Windows is self-contained
+
+The repository moved to .NET 11. `win-x64` is now published self-contained and single-file (`-p:SelfContained=true -p:PublishSingleFile=true -p:PublishTrimmed=false`) so Windows users need no installed .NET runtime. It is deliberately not trimmed: trimming cannot be verified on the Windows Integrated authentication path from the Linux release runner. Managed SNI stays selected and all native SNI assets stay excluded from the archive; the self-contained publish adds only the MIT-licensed .NET runtime. The four Unix RIDs are unchanged. The NuGet `dotnet tool` remains framework-dependent and requires the .NET 11 runtime. This supersedes the "Windows builds are framework-dependent" statements above and the rejected option "Change Windows to self-contained"; the reason for the change is users without .NET installed.
