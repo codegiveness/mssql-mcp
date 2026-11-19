@@ -28,7 +28,7 @@ public sealed record GuardResult
 /// </summary>
 public sealed record GuardRejection
 {
-    /// <summary>Rule discriminator: parse_error, empty_batch, non_select_statement, statement_snippet,
+    /// <summary>Rule discriminator: parse_error, empty_batch, nesting_too_deep, non_select_statement, statement_snippet,
     /// select_into, next_value_for, openrowset, openquery, openxml, opendatasource, execute_as, four_part_name, bulk_insert.</summary>
     public string Rule { get; init; }
 

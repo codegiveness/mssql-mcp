@@ -286,6 +286,49 @@ public class GuardTests
         Assert.True(rejection.Column >= 1, $"Column should be >= 1, got {rejection.Column}");
     }
 
+    [Fact]
+    public void Accept_NestingAtLimit()
+    {
+        var guard = CreateGuard();
+        string sql = "SELECT " + new string('(', SqlNestingLimit.MaxParenthesisDepth) + "1"
+            + new string(')', SqlNestingLimit.MaxParenthesisDepth);
+        Assert.True(guard.Validate(sql).Accepted);
+    }
+
+    [Fact]
+    public void Reject_NestingBeyondLimit()
+    {
+        var guard = CreateGuard();
+        int depth = SqlNestingLimit.MaxParenthesisDepth + 1;
+        string sql = "SELECT " + new string('(', depth) + "1" + new string(')', depth);
+        var rejection = RequireRejection(guard.Validate(sql));
+        Assert.Equal("nesting_too_deep", rejection.Rule);
+        Assert.Contains(depth.ToString(System.Globalization.CultureInfo.InvariantCulture), rejection.Detail, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Reduced from a SharpFuzz timeout: before the nesting limit, unbalanced parentheses in
+    /// table-source position made ScriptDom backtrack for tens of seconds on a 150-byte input.
+    /// </summary>
+    [Fact]
+    public void Reject_PathologicalNesting_Quickly()
+    {
+        var guard = CreateGuard();
+        string sql = "SELECT x " + string.Concat(Enumerable.Repeat("FROM " + new string('(', 12) + "SELECT x ", 6));
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var rejection = RequireRejection(guard.Validate(sql));
+        stopwatch.Stop();
+        Assert.Equal("nesting_too_deep", rejection.Rule);
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(2), $"Guard took {stopwatch.Elapsed}.");
+    }
+
+    [Fact]
+    public void Ignore_ParenthesesInsideLiteralsAndComments()
+    {
+        string parens = new('(', SqlNestingLimit.MaxParenthesisDepth * 2);
+        Assert.Equal(1, SqlNestingLimit.MeasureDepth($"SELECT '{parens}' /* {parens} */ AS [{parens}], (1)"));
+    }
+
     // ---------- Reject: ADR-0006 coverage gap closure (issue #13) ----------
 
     [Fact]

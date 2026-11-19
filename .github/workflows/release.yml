@@ -88,7 +88,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
       RELEASE_SHA: ${{ github.sha }}
-      REQUIRED_CHECKS: |
+      REQUIRED_CHECKS: |-
         build
         Analyze (csharp)
         Analyze (javascript-typescript)
@@ -112,7 +112,8 @@ jobs:
           esac
       - name: Require all required checks green on the release commit
         run: |
-          mapfile -t required <<< "$REQUIRED_CHECKS"
+          # Blank lines would become an empty name that never reports and stalls the gate.
+          mapfile -t required < <(printf '%s\n' "$REQUIRED_CHECKS" | sed '/^[[:space:]]*$/d')
           deadline=$((SECONDS + 2700))
           while true; do
             runs=$(gh api --paginate "repos/$REPO/commits/$RELEASE_SHA/check-runs?per_page=100" --jq '.check_runs[] | {id, name, status, conclusion}' | jq -s '.')

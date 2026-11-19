@@ -65,6 +65,14 @@ public sealed class SqlGuard : IGuard
         TSqlFragment? fragment;
         try
         {
+            int depth = SqlNestingLimit.MeasureDepth(sql);
+            if (depth > SqlNestingLimit.MaxParenthesisDepth)
+            {
+                return GuardResult.Reject(new GuardRejection(
+                    rule: "nesting_too_deep",
+                    detail: $"[guard] Parenthesis nesting depth {depth} exceeds the limit of {SqlNestingLimit.MaxParenthesisDepth}."));
+            }
+
             using StringReader reader = new(sql);
             fragment = parser.Parse(reader, out errors);
         }
