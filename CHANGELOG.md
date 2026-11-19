@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.2](https://github.com/codegiveness/mssql-mcp/compare/v0.6.1...v0.6.2) (2026-11-19)
+
+
+### Bug Fixes
+
+* **guard:** bound ScriptDom parse work; unstall release preflight ([#203](https://github.com/codegiveness/mssql-mcp/issues/203)) ([d85ab86](https://github.com/codegiveness/mssql-mcp/commit/d85ab86bf1beb65044bd02eb40658b144eba469a))
+* **quality:** filter malformed badge URLs with Where (CodeQL [#250](https://github.com/codegiveness/mssql-mcp/issues/250)) ([#200](https://github.com/codegiveness/mssql-mcp/issues/200)) ([2bbc302](https://github.com/codegiveness/mssql-mcp/commit/2bbc302c235946459afe1a18d0d3faa53eae3136))
+
+
+### Miscellaneous Chores
+
+* zero Roslyn diagnostics, release gate, provenance and sibling parity ([#202](https://github.com/codegiveness/mssql-mcp/issues/202)) ([2d58b65](https://github.com/codegiveness/mssql-mcp/commit/2d58b6511d77fabb13c2aef9d6b206a3a0271270))
+
 ## [0.6.1](https://github.com/codegiveness/mssql-mcp/compare/v0.6.0...v0.6.1) (2026-11-19)
 
 
