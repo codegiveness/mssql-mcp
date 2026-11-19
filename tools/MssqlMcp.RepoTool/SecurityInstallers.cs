@@ -39,7 +39,7 @@ internal static partial class SecurityCommands
         {
             var pin = Tools[name];
             var xz = pin.Url.EndsWith(".xz", StringComparison.Ordinal);
-            var archive = Path.Combine(temporary.Path, xz ? "release.tar.xz" : "release.tar.gz");
+            var archive = Path.Join(temporary.Path, xz ? "release.tar.xz" : "release.tar.gz");
             await DownloadAsync(pin.Url, archive, root);
             SecurityArchive.VerifySha256(archive, pin.Sha256, $"{name} {pin.Version}");
             if (xz)
@@ -47,24 +47,48 @@ internal static partial class SecurityCommands
                 var result = await ProcessRunner.RunAsync("xz", ["--decompress", "--keep", "--force", archive], root);
                 if (result.ExitCode != 0) throw new SecurityPolicyException("Pinned archive decompression failed");
             }
-            using (var stream = xz ? File.OpenRead(Path.Combine(temporary.Path, "release.tar")) : SecurityArchive.OpenGzip(archive))
-                SecurityArchive.ExtractExecutable(stream, pin.Member, Path.Combine(temporary.Path, name));
-            File.Move(Path.Combine(temporary.Path, name), Path.Combine(destination, name), overwrite: true);
+            using (var stream = xz ? File.OpenRead(Path.Join(temporary.Path, "release.tar")) : SecurityArchive.OpenGzip(archive))
+                SecurityArchive.ExtractExecutable(stream, pin.Member, Path.Join(temporary.Path, name));
+            File.Move(Path.Join(temporary.Path, name), Path.Join(destination, name), overwrite: true);
             Console.WriteLine($"Installed {name} {pin.Version} (SHA-256 verified) in {destination}");
         }
         return 0;
     }
 
+    // Reviewed deviations from upstream npm: package -> (upstream range replaced, range used instead).
+    // Upstream glob 13 / minimatch 10 are inside GHSA-3g3m-2fjr-6pw4 / GHSA-g3hv-75wg-m249 and npm has no
+    // patched release, so the runtime forces the patched majors. A new upstream range fails until reviewed.
+    private static readonly (string Package, string Upstream, string Runtime)[] NpmReviewedOverrides =
+    [
+        ("glob", "^13.0.6", "^14.0.6"),
+        ("minimatch", "^10.2.5", "^11.0.9")
+    ];
+
     internal static void ValidateNpmManifest(JsonObject upstream, JsonObject manifest)
     {
-        foreach (var field in new[] { "version", "engines", "dependencies" })
-            if (!upstream.ContainsKey(field) || !manifest.ContainsKey(field) || !JsonNode.DeepEquals(upstream[field], manifest[field]))
+        foreach (var field in new[] { "version", "engines" })
+            if (!upstream.TryGetPropertyValue(field, out var expected) || !manifest.TryGetPropertyValue(field, out var actual) || !JsonNode.DeepEquals(expected, actual))
                 throw new SecurityPolicyException($"npm runtime {field} does not match the pinned upstream source");
+        if (upstream["dependencies"] is not JsonObject upstreamDependencies || manifest["dependencies"] is not JsonObject runtimeDependencies)
+            throw new SecurityPolicyException("npm runtime dependencies does not match the pinned upstream source");
+        var expectedDependencies = upstreamDependencies.DeepClone().AsObject();
+        var expectedOverrides = new JsonObject();
+        foreach (var (package, replaced, forced) in NpmReviewedOverrides)
+        {
+            if (upstreamDependencies[package]?.GetValue<string>() != replaced)
+                throw new SecurityPolicyException($"npm upstream {package} range changed from {replaced}; review the {package} override");
+            expectedDependencies[package] = forced;
+            expectedOverrides[package] = "$" + package;
+        }
+        if (!JsonNode.DeepEquals(expectedDependencies, runtimeDependencies))
+            throw new SecurityPolicyException("npm runtime dependencies does not match the pinned upstream source");
+        if (!JsonNode.DeepEquals(expectedOverrides, manifest["overrides"]))
+            throw new SecurityPolicyException("npm runtime overrides does not match the reviewed overrides");
     }
 
     private static async Task<int> InstallNpmAsync(string root, string[] args)
     {
-        var cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache/mssql-mcp-npm");
+        var cache = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache/mssql-mcp-npm");
         var print = false;
         for (var index = 0; index < args.Length; index++)
         {
@@ -72,12 +96,12 @@ internal static partial class SecurityCommands
             else if (args[index] == "--cache-dir" && index + 1 < args.Length) cache = args[++index];
             else throw new SecurityPolicyException("Usage: install-npm-cli [--cache-dir path] [--print-cli]");
         }
-        var runtimeConfig = Path.Combine(root, ".config/npm-cli");
-        var manifest = ReadObject(Path.Combine(runtimeConfig, "package.json"));
+        var runtimeConfig = Path.Join(root, ".config/npm-cli");
+        var manifest = ReadObject(Path.Join(runtimeConfig, "package.json"));
         var version = manifest["version"]?.GetValue<string>() ?? throw new SecurityPolicyException("Missing npm runtime version");
         var cacheRoot = Path.GetFullPath(cache);
         var destination = SecurityArchive.ContainedPath(cacheRoot, "npm-" + version);
-        var cli = Path.Combine(destination, "npm/bin/npm-cli.js");
+        var cli = Path.Join(destination, "npm/bin/npm-cli.js");
         if (print)
         {
             if (!File.Exists(cli)) throw new SecurityPolicyException("Install the content-locked npm CLI first");
@@ -90,26 +114,26 @@ internal static partial class SecurityCommands
         // Keep workspace/module symlinks and final rename on native cache storage, not HGFS.
         using (var staging = new TemporaryDirectory("npm-source-", cacheRoot))
         {
-            var archive = Path.Combine(staging.Path, "source.tar.gz");
+            var archive = Path.Join(staging.Path, "source.tar.gz");
             await DownloadAsync($"https://codeload.github.com/npm/cli/tar.gz/{NpmCommit}", archive, root);
             SecurityArchive.VerifySha256(archive, NpmSourceHash, "npm source");
-            var extracted = Path.Combine(staging.Path, "source");
+            var extracted = Path.Join(staging.Path, "source");
             using (var stream = SecurityArchive.OpenGzip(archive)) SecurityArchive.ExtractSource(stream, extracted);
-            var source = Path.Combine(staging.Path, "npm");
-            Directory.Move(Path.Combine(extracted, "cli-" + NpmCommit), source);
-            var upstream = ReadObject(Path.Combine(source, "package.json"));
+            var source = Path.Join(staging.Path, "npm");
+            Directory.Move(Path.Join(extracted, "cli-" + NpmCommit), source);
+            var upstream = ReadObject(Path.Join(source, "package.json"));
             ValidateNpmManifest(upstream, manifest);
-            var runtime = Path.Combine(staging.Path, "runtime");
+            var runtime = Path.Join(staging.Path, "runtime");
             Directory.CreateDirectory(runtime);
             foreach (var name in new[] { "package.json", "package-lock.json" })
-                File.Copy(Path.Combine(runtimeConfig, name), Path.Combine(runtime, name));
-            Directory.Delete(Path.Combine(source, "node_modules"), recursive: true);
+                File.Copy(Path.Join(runtimeConfig, name), Path.Join(runtime, name));
+            Directory.Delete(Path.Join(source, "node_modules"), recursive: true);
             var result = await ProcessRunner.RunAsync("npm", ["ci", "--prefix", runtime, "--ignore-scripts", "--omit=dev",
                 "--no-audit", "--no-fund", "--bin-links=false", "--engine-strict",
                 "--userconfig=" + (OperatingSystem.IsWindows() ? "NUL" : "/dev/null")], runtime, timeoutSeconds: 600);
             if (result.ExitCode != 0) throw new SecurityPolicyException("Integrity-locked npm runtime installation failed");
-            var installation = Path.Combine(staging.Path, "installation");
-            var packaged = Path.Combine(installation, "npm");
+            var installation = Path.Join(staging.Path, "installation");
+            var packaged = Path.Join(installation, "npm");
             Directory.CreateDirectory(packaged);
             var files = upstream["files"] as JsonArray ?? throw new SecurityPolicyException("Missing npm published file inventory");
             foreach (var name in files.Select(item => item!.GetValue<string>()).Concat(["package.json", "LICENSE", "README.md"]))
@@ -121,8 +145,8 @@ internal static partial class SecurityCommands
                 if (Directory.Exists(item)) Directory.Move(item, target);
                 else File.Move(item, target);
             }
-            Directory.CreateSymbolicLink(Path.Combine(packaged, "node_modules"), "../runtime/node_modules");
-            Directory.Move(runtime, Path.Combine(installation, "runtime"));
+            Directory.CreateSymbolicLink(Path.Join(packaged, "node_modules"), "../runtime/node_modules");
+            Directory.Move(runtime, Path.Join(installation, "runtime"));
             if (Directory.Exists(destination)) Directory.Delete(destination, recursive: true);
             Directory.Move(installation, destination);
         }

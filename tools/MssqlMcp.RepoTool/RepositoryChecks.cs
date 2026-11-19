@@ -43,7 +43,7 @@ internal static partial class RepositoryChecks
                     break;
                 case "check-redistribution":
                     if (args.Length > 1) throw new InvalidOperationException("Usage: check-redistribution [lock-path]");
-                    CheckRedistribution(args.Length == 1 ? ResolvePath(root, args[0]) : Path.Combine(root, "src", "mssql-mcp", "packages.lock.json"));
+                    CheckRedistribution(args.Length == 1 ? ResolvePath(root, args[0]) : Path.Join(root, "src", "mssql-mcp", "packages.lock.json"));
                     Console.WriteLine("Redistribution policy: known native broker hold not present.");
                     break;
                 case "coverage-summary":
@@ -52,7 +52,7 @@ internal static partial class RepositoryChecks
                     break;
                 case "lint-readme-snippets":
                     RequireArguments(args, 0, command);
-                    var readme = LintReadme(File.ReadAllText(Path.Combine(root, "README.md")));
+                    var readme = LintReadme(File.ReadAllText(Path.Join(root, "README.md")));
                     if (readme.Errors.Count != 0)
                     {
                         foreach (var error in readme.Errors) Console.Error.WriteLine(error);
@@ -83,16 +83,16 @@ internal static partial class RepositoryChecks
     private static JsonObject ReadObject(string path) => JsonNode.Parse(File.ReadAllText(path)) as JsonObject ?? throw new InvalidOperationException($"Expected a JSON object in {path}.");
     private static string ManifestVersion(string root)
     {
-        var path = Path.Combine(root, ".release-please-manifest.json");
+        var path = Path.Join(root, ".release-please-manifest.json");
         var version = StringValue(ReadObject(path)["."]);
         return !string.IsNullOrEmpty(version) ? version : throw new InvalidOperationException($"manifest at {path} has no \".\" version string");
     }
 
     private static IEnumerable<(string Label, string Path)> PackagePaths(string root)
     {
-        yield return ("package.json", Path.Combine(root, "npm", "package.json"));
+        yield return ("package.json", Path.Join(root, "npm", "package.json"));
         foreach (var platform in Platforms)
-            yield return ($"platforms/{platform}/package.json", Path.Combine(root, "npm", "platforms", platform, "package.json"));
+            yield return ($"platforms/{platform}/package.json", Path.Join(root, "npm", "platforms", platform, "package.json"));
     }
 
     internal static IReadOnlyList<string> CheckVersionConsistency(string root)
@@ -115,7 +115,7 @@ internal static partial class RepositoryChecks
 
         Inspect("csproj", () =>
         {
-            var match = VersionPrefix.Match(File.ReadAllText(Path.Combine(root, "src", "mssql-mcp", "mssql-mcp.csproj")));
+            var match = VersionPrefix.Match(File.ReadAllText(Path.Join(root, "src", "mssql-mcp", "mssql-mcp.csproj")));
             if (!match.Success) errors.Add("csproj: <VersionPrefix> not found");
             else if (match.Groups[1].Value != version) errors.Add($"csproj: <VersionPrefix> is {match.Groups[1].Value}, expected {version}");
         });
@@ -131,7 +131,7 @@ internal static partial class RepositoryChecks
         }
         Inspect("server.json", () =>
         {
-            var server = ReadObject(Path.Combine(root, "server.json"));
+            var server = ReadObject(Path.Join(root, "server.json"));
             Check("server.json: top-level", server["version"]);
             if (server["packages"] is not JsonArray packages) { errors.Add("server.json: missing packages array"); return; }
             foreach (var item in packages)
@@ -151,7 +151,7 @@ internal static partial class RepositoryChecks
     {
         var version = ManifestVersion(root);
         var changed = new List<string>();
-        var csprojPath = Path.Combine(root, "src", "mssql-mcp", "mssql-mcp.csproj");
+        var csprojPath = Path.Join(root, "src", "mssql-mcp", "mssql-mcp.csproj");
         var xml = File.ReadAllText(csprojPath);
         var match = VersionPrefix.Match(xml);
         if (!match.Success) throw new InvalidOperationException($"no <VersionPrefix> found in {csprojPath}");
@@ -165,11 +165,11 @@ internal static partial class RepositoryChecks
             var package = ReadObject(path);
             var touched = SetVersion(package, version);
             if (package["optionalDependencies"] is JsonObject dependencies)
-                foreach (var key in dependencies.Select(item => item.Key).ToArray())
-                    if (StringValue(dependencies[key]) != version) { dependencies[key] = version; touched = true; }
+                foreach (var key in dependencies.Select(item => item.Key).Where(key => StringValue(dependencies[key]) != version).ToArray())
+                { dependencies[key] = version; touched = true; }
             if (touched) { WriteObject(path, package); changed.Add(label); }
         }
-        var serverPath = Path.Combine(root, "server.json");
+        var serverPath = Path.Join(root, "server.json");
         var server = ReadObject(serverPath);
         if (server["packages"] is not JsonArray packages || packages.Count < 2 || packages[0] is not JsonObject npm || packages[1] is not JsonObject nuget)
             throw new InvalidOperationException("server.json must have packages[0] (npm) and packages[1] (nuget)");
@@ -203,7 +203,7 @@ internal static partial class RepositoryChecks
         Release release;
         if (args.Length is 1 or 2 && args[0] == "--manifest")
         {
-            var manifest = ReadObject(args.Length == 2 ? ResolvePath(root, args[1]) : Path.Combine(root, ".release-please-manifest.json"));
+            var manifest = ReadObject(args.Length == 2 ? ResolvePath(root, args[1]) : Path.Join(root, ".release-please-manifest.json"));
             var version = StringValue(manifest["."]);
             release = ValidateReleaseTag(version is null ? null : "v" + version);
         }

@@ -16,7 +16,7 @@ public sealed class RepoContextTests : IDisposable
     {
         Environment.SetEnvironmentVariable("MSSQL_CONNECTION_STRING", null);
         string connection = "Server=fixture;" + "Pass" + "word=quoted;value;Encrypt=True;";
-        File.WriteAllText(Path.Combine(_root, ".env"), "# local configuration\nexport MSSQL_CONNECTION_STRING='" + connection + "'\n");
+        File.WriteAllText(Path.Join(_root, ".env"), "# local configuration\nexport MSSQL_CONNECTION_STRING='" + connection + "'\n");
 
         RepoContext.LoadDotEnv(_root);
 
@@ -27,7 +27,7 @@ public sealed class RepoContextTests : IDisposable
     public void ExistingConnectionTakesPrecedenceWithoutReadingLocalAssignments()
     {
         Environment.SetEnvironmentVariable("MSSQL_CONNECTION_STRING", "existing-connection");
-        File.WriteAllText(Path.Combine(_root, ".env"), "invalid shell command");
+        File.WriteAllText(Path.Join(_root, ".env"), "invalid shell command");
 
         RepoContext.LoadDotEnv(_root);
 
@@ -37,8 +37,8 @@ public sealed class RepoContextTests : IDisposable
     [Fact]
     public void FindsRepositoryFromNestedWorkingDirectory()
     {
-        File.WriteAllText(Path.Combine(_root, ".release-please-manifest.json"), "{}");
-        string nested = Directory.CreateDirectory(Path.Combine(_root, "nested", "working")).FullName;
+        File.WriteAllText(Path.Join(_root, ".release-please-manifest.json"), "{}");
+        string nested = Directory.CreateDirectory(Path.Join(_root, "nested", "working")).FullName;
 
         Assert.Equal(_root, RepoContext.FindRoot(nested));
     }

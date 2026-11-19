@@ -39,7 +39,7 @@ internal static partial class RepositoryChecks
         var count = number.TryGetValue<int>(out var small) ? small :
             number.TryGetValue<long>(out var integer) ? integer :
             number.TryGetValue<double>(out var real) ? real : double.NaN;
-        if (!double.IsFinite(count) || count < 0 || count > 9007199254740991 || count != Math.Truncate(count))
+        if (!double.IsFinite(count) || count < 0 || count > 9007199254740991 || !double.IsInteger(count))
             throw new InvalidOperationException($"Missing or invalid coverage count: {name}");
         return (long)count;
     }
@@ -112,7 +112,7 @@ internal static partial class RepositoryChecks
     private static void WriteCoverageSummary(string summaryPath, string npmPath)
     {
         var markdown = SummarizeCoverage(ReadObject(summaryPath), ReadObject(npmPath));
-        File.WriteAllText(Path.Combine(Path.GetDirectoryName(summaryPath)!, "critical-summary.md"), markdown);
+        File.WriteAllText(Path.Join(Path.GetDirectoryName(summaryPath), "critical-summary.md"), markdown);
         var githubSummary = Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY");
         if (!string.IsNullOrEmpty(githubSummary)) File.AppendAllText(githubSummary, markdown);
         Console.Write(markdown);
@@ -152,9 +152,8 @@ internal static partial class RepositoryChecks
                 if (!Truthy(server["args"]) && !Truthy(server["env"])) Fail($"server \"{name}\" needs \"args\" or \"env\"");
             }
         }
-        foreach (Match badge in BadgeImage.Matches(readme))
+        foreach (var url in BadgeImage.Matches(readme).Select(badge => badge.Groups[1].Value))
         {
-            var url = badge.Groups[1].Value;
             if (!url.StartsWith("http://", StringComparison.Ordinal) && !url.StartsWith("https://", StringComparison.Ordinal))
                 errors.Add($"FAIL - README badge image URL is malformed: {url}");
         }
@@ -167,7 +166,7 @@ internal static partial class RepositoryChecks
         if (node is not JsonValue value) return true;
         if (value.TryGetValue<string>(out var text)) return text.Length != 0;
         if (value.TryGetValue<bool>(out var boolean)) return boolean;
-        if (value.TryGetValue<double>(out var number)) return number != 0;
+        if (value.TryGetValue<double>(out var number)) return double.IsNaN(number) || Math.Abs(number) > 0;
         return true;
     }
 }

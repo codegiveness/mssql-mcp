@@ -65,8 +65,9 @@ updates:
     commit-message:
       prefix: "chore(deps)"
 
-  # npm publishing runtime: package.json must stay identical to the pinned
-  # upstream npm source (RepoTool install-npm-cli), so only the lock moves.
+  # npm publishing runtime: package.json mirrors the pinned upstream npm source
+  # (RepoTool install-npm-cli) except the reviewed glob/minimatch overrides, so
+  # only the lock moves.
   - package-ecosystem: "npm"
     directory: "/.config/npm-cli"
     schedule:

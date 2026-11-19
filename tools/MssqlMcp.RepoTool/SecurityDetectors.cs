@@ -21,7 +21,7 @@ internal static partial class SecurityCommands
 
     private static void WriteFixture(string repository, string name, string content)
     {
-        var path = Path.Combine(repository, name);
+        var path = Path.Join(repository, name);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, content + "\n");
     }
@@ -61,7 +61,7 @@ internal static partial class SecurityCommands
             await DetectorGitAsync(repository.Path, "commit", "--quiet", "-m", "Synthetic positives");
             await DetectorGitAsync(repository.Path, "rm", "-r", ".");
             await DetectorGitAsync(repository.Path, "commit", "--quiet", "-m", "Delete positives to verify history scanning");
-            var (failed, findings) = await ScanSecretsAsync(root, repository.Path, Path.Combine(reports, "detector-positive.json"));
+            var (failed, findings) = await ScanSecretsAsync(root, repository.Path, Path.Join(reports, "detector-positive.json"));
             var detected = findings.Select(finding => finding!["File"]!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
             var missing = samples.Keys.Except(detected).Order(StringComparer.Ordinal).ToArray();
             if (!failed || missing.Length != 0)
@@ -85,7 +85,7 @@ internal static partial class SecurityCommands
             await DetectorGitAsync(repository.Path, "add", ".");
             await DetectorGitAsync(repository.Path, "-c", "user.name=Synthetic detector verification", "-c",
                 "user.email=fixture@example.invalid", "commit", "--quiet", "-m", "Synthetic negatives");
-            var (failed, findings) = await ScanSecretsAsync(root, repository.Path, Path.Combine(reports, "detector-negative.json"));
+            var (failed, findings) = await ScanSecretsAsync(root, repository.Path, Path.Join(reports, "detector-negative.json"));
             if (failed || findings.Count != 0)
                 throw new SecurityPolicyException("Negative fixtures or ignored .env were incorrectly detected");
         }

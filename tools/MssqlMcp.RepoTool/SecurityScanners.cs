@@ -13,8 +13,8 @@ internal static partial class SecurityCommands
         {
             if (entry is not JsonObject finding) throw new SecurityPolicyException("Invalid Gitleaks finding");
             var metadata = new JsonObject { ["Secret"] = "REDACTED" };
-            foreach (var key in FindingMetadata)
-                if (finding.TryGetPropertyValue(key, out var value)) metadata[key] = value?.DeepClone();
+            foreach (var key in FindingMetadata.Where(finding.ContainsKey))
+                metadata[key] = finding[key]?.DeepClone();
             safe.Add(metadata);
         }
         return safe;
@@ -32,8 +32,8 @@ internal static partial class SecurityCommands
         if (shallow.ExitCode != 0 || shallow.StandardOutput.Trim() != "false")
             throw new SecurityPolicyException("Full-history scanning requires a non-shallow Git repository (fetch-depth: 0)");
         using var temporary = new TemporaryDirectory("gitleaks-report-");
-        var raw = Path.Combine(temporary.Path, "findings.json");
-        var result = await ScanProcessAsync(Tool("gitleaks"), ["git", repository, "--config", Path.Combine(root, ".gitleaks.toml"),
+        var raw = Path.Join(temporary.Path, "findings.json");
+        var result = await ScanProcessAsync(Tool("gitleaks"), ["git", repository, "--config", Path.Join(root, ".gitleaks.toml"),
             "--log-opts=--all --full-history --diff-merges=separate", "--redact=100", "--ignore-gitleaks-allow",
             "--gitleaks-ignore-path", temporary.Path, "--exit-code", "23", "--timeout", "600", "--no-banner", "--no-color",
             "--report-format", "json", "--report-path", raw], root);
@@ -54,20 +54,20 @@ internal static partial class SecurityCommands
 
     private static async Task<bool> WorkflowAuditAsync(string root, string reports)
     {
-        var directory = Path.Combine(root, ".github/workflows");
+        var directory = Path.Join(root, ".github/workflows");
         var workflows = Directory.GetFiles(directory, "*.yml").Order(StringComparer.Ordinal)
             .Concat(Directory.GetFiles(directory, "*.yaml").Order(StringComparer.Ordinal)).ToArray();
         if (workflows.Length == 0) throw new SecurityPolicyException("No workflows found");
-        var shellcheck = Path.Combine(ToolsDirectory, "shellcheck");
+        var shellcheck = Path.Join(ToolsDirectory, "shellcheck");
         var actionlint = await ScanProcessAsync(Tool("actionlint"),
             new[] { "-shellcheck", File.Exists(shellcheck) ? shellcheck : "shellcheck", "-format", "{{json .}}" }.Concat(workflows), root);
-        File.WriteAllText(Path.Combine(reports, "actionlint.json"), actionlint.StandardOutput);
-        File.WriteAllText(Path.Combine(reports, "actionlint.log"), actionlint.StandardError);
+        File.WriteAllText(Path.Join(reports, "actionlint.json"), actionlint.StandardOutput);
+        File.WriteAllText(Path.Join(reports, "actionlint.log"), actionlint.StandardError);
         // Offline JSON analysis retains finding exit codes and needs no fork-PR token.
         var zizmor = await ScanProcessAsync(Tool("zizmor"),
             new[] { "--offline", "--strict-collection", "--persona=regular", "--format=json", "--color=never" }.Concat(workflows), root);
-        File.WriteAllText(Path.Combine(reports, "zizmor.json"), zizmor.StandardOutput);
-        File.WriteAllText(Path.Combine(reports, "zizmor.log"), zizmor.StandardError);
+        File.WriteAllText(Path.Join(reports, "zizmor.json"), zizmor.StandardOutput);
+        File.WriteAllText(Path.Join(reports, "zizmor.log"), zizmor.StandardError);
         Console.WriteLine(actionlint.StandardOutput);
         Console.WriteLine(actionlint.StandardError);
         Console.WriteLine(zizmor.StandardOutput);
@@ -92,10 +92,10 @@ internal static partial class SecurityCommands
 
     internal static void CopyDatabaseMetadata(string cache, string reports)
     {
-        var metadata = Path.Combine(cache, "db/metadata.json");
+        var metadata = Path.Join(cache, "db/metadata.json");
         if (!File.Exists(metadata)) throw new SecurityPolicyException("Trivy did not provide vulnerability database metadata");
         _ = ReadObject(metadata);
-        File.Copy(metadata, Path.Combine(reports, "database-metadata.json"), overwrite: true);
+        File.Copy(metadata, Path.Join(reports, "database-metadata.json"), overwrite: true);
     }
 
     private static async Task<bool> VulnerabilityAuditAsync(string root, string kind, string target, string reports)
@@ -113,22 +113,21 @@ internal static partial class SecurityCommands
         {
             targets = Directory.GetFiles(Path.GetFullPath(target), "*.json").Order(StringComparer.Ordinal).ToArray();
             if (targets.Length == 0) throw new SecurityPolicyException("No CycloneDX JSON SBOMs found");
-            foreach (var path in targets)
+            foreach (var document in targets.Select(ReadObject))
             {
-                var document = ReadObject(path);
                 if (document["bomFormat"]?.GetValue<string>() != "CycloneDX" || document["components"] is not JsonArray { Count: > 0 })
                     throw new SecurityPolicyException("Expected a populated CycloneDX SBOM");
             }
         }
         var failed = false;
-        File.Delete(Path.Combine(reports, "database-metadata.json"));
+        File.Delete(Path.Join(reports, "database-metadata.json"));
         // Empty per-invocation cache prevents stale advisory reuse; SBOMs share a snapshot.
         using var cache = new TemporaryDirectory("trivy-db-");
         for (var index = 0; index < targets.Length; index++)
         {
             var item = targets[index];
             var name = kind is "image" or "dependencies" ? kind : $"sbom-{index}-{Path.GetFileNameWithoutExtension(item)}";
-            var report = Path.Combine(reports, name + ".json");
+            var report = Path.Join(reports, name + ".json");
             File.Delete(report);
             var command = new List<string> { kind == "dependencies" ? "fs" : kind, "--config", "", "--ignorefile", "",
                 "--cache-dir", cache.Path, "--timeout", "10m", "--scanners", "vuln", "--pkg-types", "os,library",
@@ -138,9 +137,9 @@ internal static partial class SecurityCommands
             else
             {
                 // Isolate only the lock, never .env, node_modules or unrelated files.
-                var inputs = Path.Combine(cache.Path, "inputs");
+                var inputs = Path.Join(cache.Path, "inputs");
                 Directory.CreateDirectory(inputs);
-                var copied = Path.Combine(inputs, "package-lock.json");
+                var copied = Path.Join(inputs, "package-lock.json");
                 File.Copy(item, copied);
                 item = copied;
                 command.Add("--include-dev-deps");
@@ -148,7 +147,7 @@ internal static partial class SecurityCommands
             if (kind == "image") command.AddRange(["--image-src", "docker"]);
             command.Add(item);
             var result = await ScanProcessAsync(Tool("trivy"), command, root);
-            File.WriteAllText(Path.Combine(reports, name + ".log"), result.StandardOutput + result.StandardError);
+            File.WriteAllText(Path.Join(reports, name + ".log"), result.StandardOutput + result.StandardError);
             Console.WriteLine(result.StandardOutput);
             Console.WriteLine(result.StandardError);
             if (result.ExitCode is not (0 or 23 or 24)) Console.Error.WriteLine($"Trivy scanner error: exit {result.ExitCode}");
@@ -174,7 +173,7 @@ internal static partial class SecurityCommands
         if (mode is not ("secrets" or "workflows" or "image" or "sbom" or "dependencies" or "verify-detectors"))
             throw new SecurityPolicyException("Unknown security scan mode");
         string? target = null;
-        var reports = Path.Combine(root, "artifacts/security");
+        var reports = Path.Join(root, "artifacts/security");
         for (var index = 1; index < args.Length; index++)
         {
             if (args[index] == "--reports" && index + 1 < args.Length) reports = args[++index];
@@ -187,7 +186,7 @@ internal static partial class SecurityCommands
         Directory.CreateDirectory(reports);
         var failed = mode switch
         {
-            "secrets" => (await ScanSecretsAsync(root, root, Path.Combine(reports, "gitleaks.json"))).Failed,
+            "secrets" => (await ScanSecretsAsync(root, root, Path.Join(reports, "gitleaks.json"))).Failed,
             "workflows" => await WorkflowAuditAsync(root, reports),
             "verify-detectors" => await VerifyDetectorsAsync(root, reports),
             _ => await VulnerabilityAuditAsync(root, mode, target!, reports)
