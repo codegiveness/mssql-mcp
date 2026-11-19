@@ -349,6 +349,16 @@ public class GuardTests
     }
 
     [Fact]
+    public void Accept_ManyDeepButBalancedExpressions()
+    {
+        var guard = CreateGuard();
+        string column = string.Concat(Enumerable.Repeat("REPLACE(", 20)) + "name"
+            + string.Concat(Enumerable.Repeat(", 'a', 'b')", 20));
+        string columns = string.Join(", ", Enumerable.Range(1, 10).Select(i => $"{column} AS c{i}"));
+        Assert.True(guard.Validate($"SELECT {columns} FROM sys.objects").Accepted);
+    }
+
+    [Fact]
     public void Ignore_ParenthesesInsideLiteralsAndComments()
     {
         string parens = new('(', SqlNestingLimit.MaxParenthesisDepth * 2);
