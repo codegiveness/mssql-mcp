@@ -14,7 +14,7 @@ public sealed class SecurityCommandsTests
     public void ContentPinsRejectModifiedDownloads()
     {
         using var directory = new TestDirectory();
-        var path = Path.Combine(directory.Path, "download");
+        var path = Path.Join(directory.Path, "download");
         File.WriteAllText(path, "reviewed-content");
         var digest = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
         SecurityArchive.VerifySha256(path, digest, "fixture");
@@ -28,7 +28,7 @@ public sealed class SecurityCommandsTests
         using var directory = new TestDirectory();
         using var archive = Tar(("../../outside", TarEntryType.RegularFile, "not-installed"),
             ("reviewed/tool", TarEntryType.RegularFile, "reviewed-binary"));
-        var target = Path.Combine(directory.Path, "tool");
+        var target = Path.Join(directory.Path, "tool");
         SecurityArchive.ExtractExecutable(archive, "reviewed/tool", target);
         Assert.Equal("reviewed-binary", File.ReadAllText(target));
         Assert.Equal(new[] { target }, Directory.GetFiles(directory.Path));
@@ -42,7 +42,7 @@ public sealed class SecurityCommandsTests
     {
         using var directory = new TestDirectory();
         using var archive = Tar(("tool", type, "other"));
-        var target = Path.Combine(directory.Path, "tool");
+        var target = Path.Join(directory.Path, "tool");
         Assert.Throws<SecurityPolicyException>(() => SecurityArchive.ExtractExecutable(archive, "tool", target));
         Assert.False(File.Exists(target));
     }
@@ -78,7 +78,7 @@ public sealed class SecurityCommandsTests
         using var archive = Tar(("alias/payload", TarEntryType.RegularFile, "payload"),
             ("alias", TarEntryType.SymbolicLink, "subdirectory"));
         Assert.Throws<SecurityPolicyException>(() => SecurityArchive.ExtractSource(archive, directory.Path));
-        Assert.Null(new DirectoryInfo(Path.Combine(directory.Path, "alias")).LinkTarget);
+        Assert.Null(new DirectoryInfo(Path.Join(directory.Path, "alias")).LinkTarget);
     }
 
     [Fact]
@@ -109,11 +109,11 @@ public sealed class SecurityCommandsTests
             ("node_modules/module", TarEntryType.SymbolicLink, "../workspace"),
             ("module-copy.js", TarEntryType.HardLink, "workspace/module.js"));
         SecurityArchive.ExtractSource(archive, directory.Path);
-        Assert.Equal("module-content", File.ReadAllText(Path.Combine(directory.Path, "node_modules/module/module.js")));
-        Assert.Equal("../workspace", new DirectoryInfo(Path.Combine(directory.Path, "node_modules/module")).LinkTarget);
-        Assert.Equal("module-content", File.ReadAllText(Path.Combine(directory.Path, "module-copy.js")));
-        File.WriteAllText(Path.Combine(directory.Path, "workspace/module.js"), "changed-through-original");
-        Assert.Equal("changed-through-original", File.ReadAllText(Path.Combine(directory.Path, "module-copy.js")));
+        Assert.Equal("module-content", File.ReadAllText(Path.Join(directory.Path, "node_modules/module/module.js")));
+        Assert.Equal("../workspace", new DirectoryInfo(Path.Join(directory.Path, "node_modules/module")).LinkTarget);
+        Assert.Equal("module-content", File.ReadAllText(Path.Join(directory.Path, "module-copy.js")));
+        File.WriteAllText(Path.Join(directory.Path, "workspace/module.js"), "changed-through-original");
+        Assert.Equal("changed-through-original", File.ReadAllText(Path.Join(directory.Path, "module-copy.js")));
     }
 
     [Fact]
@@ -204,11 +204,25 @@ public sealed class SecurityCommandsTests
         using var cache = new TestDirectory();
         using var reports = new TestDirectory();
         Assert.Throws<SecurityPolicyException>(() => SecurityCommands.CopyDatabaseMetadata(cache.Path, reports.Path));
-        Directory.CreateDirectory(Path.Combine(cache.Path, "db"));
+        Directory.CreateDirectory(Path.Join(cache.Path, "db"));
         var metadata = "{\"SchemaVersion\":2,\"UpdatedAt\":\"2026-10-03T00:00:00Z\"}";
-        File.WriteAllText(Path.Combine(cache.Path, "db/metadata.json"), metadata);
+        File.WriteAllText(Path.Join(cache.Path, "db/metadata.json"), metadata);
         SecurityCommands.CopyDatabaseMetadata(cache.Path, reports.Path);
-        Assert.Equal(metadata, File.ReadAllText(Path.Combine(reports.Path, "database-metadata.json")));
+        Assert.Equal(metadata, File.ReadAllText(Path.Join(reports.Path, "database-metadata.json")));
+    }
+
+    private static (JsonObject Upstream, JsonObject Manifest) NpmManifests()
+    {
+        var upstream = JsonNode.Parse("{\"name\":\"npm\",\"version\":\"12.2.0\",\"engines\":{\"node\":\">=26\"},\"dependencies\":{\"glob\":\"^13.0.6\",\"minimatch\":\"^10.2.5\",\"tar\":\"^7.5.22\"}}")!.AsObject();
+        var manifest = JsonNode.Parse("{\"version\":\"12.2.0\",\"engines\":{\"node\":\">=26\"},\"dependencies\":{\"glob\":\"^14.0.6\",\"minimatch\":\"^11.0.9\",\"tar\":\"^7.5.22\"},\"overrides\":{\"glob\":\"$glob\",\"minimatch\":\"$minimatch\"}}")!.AsObject();
+        return (upstream, manifest);
+    }
+
+    [Fact]
+    public void NpmRuntimeAcceptsExactlyTheReviewedOverrides()
+    {
+        var (upstream, manifest) = NpmManifests();
+        SecurityCommands.ValidateNpmManifest(upstream, manifest);
     }
 
     [Theory]
@@ -217,13 +231,42 @@ public sealed class SecurityCommandsTests
     [InlineData("dependencies")]
     public void NpmSourceMustMatchAllReviewedRuntimeFields(string field)
     {
-        var manifest = JsonNode.Parse("{\"version\":\"12.2.0\",\"engines\":{\"node\":\">=26\"},\"dependencies\":{\"tar\":\"^7.5.22\"}}")!.AsObject();
-        var upstream = manifest.DeepClone().AsObject();
-        upstream["name"] = "npm";
-        SecurityCommands.ValidateNpmManifest(upstream, manifest);
+        var (upstream, manifest) = NpmManifests();
         upstream[field] = "changed";
         Assert.Throws<SecurityPolicyException>(() => SecurityCommands.ValidateNpmManifest(upstream, manifest));
         upstream.Remove(field);
+        Assert.Throws<SecurityPolicyException>(() => SecurityCommands.ValidateNpmManifest(upstream, manifest));
+    }
+
+    [Theory]
+    [InlineData("glob", "^15.0.0")]
+    [InlineData("minimatch", "^10.2.5")]
+    [InlineData("tar", "^8.0.0")]
+    public void NpmRuntimeRejectsDependencyRangesBeyondTheReviewedOverrides(string package, string range)
+    {
+        var (upstream, manifest) = NpmManifests();
+        manifest["dependencies"]![package] = range;
+        Assert.Throws<SecurityPolicyException>(() => SecurityCommands.ValidateNpmManifest(upstream, manifest));
+    }
+
+    [Fact]
+    public void NpmRuntimeRejectsUnreviewedOverrides()
+    {
+        var (upstream, manifest) = NpmManifests();
+        manifest["overrides"]!["tar"] = "^7.0.0";
+        Assert.Throws<SecurityPolicyException>(() => SecurityCommands.ValidateNpmManifest(upstream, manifest));
+        manifest["overrides"]!.AsObject().Remove("tar");
+        manifest["overrides"]!["glob"] = "^14.0.6";
+        Assert.Throws<SecurityPolicyException>(() => SecurityCommands.ValidateNpmManifest(upstream, manifest));
+        manifest.Remove("overrides");
+        Assert.Throws<SecurityPolicyException>(() => SecurityCommands.ValidateNpmManifest(upstream, manifest));
+    }
+
+    [Fact]
+    public void NpmUpstreamMovingAReviewedRangeRequiresReview()
+    {
+        var (upstream, manifest) = NpmManifests();
+        upstream["dependencies"]!["glob"] = "^14.0.6";
         Assert.Throws<SecurityPolicyException>(() => SecurityCommands.ValidateNpmManifest(upstream, manifest));
     }
 
@@ -247,7 +290,7 @@ public sealed class SecurityCommandsTests
 
     private sealed class TestDirectory : IDisposable
     {
-        internal string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "security-tests-" + Guid.NewGuid().ToString("N"));
+        internal string Path { get; } = System.IO.Path.Join(System.IO.Path.GetTempPath(), "security-tests-" + Guid.NewGuid().ToString("N"));
         internal TestDirectory() => Directory.CreateDirectory(Path);
         public void Dispose() => Directory.Delete(Path, recursive: true);
     }

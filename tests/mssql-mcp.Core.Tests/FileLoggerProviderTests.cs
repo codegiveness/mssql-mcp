@@ -14,7 +14,7 @@ public class FileLoggerProviderTests
 {
     private static string NewTempDir()
     {
-        string dir = Path.Combine(Path.GetTempPath(), "mssql-mcp-tests-" + Guid.NewGuid().ToString("N"));
+        string dir = Path.Join(Path.GetTempPath(), "mssql-mcp-tests-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         return dir;
     }
@@ -62,7 +62,7 @@ public class FileLoggerProviderTests
         string dir = NewTempDir();
         try
         {
-            string logPath = Path.Combine(dir, "host.log");
+            string logPath = Path.Join(dir, "host.log");
             for (int restart = 0; restart < 3; restart++)
             {
                 var services = new ServiceCollection();
@@ -88,7 +88,7 @@ public class FileLoggerProviderTests
         string dir = NewTempDir();
         try
         {
-            string logPath = Path.Combine(dir, "app.log");
+            string logPath = Path.Join(dir, "app.log");
             using var provider = new FileLoggerProvider(logPath, maxBytes: 1024, maxRolls: 3);
             WriteLines(provider, count: 3, line: "hello world");
             provider.Dispose();
@@ -110,7 +110,7 @@ public class FileLoggerProviderTests
         string dir = NewTempDir();
         try
         {
-            string logPath = Path.Combine(dir, "app.log");
+            string logPath = Path.Join(dir, "app.log");
             using var provider = new FileLoggerProvider(logPath, maxBytes: 100, maxRolls: 3);
             WriteLines(provider, count: 2, line: "AAAA-padding-line-content-to-be-large-AAAAAAAAAA");
             provider.Dispose();
@@ -131,7 +131,7 @@ public class FileLoggerProviderTests
         string dir = NewTempDir();
         try
         {
-            string logPath = Path.Combine(dir, "app.log");
+            string logPath = Path.Join(dir, "app.log");
             using var provider = new FileLoggerProvider(logPath, maxBytes: 100, maxRolls: 2);
             WriteLines(provider, count: 50, line: "BBBB-padding-line-content-to-be-large-BBBBBBBBBB");
             provider.Dispose();
@@ -149,7 +149,7 @@ public class FileLoggerProviderTests
         string dir = NewTempDir();
         try
         {
-            string logPath = Path.Combine(dir, "app.log");
+            string logPath = Path.Join(dir, "app.log");
             using var provider = new FileLoggerProvider(logPath, maxBytes: 0, maxRolls: 3);
             WriteLines(provider, count: 20, line: "CCCC-padding-line-content-to-be-large-CCCCCCCCCC");
             provider.Dispose();
@@ -171,7 +171,7 @@ public class FileLoggerProviderTests
         string dir = NewTempDir();
         try
         {
-            string logPath = Path.Combine(dir, "app.log");
+            string logPath = Path.Join(dir, "app.log");
             using var provider = new FileLoggerProvider(logPath, maxBytes: 50, maxRolls: 3);
             var logger = provider.CreateLogger("Test");
             logger.LogInformation("Connection: Server=x;Password=secret;Database=master;");
@@ -201,7 +201,7 @@ public class FileLoggerProviderTests
         string dir = NewTempDir();
         try
         {
-            string logPath = Path.Combine(dir, "app.log");
+            string logPath = Path.Join(dir, "app.log");
             using var provider = new FileLoggerProvider(logPath, maxBytes: 100, maxRolls: 0);
             WriteLines(provider, count: 20, line: "EEEE-padding-line-content-to-be-large-EEEEEEEEEE");
             provider.Dispose();
@@ -222,19 +222,19 @@ public class FileLoggerProviderTests
         string dir = NewTempDir();
         try
         {
-            string destination = Path.Combine(dir, "destination");
-            string nested = Path.Combine(destination, "nested");
+            string destination = Path.Join(dir, "destination");
+            string nested = Path.Join(destination, "nested");
             if (targetExists)
             {
                 Directory.CreateDirectory(nested);
             }
-            string parentLink = Path.Combine(dir, "linked-parent");
+            string parentLink = Path.Join(dir, "linked-parent");
             CreateSymbolicLink(parentLink, destination, directory: true);
-            string logPath = Path.Combine(parentLink, "nested", "app.log");
+            string logPath = Path.Join(parentLink, "nested", "app.log");
 
             Assert.Throws<ArgumentException>(() => new FileLoggerProvider(logPath));
 
-            Assert.False(File.Exists(Path.Combine(nested, "app.log")));
+            Assert.False(File.Exists(Path.Join(nested, "app.log")));
             Assert.Equal(targetExists, Directory.Exists(destination));
             Assert.Equal(destination, new DirectoryInfo(parentLink).LinkTarget);
         }
@@ -249,12 +249,12 @@ public class FileLoggerProviderTests
         string dir = NewTempDir();
         try
         {
-            string destination = Path.Combine(dir, "destination.log");
+            string destination = Path.Join(dir, "destination.log");
             if (targetExists)
             {
                 File.WriteAllText(destination, "destination-must-stay-unchanged");
             }
-            string logPath = Path.Combine(dir, "app.log");
+            string logPath = Path.Join(dir, "app.log");
             CreateSymbolicLink(logPath, destination);
 
             Assert.Throws<ArgumentException>(() => new FileLoggerProvider(logPath));
@@ -284,9 +284,9 @@ public class FileLoggerProviderTests
         string dir = NewTempDir();
         try
         {
-            string logPath = Path.Combine(dir, "app.log");
+            string logPath = Path.Join(dir, "app.log");
             using var provider = new FileLoggerProvider(logPath, maxBytes: 1, maxRolls: 3);
-            string destination = Path.Combine(dir, "destination.log");
+            string destination = Path.Join(dir, "destination.log");
             if (targetExists)
             {
                 File.WriteAllText(destination, "destination-must-stay-unchanged");
@@ -339,7 +339,7 @@ public class FileLoggerProviderTests
         Directory.CreateDirectory(dir);
         try
         {
-            string logPath = Path.Combine(dir, "app.log");
+            string logPath = Path.Join(dir, "app.log");
             File.WriteAllText(logPath, "existing-log-entry\n");
             using var provider = new FileLoggerProvider(logPath, maxBytes: 1, maxRolls: 2);
             WriteLines(provider, 1, "first-log-entry");

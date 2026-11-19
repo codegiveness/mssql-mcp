@@ -474,7 +474,7 @@ public sealed class RepositoryChecksTests
                 }
             });
         }
-        internal string PathOf(string file) => Path.Combine(Root, file.Replace('/', Path.DirectorySeparatorChar));
+        internal string PathOf(string file) => Path.Join(Root, file.Replace('/', Path.DirectorySeparatorChar));
         internal void Write(string file, string value)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(PathOf(file))!);

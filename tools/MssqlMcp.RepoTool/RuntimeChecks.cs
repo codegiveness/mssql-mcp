@@ -38,19 +38,19 @@ internal static partial class RuntimeChecks
             throw new InvalidOperationException("mcp-smoke: MSSQL_CONNECTION_STRING not set and .env did not supply it.");
         }
 
-        string binaryDirectory = Path.Combine(root, "src", "mssql-mcp", "bin", "Debug", "net11.0");
-        string binary = Path.Combine(binaryDirectory, OperatingSystem.IsWindows() ? "mssql-mcp.exe" : "mssql-mcp");
+        string binaryDirectory = Path.Join(root, "src", "mssql-mcp", "bin", "Debug", "net11.0");
+        string binary = Path.Join(binaryDirectory, OperatingSystem.IsWindows() ? "mssql-mcp.exe" : "mssql-mcp");
         if (!File.Exists(binary))
         {
             Console.Error.WriteLine("mcp-smoke: binary not found, building...");
             await CheckedAsync(RepoContext.DotNetExecutable,
-                ["build", Path.Combine(root, "src", "mssql-mcp"), "--nologo", "-v", "q"], root, "server build");
+                ["build", Path.Join(root, "src", "mssql-mcp"), "--nologo", "-v", "q"], root, "server build");
         }
         string serverCommand = binary;
         string[] serverArgs = [];
         if (!File.Exists(binary))
         {
-            string assembly = Path.Combine(binaryDirectory, "mssql-mcp.dll");
+            string assembly = Path.Join(binaryDirectory, "mssql-mcp.dll");
             if (!File.Exists(assembly))
             {
                 throw new InvalidOperationException("mcp-smoke: build did not produce a server executable or assembly.");
@@ -62,7 +62,7 @@ internal static partial class RuntimeChecks
         string temporary = Directory.CreateTempSubdirectory("mssql-mcp-inspector-").FullName;
         try
         {
-            string config = Path.Combine(temporary, "inspector.json");
+            string config = Path.Join(temporary, "inspector.json");
             var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write };
             if (!OperatingSystem.IsWindows())
             {
@@ -84,10 +84,10 @@ internal static partial class RuntimeChecks
                 });
             }
 
-            string inspector = Path.Combine(root, ".config", "npm-tools", "node_modules", "@modelcontextprotocol", "inspector", "clients", "launcher", "build", "index.js");
+            string inspector = Path.Join(root, ".config", "npm-tools", "node_modules", "@modelcontextprotocol", "inspector", "clients", "launcher", "build", "index.js");
             if (!File.Exists(inspector))
             {
-                string[] installArgs = ["ci", "--prefix", Path.Combine(root, ".config", "npm-tools"),
+                string[] installArgs = ["ci", "--prefix", Path.Join(root, ".config", "npm-tools"),
                     "--ignore-scripts", "--no-audit", "--no-fund", "--bin-links=false", "--engine-strict",
                     $"--userconfig={(OperatingSystem.IsWindows() ? "NUL" : "/dev/null")}"];
                 string? npmCli = Environment.GetEnvironmentVariable("NPM_CLI");
@@ -269,32 +269,32 @@ internal static partial class RuntimeChecks
             ? Path.GetFullPath(args[0]) : Directory.CreateTempSubdirectory("mssql-mcp-fuzz-").FullName;
         PrepareOutput(output);
         Console.WriteLine($"Fuzz output: {output}");
-        string corpus = Path.Combine(output, "corpus");
-        foreach (string sample in Directory.EnumerateFiles(Path.Combine(root, "fuzz", "corpus"), "*.sql"))
+        string corpus = Path.Join(output, "corpus");
+        foreach (string sample in Directory.EnumerateFiles(Path.Join(root, "fuzz", "corpus"), "*.sql"))
         {
-            File.Copy(sample, Path.Combine(corpus, Path.GetFileName(sample)), overwrite: false);
+            File.Copy(sample, Path.Join(corpus, Path.GetFileName(sample)), overwrite: false);
         }
         if (args.Length >= 3 && args[2].Length != 0)
         {
             ImportRetainedCorpus(args[2], corpus);
         }
 
-        string project = Path.Combine(root, "fuzz", "mssql-mcp.Fuzz", "mssql-mcp.Fuzz.csproj");
-        string target = Path.Combine(output, "target");
-        string tools = Path.Combine(output, "tools");
+        string project = Path.Join(root, "fuzz", "mssql-mcp.Fuzz", "mssql-mcp.Fuzz.csproj");
+        string target = Path.Join(output, "target");
+        string tools = Path.Join(output, "tools");
         await CheckedAsync(RepoContext.DotNetExecutable, ["restore", project, "--locked-mode"], root, "fuzz restore");
         await CheckedAsync(RepoContext.DotNetExecutable,
             ["publish", project, "-c", "Release", "--no-restore", "-p:UseAppHost=false", "-o", target], root, "fuzz publish");
         await CheckedAsync(RepoContext.DotNetExecutable,
             ["tool", "install", "SharpFuzz.CommandLine", "--version", "2.3.0", "--tool-path", tools], root, "SharpFuzz installation");
-        string sharpFuzz = Path.Combine(tools, OperatingSystem.IsWindows() ? "sharpfuzz.exe" : "sharpfuzz");
-        string instrumentationLog = Path.Combine(output, "instrumentation.log");
-        await LoggedAsync(sharpFuzz, [Path.Combine(target, "mssql-mcp.Core.dll"), "mssql_mcp.Core.Guard"],
+        string sharpFuzz = Path.Join(tools, OperatingSystem.IsWindows() ? "sharpfuzz.exe" : "sharpfuzz");
+        string instrumentationLog = Path.Join(output, "instrumentation.log");
+        await LoggedAsync(sharpFuzz, [Path.Join(target, "mssql-mcp.Core.dll"), "mssql_mcp.Core.Guard"],
             root, instrumentationLog, append: false);
-        await LoggedAsync(sharpFuzz, [Path.Combine(target, "Microsoft.SqlServer.TransactSql.ScriptDom.dll")],
+        await LoggedAsync(sharpFuzz, [Path.Join(target, "Microsoft.SqlServer.TransactSql.ScriptDom.dll")],
             root, instrumentationLog, append: true);
 
-        string source = Path.Combine(output, "libfuzzer-dotnet.cc");
+        string source = Path.Join(output, "libfuzzer-dotnet.cc");
         await CheckedAsync("curl", ["--fail", "--silent", "--show-error", BridgeUrl, "--output", source], root, "native bridge download");
         await using (FileStream downloaded = File.OpenRead(source))
         {
@@ -304,11 +304,11 @@ internal static partial class RuntimeChecks
                 throw new InvalidOperationException("SHA-256 verification failed for the upstream native fuzz bridge.");
             }
         }
-        string bridge = Path.Combine(output, OperatingSystem.IsWindows() ? "libfuzzer-dotnet.exe" : "libfuzzer-dotnet");
+        string bridge = Path.Join(output, OperatingSystem.IsWindows() ? "libfuzzer-dotnet.exe" : "libfuzzer-dotnet");
         await CheckedAsync("clang++", ["-fsanitize=fuzzer", source, "-o", bridge], root, "native bridge compilation");
-        string[] targetArgs = [$"--target_path={RepoContext.DotNetExecutable}", $"--target_arg={Path.Combine(target, "mssql-mcp.Fuzz.dll")}"];
-        string probe = Path.Combine(output, "probe");
-        string probeLog = Path.Combine(output, "crash-probe.log");
+        string[] targetArgs = [$"--target_path={RepoContext.DotNetExecutable}", $"--target_arg={Path.Join(target, "mssql-mcp.Fuzz.dll")}"];
+        string probe = Path.Join(output, "probe");
+        string probeLog = Path.Join(output, "crash-probe.log");
         ProcessResult probeResult = await ProcessRunner.RunAsync(bridge,
             [.. targetArgs, "-runs=1", "-max_len=4096", $"-artifact_prefix={probe}{Path.DirectorySeparatorChar}"], root,
             timeoutSeconds: 20, environment: new Dictionary<string, string?> { ["MSSQL_FUZZ_CRASH_PROBE"] = "1" });
@@ -318,10 +318,10 @@ internal static partial class RuntimeChecks
         // Keep all real findings and the campaign exit status, including deadline failure.
         ProcessResult campaign = await ProcessRunner.RunAsync(bridge,
             [.. targetArgs, "-seed=1", "-max_len=4096", "-timeout=5", $"-max_total_time={seconds}",
-                $"-dict={Path.Combine(root, "fuzz", "sql.dict")}",
-                $"-artifact_prefix={Path.Combine(output, "findings")}{Path.DirectorySeparatorChar}", corpus], root,
+                $"-dict={Path.Join(root, "fuzz", "sql.dict")}",
+                $"-artifact_prefix={Path.Join(output, "findings")}{Path.DirectorySeparatorChar}", corpus], root,
             timeoutSeconds: seconds + 20, environment: new Dictionary<string, string?> { ["MSSQL_FUZZ_CRASH_PROBE"] = null });
-        await SaveLogAsync(campaign, Path.Combine(output, "campaign.log"), append: false);
+        await SaveLogAsync(campaign, Path.Join(output, "campaign.log"), append: false);
         return campaign.ExitCode;
     }
 
@@ -338,7 +338,7 @@ internal static partial class RuntimeChecks
         }
         foreach (string name in new[] { "corpus", "probe", "findings" })
         {
-            Directory.CreateDirectory(Path.Combine(output, name));
+            Directory.CreateDirectory(Path.Join(output, name));
         }
     }
 
@@ -380,7 +380,7 @@ internal static partial class RuntimeChecks
             }
             ReadOnlySpan<byte> data = buffer.AsSpan(0, count);
             SHA256.HashData(data, digest);
-            string destination = Path.Combine(corpus, Convert.ToHexStringLower(digest));
+            string destination = Path.Join(corpus, Convert.ToHexStringLower(digest));
             if (!File.Exists(destination))
             {
                 using var copied = new FileStream(destination, FileMode.CreateNew, FileAccess.Write);

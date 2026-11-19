@@ -131,59 +131,59 @@ public sealed class RuntimeChecksTests
     public void ExistingFindingsPreventReuseWithoutMutation()
     {
         using var temporary = new TemporaryDirectory();
-        string findings = Directory.CreateDirectory(Path.Combine(temporary.Path, "findings")).FullName;
-        string artifact = Path.Combine(findings, "crash-real");
+        string findings = Directory.CreateDirectory(Path.Join(temporary.Path, "findings")).FullName;
+        string artifact = Path.Join(findings, "crash-real");
         File.WriteAllText(artifact, "SELECT broken");
         Assert.Throws<InvalidOperationException>(() => RuntimeChecks.PrepareOutput(temporary.Path));
         Assert.Equal("SELECT broken", File.ReadAllText(artifact));
-        Assert.False(Directory.Exists(Path.Combine(temporary.Path, "corpus")));
+        Assert.False(Directory.Exists(Path.Join(temporary.Path, "corpus")));
     }
 
     [Fact]
     public void RetainedCorpusImportsBoundedTopLevelDataByContentHash()
     {
         using var temporary = new TemporaryDirectory();
-        string retained = Directory.CreateDirectory(Path.Combine(temporary.Path, "retained")).FullName;
-        string corpus = Directory.CreateDirectory(Path.Combine(temporary.Path, "corpus")).FullName;
+        string retained = Directory.CreateDirectory(Path.Join(temporary.Path, "retained")).FullName;
+        string corpus = Directory.CreateDirectory(Path.Join(temporary.Path, "corpus")).FullName;
         byte[] boundary = Enumerable.Repeat((byte)'x', 4096).ToArray();
-        File.WriteAllBytes(Path.Combine(retained, "boundary"), boundary);
-        File.WriteAllBytes(Path.Combine(retained, "duplicate"), boundary);
-        File.WriteAllBytes(Path.Combine(retained, "oversized"), new byte[4097]);
-        File.WriteAllText(Path.Combine(retained, "empty"), "");
-        string nested = Directory.CreateDirectory(Path.Combine(retained, "nested")).FullName;
-        File.WriteAllText(Path.Combine(nested, "not-a-top-level-sample"), "SELECT 2");
+        File.WriteAllBytes(Path.Join(retained, "boundary"), boundary);
+        File.WriteAllBytes(Path.Join(retained, "duplicate"), boundary);
+        File.WriteAllBytes(Path.Join(retained, "oversized"), new byte[4097]);
+        File.WriteAllText(Path.Join(retained, "empty"), "");
+        string nested = Directory.CreateDirectory(Path.Join(retained, "nested")).FullName;
+        File.WriteAllText(Path.Join(nested, "not-a-top-level-sample"), "SELECT 2");
 
         RuntimeChecks.ImportRetainedCorpus(retained, corpus);
 
         string boundaryHash = Convert.ToHexStringLower(SHA256.HashData(boundary));
         string emptyHash = Convert.ToHexStringLower(SHA256.HashData(Array.Empty<byte>()));
         Assert.Equal(new[] { boundaryHash, emptyHash }.Order(), Directory.EnumerateFiles(corpus).Select(Path.GetFileName).Order());
-        Assert.Equal(boundary, File.ReadAllBytes(Path.Combine(corpus, boundaryHash)));
-        Assert.Empty(File.ReadAllBytes(Path.Combine(corpus, emptyHash)));
+        Assert.Equal(boundary, File.ReadAllBytes(Path.Join(corpus, boundaryHash)));
+        Assert.Empty(File.ReadAllBytes(Path.Join(corpus, emptyHash)));
     }
 
     [Fact(Skip = "Native symlink creation requires privileges on Windows.", SkipUnless = nameof(SupportsSymbolicLinks))]
     public void RetainedCorpusDoesNotFollowDirectoryOrSampleSymlinks()
     {
         using var temporary = new TemporaryDirectory();
-        string retained = Directory.CreateDirectory(Path.Combine(temporary.Path, "retained")).FullName;
-        string corpus = Directory.CreateDirectory(Path.Combine(temporary.Path, "corpus")).FullName;
-        string outside = Path.Combine(temporary.Path, "outside");
+        string retained = Directory.CreateDirectory(Path.Join(temporary.Path, "retained")).FullName;
+        string corpus = Directory.CreateDirectory(Path.Join(temporary.Path, "corpus")).FullName;
+        string outside = Path.Join(temporary.Path, "outside");
         File.WriteAllText(outside, "SELECT secret");
-        File.CreateSymbolicLink(Path.Combine(retained, "linked-file"), outside);
-        File.CreateSymbolicLink(Path.Combine(retained, "broken-file"), Path.Combine(temporary.Path, "absent"));
+        File.CreateSymbolicLink(Path.Join(retained, "linked-file"), outside);
+        File.CreateSymbolicLink(Path.Join(retained, "broken-file"), Path.Join(temporary.Path, "absent"));
         RuntimeChecks.ImportRetainedCorpus(retained, corpus);
         Assert.Empty(Directory.EnumerateFileSystemEntries(corpus));
-        File.WriteAllText(Path.Combine(retained, "regular-file"), "SELECT 1");
+        File.WriteAllText(Path.Join(retained, "regular-file"), "SELECT 1");
 
-        string linked = Path.Combine(temporary.Path, "linked-directory");
+        string linked = Path.Join(temporary.Path, "linked-directory");
         Directory.CreateSymbolicLink(linked, retained);
         RuntimeChecks.ImportRetainedCorpus(linked, corpus);
         Assert.Empty(Directory.EnumerateFileSystemEntries(corpus));
 
-        string nested = Directory.CreateDirectory(Path.Combine(retained, "nested")).FullName;
-        File.WriteAllText(Path.Combine(nested, "nested-sample"), "SELECT 2");
-        RuntimeChecks.ImportRetainedCorpus(Path.Combine(linked, "nested"), corpus);
+        string nested = Directory.CreateDirectory(Path.Join(retained, "nested")).FullName;
+        File.WriteAllText(Path.Join(nested, "nested-sample"), "SELECT 2");
+        RuntimeChecks.ImportRetainedCorpus(Path.Join(linked, "nested"), corpus);
         Assert.Empty(Directory.EnumerateFileSystemEntries(corpus));
         Assert.Throws<InvalidOperationException>(() => RuntimeChecks.PrepareOutput(linked));
         Assert.Equal("SELECT secret", File.ReadAllText(outside));
@@ -196,11 +196,11 @@ public sealed class RuntimeChecksTests
     public void ProbeRequiresNonzeroExitArtifactAndManagedExceptionEvidence(int exitCode, bool artifact, bool managedEvidence)
     {
         using var temporary = new TemporaryDirectory();
-        string probe = Directory.CreateDirectory(Path.Combine(temporary.Path, "probe")).FullName;
-        string log = Path.Combine(temporary.Path, "probe.log");
+        string probe = Directory.CreateDirectory(Path.Join(temporary.Path, "probe")).FullName;
+        string log = Path.Join(temporary.Path, "probe.log");
         if (artifact)
         {
-            File.WriteAllText(Path.Combine(probe, "crash-example"), "");
+            File.WriteAllText(Path.Join(probe, "crash-example"), "");
         }
         File.WriteAllText(log, managedEvidence ? "Intentional fuzz-engine crash-detection probe." : "Native engine exited.");
         Assert.Throws<InvalidOperationException>(() => RuntimeChecks.ValidateCrashProbe(exitCode, probe, log));
@@ -210,9 +210,9 @@ public sealed class RuntimeChecksTests
     public void ProbeAcceptsActualEmptyInputCrashArtifactWithManagedEvidence()
     {
         using var temporary = new TemporaryDirectory();
-        string probe = Directory.CreateDirectory(Path.Combine(temporary.Path, "probe")).FullName;
-        string log = Path.Combine(temporary.Path, "probe.log");
-        File.WriteAllBytes(Path.Combine(probe, "crash-empty-input"), []);
+        string probe = Directory.CreateDirectory(Path.Join(temporary.Path, "probe")).FullName;
+        string log = Path.Join(temporary.Path, "probe.log");
+        File.WriteAllBytes(Path.Join(probe, "crash-empty-input"), []);
         File.WriteAllText(log, "System.InvalidOperationException: Intentional fuzz-engine crash-detection probe.");
         RuntimeChecks.ValidateCrashProbe(77, probe, log);
     }

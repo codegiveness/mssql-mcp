@@ -28,11 +28,11 @@ internal static partial class SecurityCommands
     }
 
     internal static string ToolsDirectory => Path.GetFullPath(Environment.GetEnvironmentVariable("SECURITY_TOOLS_DIR")
-        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache/mssql-mcp-security/bin"));
+        ?? Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache/mssql-mcp-security/bin"));
 
     private static string Tool(string name)
     {
-        var executable = Path.Combine(ToolsDirectory, name);
+        var executable = Path.Join(ToolsDirectory, name);
         if (!File.Exists(executable))
             throw new SecurityPolicyException($"Install the pinned tool: install-security-tools {name}");
         return executable;
@@ -41,11 +41,10 @@ internal static partial class SecurityCommands
     internal static Dictionary<string, string?> ScannerEnvironment(IEnumerable<KeyValuePair<string, string?>> environment)
     {
         var filtered = new Dictionary<string, string?>(StringComparer.Ordinal);
-        foreach (var pair in environment)
-            if (pair.Key.StartsWith("GITLEAKS_", StringComparison.Ordinal)
+        foreach (var pair in environment.Where(pair => pair.Key.StartsWith("GITLEAKS_", StringComparison.Ordinal)
                 || pair.Key.StartsWith("TRIVY_", StringComparison.Ordinal)
-                || pair.Key.StartsWith("ZIZMOR_", StringComparison.Ordinal))
-                filtered[pair.Key] = null;
+                || pair.Key.StartsWith("ZIZMOR_", StringComparison.Ordinal)))
+            filtered[pair.Key] = null;
         return filtered;
     }
 
@@ -67,7 +66,7 @@ internal static partial class SecurityCommands
         internal string Path { get; }
         internal TemporaryDirectory(string prefix, string? parent = null)
         {
-            Path = System.IO.Path.Combine(parent ?? System.IO.Path.GetTempPath(), prefix + Guid.NewGuid().ToString("N"));
+            Path = System.IO.Path.Join(parent ?? System.IO.Path.GetTempPath(), prefix + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path);
         }
         public void Dispose() => Directory.Delete(Path, recursive: true);

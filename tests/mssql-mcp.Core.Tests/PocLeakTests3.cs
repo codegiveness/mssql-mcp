@@ -92,15 +92,15 @@ public class PocLeakTests3
     public void PB2_FileLoggerProvider_RejectsTraversalPath_ThrowsArgumentException()
     {
         string guid = Guid.NewGuid().ToString("N");
-        string baseDir = Path.Combine(Path.GetTempPath(), "mssql-mcp-poc-pb2-base-" + guid);
-        string outsideDir = Path.Combine(Path.GetTempPath(), "mssql-mcp-poc-pb2-outside-" + guid);
+        string baseDir = Path.Join(Path.GetTempPath(), "mssql-mcp-poc-pb2-base-" + guid);
+        string outsideDir = Path.Join(Path.GetTempPath(), "mssql-mcp-poc-pb2-outside-" + guid);
         Directory.CreateDirectory(baseDir);
         Directory.CreateDirectory(outsideDir);
         try
         {
             // Construct a path inside baseDir that escapes via .. to outsideDir.
             // The raw (unresolved) path retains the `..` segment that ValidatePath rejects.
-            string traversalPath = Path.Combine(baseDir, "..", "mssql-mcp-poc-pb2-outside-" + guid, "escape.log");
+            string traversalPath = Path.Join(baseDir, "..", "mssql-mcp-poc-pb2-outside-" + guid, "escape.log");
             string escapePath = Path.GetFullPath(traversalPath);
 
             // Constructor must throw ArgumentException for the traversal path.
@@ -127,7 +127,7 @@ public class PocLeakTests3
     [Fact]
     public void PB2_FileLoggerProvider_AcceptsAbsolutePath_ValidatesAndCreatesLogger()
     {
-        string absPath = Path.Combine(Path.GetTempPath(), "mssql-mcp-poc-pb2-abs-" + Guid.NewGuid().ToString("N") + ".log");
+        string absPath = Path.Join(Path.GetTempPath(), "mssql-mcp-poc-pb2-abs-" + Guid.NewGuid().ToString("N") + ".log");
         try
         {
             using var provider = new FileLoggerProvider(absPath, maxBytes: 0, maxRolls: 0);
@@ -155,14 +155,14 @@ public class PocLeakTests3
     public void PB2_Constructor_RejectsTraversalPath()
     {
         string fixtureDir = Directory.CreateTempSubdirectory("mssql-mcp-poc-pb2-static-").FullName;
-        string baseDir = Path.Combine(fixtureDir, "base");
-        string escapedPath = Path.Combine(fixtureDir, "existing.log");
+        string baseDir = Path.Join(fixtureDir, "base");
+        string escapedPath = Path.Join(fixtureDir, "existing.log");
         const string originalContent = "pre-existing file must remain unchanged";
         try
         {
             Directory.CreateDirectory(baseDir);
             File.WriteAllText(escapedPath, originalContent);
-            string traversalPath = Path.Combine(baseDir, "..", "existing.log");
+            string traversalPath = Path.Join(baseDir, "..", "existing.log");
             // Constructor MUST throw ArgumentException for the traversal path.
             Assert.Throws<ArgumentException>(() =>
                 new FileLoggerProvider(traversalPath, maxBytes: 0, maxRolls: 0));

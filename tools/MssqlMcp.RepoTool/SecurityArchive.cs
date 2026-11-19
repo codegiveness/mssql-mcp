@@ -37,7 +37,7 @@ internal static class SecurityArchive
         // Tar paths are POSIX paths even on Windows. Reject drive/UNC interpretations too.
         if (string.IsNullOrEmpty(name) || name.Contains('\\') || name.Contains(':') || name.StartsWith('/'))
             throw new SecurityPolicyException("Archive path escapes its destination");
-        var target = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.Combine(root, name)));
+        var target = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.Join(root, name)));
         var prefix = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
         if (target != prefix.TrimEnd(Path.DirectorySeparatorChar)
             && !target.StartsWith(prefix, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
@@ -88,14 +88,10 @@ internal static class SecurityArchive
         }
         // No writes may traverse a link, regardless of entry order. Defer link creation
         // until every regular member is materialized and all link targets are checked.
-        foreach (var path in paths)
+        foreach (var directory in paths.Select(path => Path.GetDirectoryName(path)))
         {
-            var ancestor = Path.GetDirectoryName(path);
-            while (ancestor is not null && ancestor != destination)
-            {
+            for (var ancestor = directory; ancestor is not null && ancestor != destination; ancestor = Path.GetDirectoryName(ancestor))
                 if (links.ContainsKey(ancestor)) throw new SecurityPolicyException("Archive member traverses a link");
-                ancestor = Path.GetDirectoryName(ancestor);
-            }
         }
         foreach (var (path, link) in links)
         {
@@ -134,9 +130,8 @@ internal static class SecurityArchive
         Dictionary<string, (string Target, string Name, bool Symbolic)> links, HashSet<string> seen)
     {
         var current = start;
-        foreach (var component in name.Split('/'))
+        foreach (var component in name.Split('/').Where(component => component is not ("" or ".")))
         {
-            if (component is "" or ".") continue;
             current = ContainedPath(root, Path.GetRelativePath(root, current) + "/" + component);
             if (links.TryGetValue(current, out var link))
             {
