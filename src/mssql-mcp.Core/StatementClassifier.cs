@@ -26,6 +26,12 @@ public static class StatementClassifier
         TSqlFragment? fragment;
         try
         {
+            // Deep nesting can take the parser minutes; treat it as unclassifiable.
+            if (SqlNestingLimit.FindViolation(sql) is not null)
+            {
+                return [];
+            }
+
             using StringReader reader = new(sql);
             fragment = parser.Parse(reader, out errors);
         }

@@ -286,6 +286,85 @@ public class GuardTests
         Assert.True(rejection.Column >= 1, $"Column should be >= 1, got {rejection.Column}");
     }
 
+    [Fact]
+    public void Accept_NestingAtLimit()
+    {
+        var guard = CreateGuard();
+        string sql = "SELECT " + new string('(', SqlNestingLimit.MaxParenthesisDepth) + "1"
+            + new string(')', SqlNestingLimit.MaxParenthesisDepth);
+        Assert.True(guard.Validate(sql).Accepted);
+    }
+
+    [Fact]
+    public void Reject_NestingBeyondLimit()
+    {
+        var guard = CreateGuard();
+        int depth = SqlNestingLimit.MaxParenthesisDepth + 1;
+        string sql = "SELECT " + new string('(', depth) + "1" + new string(')', depth);
+        var rejection = RequireRejection(guard.Validate(sql));
+        Assert.Equal("nesting_too_deep", rejection.Rule);
+        Assert.Contains(depth.ToString(System.Globalization.CultureInfo.InvariantCulture), rejection.Detail, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Reduced from a SharpFuzz timeout: before the nesting limit, unbalanced parentheses in
+    /// table-source position made ScriptDom backtrack for tens of seconds on a 150-byte input.
+    /// </summary>
+    [Fact]
+    public void Reject_PathologicalNesting_Quickly()
+    {
+        var guard = CreateGuard();
+        string sql = "SELECT x " + string.Concat(Enumerable.Repeat("FROM " + new string('(', 12) + "SELECT x ", 6));
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var rejection = RequireRejection(guard.Validate(sql));
+        stopwatch.Stop();
+        Assert.Equal("nesting_too_deep", rejection.Rule);
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(2), $"Guard took {stopwatch.Elapsed}.");
+    }
+
+    /// <summary>
+    /// Each statement stays within the depth limit, but the parser re-pays the backtracking cost
+    /// at every statement boundary (about 0.9 s each); the work budget refuses the repetition.
+    /// </summary>
+    [Fact]
+    public void Reject_RepeatedDeepStatements_Quickly()
+    {
+        var guard = CreateGuard();
+        string statement = "SELECT x " + string.Concat(Enumerable.Repeat("FROM ((SELECT x ", 16)) + new string(')', 32) + ";\n";
+        Assert.Null(SqlNestingLimit.FindViolation(statement));
+        string sql = string.Concat(Enumerable.Repeat(statement, 8));
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var rejection = RequireRejection(guard.Validate(sql));
+        stopwatch.Stop();
+        Assert.Equal("nesting_too_deep", rejection.Rule);
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(2), $"Guard took {stopwatch.Elapsed}.");
+    }
+
+    [Fact]
+    public void Accept_ManyShallowParentheses()
+    {
+        var guard = CreateGuard();
+        string rows = string.Join(",", Enumerable.Range(1, 2000).Select(i => $"({i})"));
+        Assert.True(guard.Validate($"SELECT x FROM (VALUES {rows}) AS v(x)").Accepted);
+    }
+
+    [Fact]
+    public void Accept_ManyDeepButBalancedExpressions()
+    {
+        var guard = CreateGuard();
+        string column = string.Concat(Enumerable.Repeat("REPLACE(", 20)) + "name"
+            + string.Concat(Enumerable.Repeat(", 'a', 'b')", 20));
+        string columns = string.Join(", ", Enumerable.Range(1, 10).Select(i => $"{column} AS c{i}"));
+        Assert.True(guard.Validate($"SELECT {columns} FROM sys.objects").Accepted);
+    }
+
+    [Fact]
+    public void Ignore_ParenthesesInsideLiteralsAndComments()
+    {
+        string parens = new('(', SqlNestingLimit.MaxParenthesisDepth * 2);
+        Assert.Equal((1, 0d), SqlNestingLimit.Measure($"SELECT '{parens}' /* {parens} */ AS [{parens}], (1)"));
+    }
+
     // ---------- Reject: ADR-0006 coverage gap closure (issue #13) ----------
 
     [Fact]

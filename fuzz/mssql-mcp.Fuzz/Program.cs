@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
+using mssql_mcp.Core;
 using mssql_mcp.Core.Configuration;
 using mssql_mcp.Core.Guard;
 using SharpFuzz;
@@ -35,6 +36,17 @@ internal static class Program
     private static void Exercise(ReadOnlySpan<byte> input)
     {
         string sql = Encoding.UTF8.GetString(input);
+        // The Guard rejects deep nesting before parsing because the parser's cost explodes;
+        // parsing such input directly here would only re-find that known limit as a timeout.
+        if (SqlNestingLimit.FindViolation(sql) is not null)
+        {
+            if (Guard.ValidateStrict(sql).Accepted)
+            {
+                throw new InvalidOperationException("Guard accepted SQL beyond the nesting limits.");
+            }
+            return;
+        }
+
         TSql160Parser parser = new(initialQuotedIdentifiers: false);
         using StringReader reader = new(sql);
         // Parse directly first: Guard catches parser exceptions, which would otherwise
