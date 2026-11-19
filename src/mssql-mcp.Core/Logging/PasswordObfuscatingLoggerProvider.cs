@@ -10,32 +10,18 @@ namespace mssql_mcp.Core.Logging;
 /// For the file sink, <see cref="FileLoggerProvider"/> already applies obfuscation internally;
 /// wrapping it again is a no-op because the regex has no <c>Password=...;</c> match left.
 /// </summary>
-public sealed class PasswordObfuscatingLoggerProvider : ILoggerProvider
+public sealed class PasswordObfuscatingLoggerProvider(ILoggerProvider inner) : ILoggerProvider
 {
-    private readonly ILoggerProvider _inner;
-
-    public PasswordObfuscatingLoggerProvider(ILoggerProvider inner)
-    {
-        _inner = inner;
-    }
-
     public ILogger CreateLogger(string categoryName) =>
-        new ObfuscatingLogger(_inner.CreateLogger(categoryName));
+        new ObfuscatingLogger(inner.CreateLogger(categoryName));
 
-    public void Dispose() => _inner.Dispose();
+    public void Dispose() => inner.Dispose();
 
-    private sealed class ObfuscatingLogger : ILogger
+    private sealed class ObfuscatingLogger(ILogger inner) : ILogger
     {
-        private readonly ILogger _inner;
+        IDisposable? ILogger.BeginScope<TState>(TState state) => inner.BeginScope(state);
 
-        public ObfuscatingLogger(ILogger inner)
-        {
-            _inner = inner;
-        }
-
-        IDisposable? ILogger.BeginScope<TState>(TState state) => _inner.BeginScope(state);
-
-        bool ILogger.IsEnabled(LogLevel logLevel) => _inner.IsEnabled(logLevel);
+        bool ILogger.IsEnabled(LogLevel logLevel) => inner.IsEnabled(logLevel);
 
         void ILogger.Log<TState>(
             LogLevel logLevel,
@@ -46,7 +32,7 @@ public sealed class PasswordObfuscatingLoggerProvider : ILoggerProvider
         {
             string original = formatter(state, exception);
             string obfuscated = PasswordObfuscator.Obfuscate(original);
-            _inner.Log(
+            inner.Log(
                 logLevel,
                 eventId,
                 new ObfuscatedState(obfuscated),

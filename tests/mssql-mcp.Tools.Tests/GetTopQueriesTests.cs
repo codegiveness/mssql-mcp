@@ -40,7 +40,7 @@ public class GetTopQueriesTests
 
     private static List<Dictionary<string, object?>> FakeQueryRows(int count)
     {
-        List<Dictionary<string, object?>> rows = new(count);
+        List<Dictionary<string, object?>> rows = [with(count)];
         for (int i = 0; i < count; i++)
         {
             rows.Add(new()
@@ -142,7 +142,7 @@ public class GetTopQueriesTests
     public async Task GetTopQueries_EmptyDmv_ReturnsEmptyArray()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.GetTopQueries(

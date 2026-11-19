@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Protocol;
 using mssql_mcp.Tools.Json;
 
@@ -22,7 +21,7 @@ public class ByteSafetyNetTests
         // Serialized shape: {"pad":"<content>"}  -> overhead is ~11 bytes.
         int padLen = Math.Max(0, approxBytesPerRow - 11);
         string pad = new('x', padLen);
-        List<Dictionary<string, object?>> rows = new(rowCount);
+        List<Dictionary<string, object?>> rows = [with(rowCount)];
         for (int i = 0; i < rowCount; i++)
         {
             rows.Add(new() { ["pad"] = pad });
@@ -133,13 +132,13 @@ public class ByteSafetyNetTests
         Assert.IsType<TextContentBlock>(result.Content[1]);
         string second = GetText(result, 1);
         Assert.StartsWith("[truncated]", second);
-        Assert.False(second.StartsWith("[{", StringComparison.Ordinal), $"Second content looks like row data, not notice: {second.Substring(0, Math.Min(40, second.Length))}");
+        Assert.False(second.StartsWith("[{", StringComparison.Ordinal), $"Second content looks like row data, not notice: {second[..Math.Min(40, second.Length)]}");
     }
 
     [Fact]
     public void ByteCap_EmptyResult_ReturnsEmptyArray()
     {
-        List<Dictionary<string, object?>> rows = new(0);
+        List<Dictionary<string, object?>> rows = [with(0)];
 
         CallToolResult result = ToolErrors.SuccessWithByteCap(rows, Default10Mb);
 
@@ -153,7 +152,7 @@ public class ByteSafetyNetTests
     [Fact]
     public void ByteCap_ReservesClosingBracket_AtExactBoundary()
     {
-        List<object> items = new() { "x", "y" };
+        List<object> items = ["x", "y"];
         CallToolResult fits = ToolErrors.SuccessWithByteCap(items, 9);
         Assert.Single(fits.Content);
         Assert.Equal("[\"x\",\"y\"]", GetText(fits, 0));
@@ -166,7 +165,7 @@ public class ByteSafetyNetTests
     [Fact]
     public void ByteCap_ReaderTruncation_RemainsVisibleWhenRetainedRowsFit()
     {
-        CallToolResult result = ToolErrors.SuccessWithByteCap(new List<object> { "x" }, 100, isTruncated: true);
+        CallToolResult result = ToolErrors.SuccessWithByteCap(["x"], 100, isTruncated: true);
         Assert.False(result.IsError);
         Assert.Equal(2, result.Content.Count);
         Assert.Equal("[\"x\"]", GetText(result, 0));
@@ -179,12 +178,12 @@ public class ByteSafetyNetTests
     {
         // list_objects returns a List<object> where elements may be row dicts or notice objects.
         // The covariant IReadOnlyList<object> overload must handle both without copying.
-        List<object> payload = new()
-        {
+        List<object> payload =
+        [
             new RowLimitNotice { Notice = "row limit hit", Limit = 1000 },
             new Dictionary<string, object?> { ["name"] = "t1", ["schema"] = "dbo" },
             new Dictionary<string, object?> { ["name"] = "t2", ["schema"] = "dbo" },
-        };
+        ];
 
         CallToolResult result = ToolErrors.SuccessWithByteCap(payload, Default10Mb);
 

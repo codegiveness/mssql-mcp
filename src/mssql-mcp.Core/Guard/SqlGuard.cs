@@ -68,6 +68,8 @@ public sealed class SqlGuard : IGuard
             using StringReader reader = new(sql);
             fragment = parser.Parse(reader, out errors);
         }
+        // Defense-in-depth: no probed input (deep nesting, huge identifiers, NUL bytes, lone
+        // surrogates) makes ScriptDom 180.37.3 throw; a future version might.
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             _logger.LogError(ex, "[guard] Parser threw unexpected exception");

@@ -2,7 +2,6 @@ using System.Formats.Tar;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
-using MssqlMcp.RepoTool;
 
 namespace MssqlMcp.RepoTool.Tests;
 

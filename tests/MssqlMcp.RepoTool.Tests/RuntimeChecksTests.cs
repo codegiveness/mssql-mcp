@@ -1,7 +1,5 @@
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
-using MssqlMcp.RepoTool;
 
 namespace MssqlMcp.RepoTool.Tests;
 
@@ -145,7 +143,7 @@ public sealed class RuntimeChecksTests
         using var temporary = new TemporaryDirectory();
         string retained = Directory.CreateDirectory(Path.Join(temporary.Path, "retained")).FullName;
         string corpus = Directory.CreateDirectory(Path.Join(temporary.Path, "corpus")).FullName;
-        byte[] boundary = Enumerable.Repeat((byte)'x', 4096).ToArray();
+        byte[] boundary = [.. Enumerable.Repeat((byte)'x', 4096)];
         File.WriteAllBytes(Path.Join(retained, "boundary"), boundary);
         File.WriteAllBytes(Path.Join(retained, "duplicate"), boundary);
         File.WriteAllBytes(Path.Join(retained, "oversized"), new byte[4097]);
@@ -156,7 +154,7 @@ public sealed class RuntimeChecksTests
         RuntimeChecks.ImportRetainedCorpus(retained, corpus);
 
         string boundaryHash = Convert.ToHexStringLower(SHA256.HashData(boundary));
-        string emptyHash = Convert.ToHexStringLower(SHA256.HashData(Array.Empty<byte>()));
+        string emptyHash = Convert.ToHexStringLower(SHA256.HashData([]));
         Assert.Equal(new[] { boundaryHash, emptyHash }.Order(), Directory.EnumerateFiles(corpus).Select(Path.GetFileName).Order());
         Assert.Equal(boundary, File.ReadAllBytes(Path.Join(corpus, boundaryHash)));
         Assert.Empty(File.ReadAllBytes(Path.Join(corpus, emptyHash)));

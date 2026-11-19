@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/codegiveness/mssql-mcp/blob/main/SECURITY.md#reporting-a-vulnerability
+    about: Do not open a public issue. Follow SECURITY.md to report privately through GitHub's private vulnerability reporting.
+  - name: Ask a question
+    url: https://github.com/codegiveness/mssql-mcp/discussions/categories/q-a
+    about: Setup, configuration and usage questions go to Discussions Q&A. Use placeholders, never real credentials, connection strings or database results.

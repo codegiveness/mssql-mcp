@@ -11,28 +11,28 @@ public class CliDispatchTests
     [Fact]
     public void Dispatch_VersionFlag_ReturnsVersion()
     {
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--version" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--version"]);
         Assert.IsType<CliDispatchResult.Version>(result);
     }
 
     [Fact]
     public void Dispatch_HelpFlag_ReturnsHelp()
     {
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--help" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--help"]);
         Assert.IsType<CliDispatchResult.Help>(result);
     }
 
     [Fact]
     public void Dispatch_ShortHelpFlag_ReturnsHelp()
     {
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "-h" });
+        CliDispatchResult result = CliDispatch.Dispatch(["-h"]);
         Assert.IsType<CliDispatchResult.Help>(result);
     }
 
     [Fact]
     public void Dispatch_HelpWithOtherFlags_ReturnsHelp()
     {
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--help", "--connection-string", "x" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--help", "--connection-string", "x"]);
         Assert.IsType<CliDispatchResult.Help>(result);
     }
 
@@ -40,21 +40,21 @@ public class CliDispatchTests
     public void Dispatch_VersionWithHelp_ReturnsHelp()
     {
         // Help takes precedence over version per ADR-0031.
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--version", "--help" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--version", "--help"]);
         Assert.IsType<CliDispatchResult.Help>(result);
     }
 
     [Fact]
     public void Dispatch_NoArgs_ReturnsRunServer()
     {
-        CliDispatchResult result = CliDispatch.Dispatch(Array.Empty<string>());
+        CliDispatchResult result = CliDispatch.Dispatch([]);
         Assert.IsType<CliDispatchResult.RunServer>(result);
     }
 
     [Fact]
     public void Dispatch_ConnectionString_ReturnsRunServer()
     {
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--connection-string", "Server=x;" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--connection-string", "Server=x;"]);
         Assert.IsType<CliDispatchResult.RunServer>(result);
     }
 
@@ -63,14 +63,14 @@ public class CliDispatchTests
     {
         // --connection-string consumes the next token as its value,
         // so "upgrade" is not treated as an unknown flag here (that's #59).
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--connection-string", "upgrade" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--connection-string", "upgrade"]);
         Assert.IsType<CliDispatchResult.RunServer>(result);
     }
 
     [Fact]
     public void Dispatch_ValidateFlag_ReturnsRunServer()
     {
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--validate" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--validate"]);
         Assert.IsType<CliDispatchResult.RunServer>(result);
     }
 
@@ -78,7 +78,7 @@ public class CliDispatchTests
     public void Dispatch_ConnectionStringEqualsForm_DoesNotConsumeNextToken()
     {
         // --connection-string=x is self-contained; the next token is a real flag.
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--connection-string=x", "--help" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--connection-string=x", "--help"]);
         Assert.IsType<CliDispatchResult.Help>(result);
     }
 
@@ -87,7 +87,7 @@ public class CliDispatchTests
     {
         // --connection-string --version: --version is the connection string value,
         // not a version flag. Should return RunServer.
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--connection-string", "--version" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--connection-string", "--version"]);
         Assert.IsType<CliDispatchResult.RunServer>(result);
     }
 
@@ -95,7 +95,7 @@ public class CliDispatchTests
     public void Dispatch_HelpAfterConnectionStringValue_ReturnsHelp()
     {
         // --connection-string x --help: --help comes after the consumed value.
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--connection-string", "x", "--help" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--connection-string", "x", "--help"]);
         Assert.IsType<CliDispatchResult.Help>(result);
     }
 
@@ -146,7 +146,7 @@ public class CliDispatchTests
     [Fact]
     public void Dispatch_BareUnknownArg_ReturnsUnknownArgument()
     {
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "upgrade" });
+        CliDispatchResult result = CliDispatch.Dispatch(["upgrade"]);
         CliDispatchResult.UnknownArgument unknown = Assert.IsType<CliDispatchResult.UnknownArgument>(result);
         Assert.Equal("upgrade", unknown.Argument);
     }
@@ -154,7 +154,7 @@ public class CliDispatchTests
     [Fact]
     public void Dispatch_UnknownFlag_ReturnsUnknownArgument()
     {
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--bogus" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--bogus"]);
         CliDispatchResult.UnknownArgument unknown = Assert.IsType<CliDispatchResult.UnknownArgument>(result);
         Assert.Equal("--bogus", unknown.Argument);
     }
@@ -162,42 +162,42 @@ public class CliDispatchTests
     [Fact]
     public void Dispatch_VersionTakesPrecedenceOverUnknownArg()
     {
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--version", "upgrade" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--version", "upgrade"]);
         Assert.IsType<CliDispatchResult.Version>(result);
     }
 
     [Fact]
     public void Dispatch_ConnectionStringEqualsUpgrade_ReturnsRunServer()
     {
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--connection-string=upgrade" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--connection-string=upgrade"]);
         Assert.IsType<CliDispatchResult.RunServer>(result);
     }
 
     [Fact]
     public void Dispatch_ConnectionStringNoValue_LastArg_ReturnsRunServer()
     {
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--connection-string" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--connection-string"]);
         Assert.IsType<CliDispatchResult.RunServer>(result);
     }
 
     [Fact]
     public void Dispatch_HelpTakesPrecedenceOverUnknownArg()
     {
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "upgrade", "--help" });
+        CliDispatchResult result = CliDispatch.Dispatch(["upgrade", "--help"]);
         Assert.IsType<CliDispatchResult.Help>(result);
     }
 
     [Fact]
     public void Dispatch_UnknownArgBeforeHelp_HelpStillWins()
     {
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--help", "upgrade" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--help", "upgrade"]);
         Assert.IsType<CliDispatchResult.Help>(result);
     }
 
     [Fact]
     public void Dispatch_UnknownFlagEqualsValue_ReportsFlagPartOnly()
     {
-        CliDispatchResult result = CliDispatch.Dispatch(new[] { "--bogus=foo" });
+        CliDispatchResult result = CliDispatch.Dispatch(["--bogus=foo"]);
         CliDispatchResult.UnknownArgument unknown = Assert.IsType<CliDispatchResult.UnknownArgument>(result);
         Assert.Equal("--bogus", unknown.Argument);
     }

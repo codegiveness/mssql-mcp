@@ -1,0 +1,75 @@
+name: Bug report
+description: Something does not work as documented.
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Security vulnerabilities do not belong here.** Report them privately as described in [SECURITY.md](https://github.com/codegiveness/mssql-mcp/blob/main/SECURITY.md#reporting-a-vulnerability).
+
+        This issue is public. Never paste passwords, connection strings, server names you want kept private, customer SQL or database results. Use placeholders and disposable synthetic data.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `mssql-mcp --version` (or `npx -y @codegiveness/mssql-mcp --version`), or the commit SHA when running from source.
+      placeholder: 0.6.2
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation method
+      options:
+        - npm / npx (@codegiveness/mssql-mcp)
+        - .NET tool (NuGet codegiveness.mssql-mcp)
+        - Self-contained archive from a GitHub Release
+        - Docker image built from this repository's Dockerfile
+        - Built from source
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Operating system and SQL Server version
+      placeholder: Windows 11 x64, SQL Server 2022 CU16
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: The smallest sequence that shows the problem, using synthetic data. Include sanitized configuration (environment variable names, access mode, authentication type) with secrets replaced by placeholders.
+      placeholder: |
+        1. Set MSSQL_CONNECTION_STRING to <placeholder> and MSSQL_ACCESS_MODE=restricted
+        2. Call list_databases
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Redacted diagnostics
+      description: Relevant stderr output, `mssql-mcp --validate` output or MCP error payloads with credentials, server names and data removed.
+      render: text
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: This report contains no credentials, private connection details, customer SQL or database results.
+          required: true
+        - label: This is not a security vulnerability (those go to the private route in SECURITY.md).
+          required: true

@@ -40,7 +40,7 @@ public class ListObjectsTests
 
     private static List<Dictionary<string, object?>> FakeObjects(int count)
     {
-        List<Dictionary<string, object?>> rows = new(count);
+        List<Dictionary<string, object?>> rows = [with(count)];
         for (int i = 0; i < count; i++)
         {
             rows.Add(new()
@@ -218,7 +218,7 @@ public class ListObjectsTests
         Assert.NotNull(capturedSql);
         Assert.Contains("schema_id=SCHEMA_ID(@schema)", capturedSql, StringComparison.Ordinal);
         Assert.NotNull(capturedParams);
-        Assert.Equal("dbo", capturedParams!["schema"]);
+        Assert.Equal("dbo", capturedParams["schema"]);
     }
 
     [Fact]
@@ -239,7 +239,7 @@ public class ListObjectsTests
     public async Task ListObjects_InvalidDb_ReturnsError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListObjects("MissingDb", null, null, null, CancellationToken.None);

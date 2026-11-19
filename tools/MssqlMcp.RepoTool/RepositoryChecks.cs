@@ -8,8 +8,13 @@ namespace MssqlMcp.RepoTool;
 internal static partial class RepositoryChecks
 {
     private static readonly string[] Platforms = ["linux-x64", "linux-arm64", "osx-x64", "osx-arm64", "win-x64"];
-    private static readonly Regex VersionPrefix = new(@"<VersionPrefix>\s*([^<\s]+)\s*</VersionPrefix>");
-    private static readonly Regex ReleaseTag = new(@"\Av((?:0|[1-9][0-9]*))\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z");
+
+    [GeneratedRegex(@"<VersionPrefix>\s*([^<\s]+)\s*</VersionPrefix>")]
+    private static partial Regex VersionPrefix { get; }
+
+    [GeneratedRegex(@"\Av((?:0|[1-9][0-9]*))\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z")]
+    private static partial Regex ReleaseTag { get; }
+
     private static readonly JsonSerializerOptions JsonOutput = new() { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
     internal static Task<int> RunAsync(string command, string root, string[] args)

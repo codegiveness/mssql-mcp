@@ -14,6 +14,9 @@
     "x64"
   ],
   "files": [
-    "mssql-mcp.exe"
+    "mssql-mcp.exe",
+    "LICENSE",
+    "THIRD-PARTY-NOTICES.md",
+    "LICENSES/*.txt"
   ]
 }

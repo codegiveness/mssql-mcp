@@ -14,8 +14,6 @@ namespace mssql_mcp.Tools.Tests;
 /// </summary>
 public class ListDatabasesTests
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
     private static DatabaseTools CreateTools(ISqlExecutor executor, MssqlMcpOptions? options = null)
     {
         MssqlMcpOptions opts = options ?? new MssqlMcpOptions
@@ -122,7 +120,7 @@ public class ListDatabasesTests
         CallToolResult result = await tools.ListDatabases(CancellationToken.None);
 
         using JsonDocument doc = JsonDocument.Parse(GetJson(result));
-        JsonElement[] rows = doc.RootElement.EnumerateArray().ToArray();
+        JsonElement[] rows = [.. doc.RootElement.EnumerateArray()];
         Assert.Equal(0, rows[1].GetProperty("is_current").GetInt64());
         Assert.Equal(0, rows[2].GetProperty("is_current").GetInt64());
     }
@@ -131,7 +129,7 @@ public class ListDatabasesTests
     public async Task ListDatabases_EmptyResult_ReturnsEmptyArray()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListDatabases(CancellationToken.None);

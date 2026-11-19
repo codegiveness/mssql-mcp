@@ -60,7 +60,7 @@ public class PocDmvInfoDisclosureTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
 
         // ValidateDatabaseAsync returns 0 rows (HAS_DBACCESS=0 → inaccessible).
-        executor.ExecuteQueryAsync(Arg.Is<string>(sql => sql != null && sql.Contains("sys.databases", StringComparison.Ordinal)), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Is<string>(sql => sql != null && sql.Contains("sys.databases", StringComparison.Ordinal)), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         MssqlMcpOptions opts = RestrictedOptions();
         OpsTools tools = new(executor, Options.Create(opts), NullLogger<OpsTools>.Instance);
@@ -90,7 +90,7 @@ public class PocDmvInfoDisclosureTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
 
         // ValidateDatabaseAsync returns 0 rows (HAS_DBACCESS=0 → inaccessible).
-        executor.ExecuteQueryAsync(Arg.Is<string>(sql => sql != null && sql.Contains("sys.databases", StringComparison.Ordinal)), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Is<string>(sql => sql != null && sql.Contains("sys.databases", StringComparison.Ordinal)), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         MssqlMcpOptions opts = RestrictedOptions();
         OpsTools tools = new(executor, Options.Create(opts), NullLogger<OpsTools>.Instance);
@@ -119,10 +119,10 @@ public class PocDmvInfoDisclosureTests
 
         // Case A: no database param — uses DB_ID() (current DB), no validation call.
         // The DMV query returns empty.
-        executor.ExecuteQueryAsync(Arg.Is<string>(sql => sql != null && sql.Contains("dm_exec_query_stats", StringComparison.Ordinal)), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Is<string>(sql => sql != null && sql.Contains("dm_exec_query_stats", StringComparison.Ordinal)), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         // Case B: agent passes "secret_db" — validation fails (HAS_DBACCESS=0 → 0 rows).
-        executor.ExecuteQueryAsync(Arg.Is<string>(sql => sql != null && sql.Contains("sys.databases", StringComparison.Ordinal)), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Is<string>(sql => sql != null && sql.Contains("sys.databases", StringComparison.Ordinal)), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         MssqlMcpOptions opts = RestrictedOptions();
         OpsTools tools = new(executor, Options.Create(opts), NullLogger<OpsTools>.Instance);

@@ -1,5 +1,4 @@
 using System.Text.Json.Nodes;
-using MssqlMcp.RepoTool;
 
 namespace MssqlMcp.RepoTool.Tests;
 
@@ -105,7 +104,8 @@ public sealed class RepositoryChecksTests
         using var repo = new FixtureRepository();
         repo.WriteJson(".release-please-manifest.json", new JsonObject { ["."] = version });
         var environment = new Dictionary<string, string?>();
-        foreach (var args in new[] { new[] { "--manifest" }, new[] { "--manifest", ".release-please-manifest.json" } })
+        string[][] argumentSets = [["--manifest"], ["--manifest", ".release-please-manifest.json"]];
+        foreach (var args in argumentSets)
         {
             if (admitted) Assert.Equal(version, RepositoryChecks.CheckReleasePolicy(repo.Root, args, environment).Version);
             else Assert.Throws<InvalidOperationException>(() => RepositoryChecks.CheckReleasePolicy(repo.Root, args, environment));
@@ -504,9 +504,12 @@ public sealed class RepositoryChecksTests
                     break;
             }
         }
-        internal string[] StampBytes() => new[] { "src/mssql-mcp/mssql-mcp.csproj", "npm/package.json", "server.json" }
-            .Concat(Platforms.Select(platform => $"npm/platforms/{platform}/package.json"))
-            .Select(file => File.ReadAllText(PathOf(file))).ToArray();
+        internal string[] StampBytes() =>
+        [
+            .. new[] { "src/mssql-mcp/mssql-mcp.csproj", "npm/package.json", "server.json" }
+                .Concat(Platforms.Select(platform => $"npm/platforms/{platform}/package.json"))
+                .Select(file => File.ReadAllText(PathOf(file))),
+        ];
         public void Dispose() => Directory.Delete(Root, recursive: true);
     }
 }

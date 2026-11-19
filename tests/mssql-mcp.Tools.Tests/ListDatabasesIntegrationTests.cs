@@ -55,9 +55,8 @@ public class ListDatabasesIntegrationTests
         Assert.Equal(JsonValueKind.Array, doc.RootElement.ValueKind);
         Assert.True(doc.RootElement.GetArrayLength() > 0, "Expected at least one database.");
 
-        string[] names = doc.RootElement.EnumerateArray()
-            .Select(r => r.GetProperty("name").GetString() ?? string.Empty)
-            .ToArray();
+        string[] names = [.. doc.RootElement.EnumerateArray()
+            .Select(r => r.GetProperty("name").GetString() ?? string.Empty)];
         Assert.DoesNotContain("master", names);
         Assert.DoesNotContain("tempdb", names);
         Assert.DoesNotContain("model", names);

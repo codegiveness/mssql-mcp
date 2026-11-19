@@ -5,8 +5,8 @@ namespace mssql_mcp.Tools.Json;
 
 /// <summary>
 /// Source-generated JSON serializer context for the mssql-mcp tools layer.
-/// Mirrors <see cref="mssql_mcp.Tools.ToolErrors.JsonOptions"/>:
-/// <see cref="System.Text.Json.JsonSerializerDefaults.Web"/> (camelCase, case-insensitive)
+/// Mirrors <see cref="ToolErrors.JsonOptions"/>:
+/// <see cref="JsonSerializerDefaults.Web"/> (camelCase, case-insensitive)
 /// with <c>WriteIndented = false</c>.
 /// </summary>
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web, WriteIndented = false)]

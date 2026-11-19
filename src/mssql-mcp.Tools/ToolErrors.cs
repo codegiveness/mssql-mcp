@@ -26,10 +26,10 @@ internal static class ToolErrors
     /// <remarks>
     /// Source: <see href="https://learn.microsoft.com/azure/azure-sql/database/troubleshoot-common-errors-issues#transient-errors">SQL Server / SQL DB transient errors</see>.
     /// </remarks>
-    private static readonly HashSet<int> TransientErrorNumbers = new()
-    {
+    private static readonly HashSet<int> TransientErrorNumbers =
+    [
         4060, 40197, 40501, 40613, 41839, 49918, 49919, 49920, 11001,
-    };
+    ];
 
     /// <summary>
     /// Shared JSON serializer options. Does NOT use <see cref="JsonIgnoreCondition.WhenWritingNull"/>
@@ -46,7 +46,7 @@ internal static class ToolErrors
     {
         return new CallToolResult
         {
-            Content = new List<ContentBlock> { new TextContentBlock { Text = json } },
+            Content = [new TextContentBlock { Text = json }],
             IsError = isError,
         };
     }
@@ -62,7 +62,7 @@ internal static class ToolErrors
     /// truncated, returns TWO <see cref="TextContentBlock"/> items: the JSON array first
     /// (closed at the point of truncation), then a truncation notice. <paramref name="maxBytes"/>
     /// of <c>0</c> disables the cap and serializes all items. Accepts a covariant list so
-    /// both <see cref="List{Dictionary{String,Object}}"/> (rowsets) and <see cref="List{Object}"/>
+    /// both <see cref="List{Dictionary{string,object}}"/> (rowsets) and <see cref="List{Object}"/>
     /// (mixed payloads like <c>list_objects</c>) work without copy or overload selection.
     /// </summary>
     /// <param name="items">Payload elements per ADR-0009 (rows or status objects).</param>
@@ -75,7 +75,7 @@ internal static class ToolErrors
     public static CallToolResult SuccessWithByteCap(
         IReadOnlyList<object> items,
         long maxBytes,
-        Microsoft.Extensions.Logging.ILogger? logger = null,
+        ILogger? logger = null,
         bool isTruncated = false)
     {
         ArgumentNullException.ThrowIfNull(items);
@@ -126,11 +126,11 @@ internal static class ToolErrors
         // Two TextContent items: data array first, truncation notice second.
         return new CallToolResult
         {
-            Content = new List<ContentBlock>
-            {
+            Content =
+            [
                 new TextContentBlock { Text = buffer.ToString() },
                 new TextContentBlock { Text = notice },
-            },
+            ],
             IsError = false,
         };
     }

@@ -3,7 +3,6 @@ using Microsoft.Extensions.Options;
 using ModelContextProtocol.Protocol;
 using mssql_mcp.Core;
 using mssql_mcp.Core.Configuration;
-using mssql_mcp.Core.Guard;
 using NSubstitute;
 
 namespace mssql_mcp.Tools.Tests;
@@ -55,7 +54,7 @@ public class PocCrossDbAuthzTests
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // HAS_DBACCESS returns 0/NULL → 0 rows. The login has no access to `payroll`.
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         DatabaseValidationResult result =
             await SqlHelpers.ValidateDatabaseAsync(executor, "payroll", CancellationToken.None);
@@ -75,7 +74,7 @@ public class PocCrossDbAuthzTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
 
         // First call: ValidateDatabaseAsync (sys.databases) → 0 rows (HAS_DBACCESS=0).
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         MssqlMcpOptions opts = RestrictedOptions();
         DatabaseTools tools = new(executor, Options.Create(opts), NullLogger<DatabaseTools>.Instance);
@@ -101,7 +100,7 @@ public class PocCrossDbAuthzTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
 
         // ValidateDatabaseAsync returns 0 rows (HAS_DBACCESS=0 → inaccessible).
-        executor.ExecuteQueryAsync(Arg.Is<string>(sql => sql != null && sql.Contains("sys.databases", StringComparison.Ordinal)), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Is<string>(sql => sql != null && sql.Contains("sys.databases", StringComparison.Ordinal)), Arg.Any<IReadOnlyDictionary<string, object>>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         MssqlMcpOptions opts = RestrictedOptions();
         DatabaseTools tools = new(executor, Options.Create(opts), NullLogger<DatabaseTools>.Instance);

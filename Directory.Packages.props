@@ -5,6 +5,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="coverlet.MTP" Version="[10.1.1]" />
+    <PackageVersion Include="FsCheck" Version="3.6.0" />
+    <PackageVersion Include="FsCheck.Xunit.v3" Version="3.6.0" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.1.2" />
     <PackageVersion Include="Microsoft.Data.SqlClient.SNI.runtime" Version="7.1.2" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="11.0.0" />

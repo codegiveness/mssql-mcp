@@ -178,7 +178,7 @@ public sealed class SqlTools
         // returns the cumulative count across the whole batch — per-statement attribution isn't
         // reliably available without executing statements one at a time, so each status object
         // reports -1 (SQL Server's "not reported" sentinel) when more than one statement ran.
-        List<object> statusObjects = new(capacity: statements.Count);
+        List<object> statusObjects = [with(capacity: statements.Count)];
         bool single = statements.Count == 1;
         foreach (StatementInfo s in statements)
         {

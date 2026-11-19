@@ -130,7 +130,7 @@ public sealed class SqlExecutor : ISqlExecutor
         }
 
         object[] values = new object[columnNames.Length];
-        List<Dictionary<string, object?>> rows = new();
+        List<Dictionary<string, object?>> rows = [];
         long retainedBytes = 2; // Reserve both array brackets, even for an empty result.
         long rowStructureBytes = maxResultBytes > 0 ? ResultByteBudget.RowStructureBytes(columnNames) : 0;
         while (await reader.ReadAsync(ct).ConfigureAwait(false))

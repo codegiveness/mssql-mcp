@@ -3,6 +3,12 @@
 This file lists third-party software distributed with mssql-mcp, along with
 their license terms. Source links are provided for verification.
 
+Verbatim license texts for the redistributed components are in the
+[`LICENSES/`](./LICENSES/) directory, and this file, `LICENSE` and `LICENSES/`
+ship in every distribution channel: the NuGet tool package, the self-contained
+release archives (next to the binary), and the `@codegiveness/mssql-mcp` and
+per-platform npm packages. See [Bundled license texts](#bundled-license-texts).
+
 ## Microsoft.Data.SqlClient
 
 - License: MIT
@@ -83,3 +89,20 @@ legal/licensing audit. Native SNI asset exclusion is described below.
 - Purpose: .NET runtime bundled into self-contained builds (Linux x64/arm64,
   macOS x64/arm64, Windows x64). The NuGet tool package is framework-dependent and
   does not redistribute the runtime.
+
+## Bundled license texts
+
+Texts are copied verbatim from the upstream repositories at the versions pinned
+in `Directory.Packages.props` (or, for the .NET runtime, the matching release tag).
+
+| File in `LICENSES/` | Covers | Upstream |
+|---|---|---|
+| `DotNet.txt` | .NET runtime and the `Microsoft.Extensions.*` packages (MIT) | https://github.com/dotnet/runtime/blob/v11.0.0/LICENSE.TXT |
+| `DotNet-ThirdParty.txt` | Notices for third-party code inside the .NET runtime libraries | https://github.com/dotnet/runtime/blob/v11.0.0/THIRD-PARTY-NOTICES.TXT |
+| `ModelContextProtocol.txt` | ModelContextProtocol C# SDK 2.4.0 (MIT to Apache-2.0 transition notice, then the Apache-2.0 text) | https://github.com/modelcontextprotocol/csharp-sdk/blob/v2.4.0/LICENSE |
+| `Microsoft.Data.SqlClient.txt` | Microsoft.Data.SqlClient 7.1.2 (MIT) | https://github.com/dotnet/SqlClient/blob/v7.1.2/LICENSE |
+| `Microsoft.SqlServer.TransactSql.ScriptDom.txt` | Microsoft.SqlServer.TransactSql.ScriptDom (MIT); the pinned package's source commit is not published as a tag, so the text is the repository's current `LICENSE` | https://github.com/microsoft/SqlScriptDOM/blob/main/LICENSE |
+
+`Microsoft.Extensions.Hosting` and `Microsoft.Extensions.Logging.Console` 11.0.0
+come from the same dotnet/runtime repository and share its MIT license and
+third-party notices.

@@ -60,18 +60,15 @@ public class AnalyzeDbHealthTests
         return
         [
             // 1. database_size
-            new()
-            {
+            [
                 new() { ["size_mb"] = sizeMb, ["log_mb"] = logMb },
-            },
+            ],
             // 2. vlf_count
-            new()
-            {
+            [
                 new() { ["vlf_count"] = vlfCount },
-            },
+            ],
             // 3. index_fragmentation
-            new()
-            {
+            [
                 new()
                 {
                     ["total_indexes"] = totalIndexes,
@@ -79,22 +76,20 @@ public class AnalyzeDbHealthTests
                     ["max_fragmentation"] = maxFrag,
                     ["worst"] = worst,
                 },
-            },
+            ],
             // 4. stats_staleness
-            new()
-            {
+            [
                 new()
                 {
                     ["total_stats"] = totalStats,
                     ["stale_gt_7d"] = staleGt7d,
                     ["max_staleness_days"] = maxStalenessDays,
                 },
-            },
+            ],
             // 5. blocking
-            new()
-            {
+            [
                 new() { ["blocked_sessions"] = blockedSessions },
-            },
+            ],
         ];
     }
 
@@ -114,9 +109,8 @@ public class AnalyzeDbHealthTests
         Assert.Equal(JsonValueKind.Array, doc.RootElement.ValueKind);
         Assert.Equal(5, doc.RootElement.GetArrayLength());
 
-        string[] checks = doc.RootElement.EnumerateArray()
-            .Select(r => r.GetProperty("check").GetString() ?? string.Empty)
-            .ToArray();
+        string[] checks = [.. doc.RootElement.EnumerateArray()
+            .Select(r => r.GetProperty("check").GetString() ?? string.Empty)];
         Assert.Contains("database_size", checks);
         Assert.Contains("vlf_count", checks);
         Assert.Contains("index_fragmentation", checks);
@@ -325,10 +319,10 @@ public class AnalyzeDbHealthTests
     [Fact]
     public async Task AnalyzeDbHealth_CrossDb_UsesQuotedPrefix()
     {
-        List<string> capturedSqls = new();
+        List<string> capturedSqls = [];
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false), new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
+        executor.ExecuteQueryAsync(Arg.Do<string>(capturedSqls.Add), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(ValidDbRow(), false), new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: "AppDb", CancellationToken.None);
@@ -346,10 +340,10 @@ public class AnalyzeDbHealthTests
     [Fact]
     public async Task AnalyzeDbHealth_UsesSampledMode_NotDetailed()
     {
-        List<string> capturedSqls = new();
+        List<string> capturedSqls = [];
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks();
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Do<string>(s => capturedSqls.Add(s)), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
+        executor.ExecuteQueryAsync(Arg.Do<string>(capturedSqls.Add), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(canned[1], false), new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
 
         OpsTools tools = CreateTools(executor);
         await tools.AnalyzeDbHealth(database: null, CancellationToken.None);
@@ -381,7 +375,7 @@ public class AnalyzeDbHealthTests
     public async Task AnalyzeDbHealth_CrossDb_NotFound_ReturnsConnectionError()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         OpsTools tools = CreateTools(executor);
         CallToolResult result = await tools.AnalyzeDbHealth(database: "DoesNotExist", CancellationToken.None);
@@ -411,7 +405,7 @@ public class AnalyzeDbHealthTests
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         List<List<Dictionary<string, object?>>> canned = CannedAllChecks();
         executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
-            .Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult(new(), true),
+            .Returns(new SqlQueryResult(canned[0], false), new SqlQueryResult([], true),
                 new SqlQueryResult(canned[2], false), new SqlQueryResult(canned[3], false), new SqlQueryResult(canned[4], false));
         CallToolResult result = await CreateTools(executor).AnalyzeDbHealth(null, CancellationToken.None);
         Assert.False(result.IsError);

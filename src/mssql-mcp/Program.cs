@@ -74,7 +74,7 @@ LoggingSetup.Configure(builder.Logging, logLevel, options.LogFile, options.LogFi
 
 // Both injection shapes share the already-resolved CLI/environment configuration.
 builder.Services.AddSingleton(options);
-builder.Services.AddSingleton<IOptions<MssqlMcpOptions>>(Options.Create(options));
+builder.Services.AddSingleton(Options.Create(options));
 
 builder.Services.AddSingleton<ISqlExecutor>(sp =>
     new SqlExecutor(options.ConnectionString, options.QueryTimeout,

@@ -49,17 +49,13 @@ public class GuardIntegrationTests
                 ROLLBACK TRANSACTION
                 """;
 
-            using (SqlCommand insert = new(wrappedSql, connection))
-            {
-                await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
-            }
+            using SqlCommand insert = new(wrappedSql, connection);
+            await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
 
             // The INSERT must have rolled back — verify rowcount is 0.
-            using (SqlCommand count = new($"SELECT COUNT(*) FROM [{tableName}];", connection))
-            {
-                int rowCount = Assert.IsType<int>(await count.ExecuteScalarAsync(TestContext.Current.CancellationToken));
-                Assert.Equal(0, rowCount);
-            }
+            using SqlCommand count = new($"SELECT COUNT(*) FROM [{tableName}];", connection);
+            int rowCount = Assert.IsType<int>(await count.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+            Assert.Equal(0, rowCount);
         }
         finally
         {
@@ -98,7 +94,7 @@ public class GuardIntegrationTests
             NullLogger<SqlExecutor>.Instance);
         List<Dictionary<string, object?>> rows =
             (await executor.ExecuteQueryAsync(result.WrappedSql, 0, CancellationToken.None)).Rows;
-        Assert.Single(rows);
-        Assert.Equal(1, Assert.IsType<int>(rows[0]["Value"]));
+        Dictionary<string, object?> row = Assert.Single(rows);
+        Assert.Equal(1, Assert.IsType<int>(row["Value"]));
     }
 }

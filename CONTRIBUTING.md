@@ -174,7 +174,7 @@ No strict convention — just use descriptive names:
 
 - **Squash-merge** all PRs — clean main history, one commit per PR, conventional-commit message becomes the squashed commit message
 - **Force-push to `main` is disabled.** Direct push to `main` is blocked for everyone, including admins; all changes go through PR.
-- **External contributor PRs require a maintainer review** through CODEOWNERS enforcement. Because the project is currently solo-maintained, `required_approving_review_count` is deliberately set to `0`, so the maintainer's own PRs can be self-merged. See [ADR-0033](docs/adr/0033-branch-protection-posture-for-solo-maintained-project.md). When a second maintainer joins, this will flip to 1 required review.
+- **External contributor PRs are routed to the maintainer for review** through CODEOWNERS (`@codegiveness`), which requests review but is not enforced as a merge requirement (`require_code_owner_reviews` is false). Because the project is currently solo-maintained, `required_approving_review_count` is deliberately set to `0`, so the maintainer's own PRs can be self-merged. See [ADR-0033](docs/adr/0033-branch-protection-posture-for-solo-maintained-project.md), which predates this change. When a second maintainer joins, this will flip to 1 required review.
 
 ### No CLA / DCO required
 

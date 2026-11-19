@@ -151,8 +151,8 @@ public class DtoJsonEqualityTests
             error = "SQL",
             code = "SQL208",
             message = "Obfuscated error message",
-            severity = severity,
-            line = line,
+            severity,
+            line,
             procedure = "usp_DoThing",
         };
 
@@ -180,8 +180,8 @@ public class DtoJsonEqualityTests
             error = "SQL",
             code = "SQL0",
             message = string.Empty,
-            severity = severity,
-            line = line,
+            severity,
+            line,
             procedure = (string?)null,
         };
 
@@ -208,7 +208,7 @@ public class DtoJsonEqualityTests
             error = "SQL",
             code = "SQL500",
             message = "Fatal",
-            severity = severity,
+            severity,
             line = -1,
             procedure = (string?)null,
         };
@@ -256,7 +256,7 @@ public class DtoJsonEqualityTests
         object anonymous = new
         {
             error = "CONNECTION",
-            detail = detail,
+            detail,
         };
 
         Assert.Equal(JsonSerializer.Serialize(anonymous, AnonymousOptions), JsonSerializer.Serialize(dto, DtoOptions));
@@ -347,8 +347,8 @@ public class DtoJsonEqualityTests
     {
         double totalCost = 1.2345;
 
-        List<MissingIndexPayload> missingIndexes = new()
-        {
+        List<MissingIndexPayload> missingIndexes =
+        [
             new MissingIndexPayload
             {
                 Impact = 95.0,
@@ -359,12 +359,12 @@ public class DtoJsonEqualityTests
                 InequalityColumns = null,
                 IncludedColumns = "[CustomerName]",
             },
-        };
+        ];
 
-        List<string> warnings = new() { "NO_JOIN_PREDICATE", "MISSING_JOIN_PREDICATE" };
+        List<string> warnings = ["NO_JOIN_PREDICATE", "MISSING_JOIN_PREDICATE"];
 
-        List<QueryPlanOperation> topOps = new()
-        {
+        List<QueryPlanOperation> topOps =
+        [
             new QueryPlanOperation
             {
                 Operation = "Index Seek",
@@ -379,7 +379,7 @@ public class DtoJsonEqualityTests
                 EstimatedRows = 0,
                 Object = null,
             },
-        };
+        ];
 
         QueryPlanSummary dto = new()
         {
@@ -422,9 +422,9 @@ public class DtoJsonEqualityTests
         QueryPlanSummary dto = new()
         {
             EstimatedTotalCost = 0.0,
-            MissingIndexes = new List<MissingIndexPayload>(),
-            Warnings = new List<string>(),
-            TopOperations = new List<QueryPlanOperation>(),
+            MissingIndexes = [],
+            Warnings = [],
+            TopOperations = [],
         };
 
         object anonymous = new
@@ -650,7 +650,7 @@ public class DtoJsonEqualityTests
     [Fact]
     public void DictionaryRow_Empty_SerializesIdenticallyToAnonymousOptions()
     {
-        Dictionary<string, object?> row = new();
+        Dictionary<string, object?> row = [];
 
         string dtoJson = JsonSerializer.Serialize(row, DtoOptions);
         string anonymousJson = JsonSerializer.Serialize(row, AnonymousOptions);

@@ -133,42 +133,48 @@ public sealed class PlanTools
             .Where(v => v.HasValue)
             .Sum(v => v.GetValueOrDefault());
 
-        List<MissingIndexPayload> missingIndexes = doc.Descendants(Ns + "MissingIndex")
-            .Select(BuildMissingIndex)
-            .ToList();
+        List<MissingIndexPayload> missingIndexes =
+        [
+            .. doc.Descendants(Ns + "MissingIndex")
+                .Select(BuildMissingIndex),
+        ];
 
-        List<string> warnings = doc.Descendants(Ns + "Warnings")
-            .SelectMany(w =>
-            {
-                var attrNames = w.Attributes()
-                    .Where(a => string.Equals(a.Value, "true", StringComparison.OrdinalIgnoreCase))
-                    .Select(a => a.Name.LocalName);
-                var elementNames = w.Elements()
-                    .Select(e => e.Name.LocalName);
-                return attrNames.Concat(elementNames);
-            })
-            .Select(ToWarningName)
-            .ToList();
+        List<string> warnings =
+        [
+            .. doc.Descendants(Ns + "Warnings")
+                .SelectMany(w =>
+                {
+                    var attrNames = w.Attributes()
+                        .Where(a => string.Equals(a.Value, "true", StringComparison.OrdinalIgnoreCase))
+                        .Select(a => a.Name.LocalName);
+                    var elementNames = w.Elements()
+                        .Select(e => e.Name.LocalName);
+                    return attrNames.Concat(elementNames);
+                })
+                .Select(ToWarningName),
+        ];
 
         // Each RelOp carries EstimateCPU + EstimateIO. Cost = CPU + IO. Descending, take top 5.
-        List<RelOpSummary> topOps = doc.Descendants(Ns + "RelOp")
-            .Select(BuildRelOpSummary)
-            .OrderByDescending(r => r.EstimatedCost)
-            .Take(TopOperationsLimit)
-            .ToList();
+        List<RelOpSummary> topOps =
+        [
+            .. doc.Descendants(Ns + "RelOp")
+                .Select(BuildRelOpSummary)
+                .OrderByDescending(r => r.EstimatedCost)
+                .Take(TopOperationsLimit),
+        ];
 
         return new QueryPlanSummary
         {
             EstimatedTotalCost = Math.Round(totalCost, 4, MidpointRounding.ToEven),
             MissingIndexes = missingIndexes,
             Warnings = warnings,
-            TopOperations = topOps.Select(r => new QueryPlanOperation
+            TopOperations = [.. topOps.Select(r => new QueryPlanOperation
             {
                 Operation = r.Operation,
                 EstimatedCost = r.EstimatedCost,
                 EstimatedRows = r.EstimatedRows,
                 Object = r.Object,
-            }).ToList(),
+            })],
         };
     }
 
@@ -184,16 +190,16 @@ public sealed class PlanTools
         double? impactValue = TryParseDouble(impact);
 
         // Column groups: EQUALITY / INEQUALITY / INCLUDE — collect column names per group.
-        List<string> eqCols = new();
-        List<string> ineqCols = new();
-        List<string> inclCols = new();
+        List<string> eqCols = [];
+        List<string> ineqCols = [];
+        List<string> inclCols = [];
         foreach (XElement cg in mi.Elements(Ns + "ColumnGroup"))
         {
             string? usage = cg.Attribute("Usage")?.Value;
             List<string> target = string.Equals(usage, "EQUALITY", StringComparison.OrdinalIgnoreCase) ? eqCols
                 : string.Equals(usage, "INEQUALITY", StringComparison.OrdinalIgnoreCase) ? ineqCols
                 : string.Equals(usage, "INCLUDE", StringComparison.OrdinalIgnoreCase) ? inclCols
-                : new List<string>();
+                : [];
             foreach (XElement col in cg.Elements(Ns + "Column"))
             {
                 string? name = col.Attribute("Name")?.Value;

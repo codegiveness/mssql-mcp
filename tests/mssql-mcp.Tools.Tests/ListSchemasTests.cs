@@ -118,7 +118,7 @@ public class ListSchemasTests
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
         // ValidateDatabase returns zero rows.
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>(), false));
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, object>?>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult([], false));
 
         DatabaseTools tools = CreateTools(executor);
         CallToolResult result = await tools.ListSchemas(database: "MissingDb", CancellationToken.None);

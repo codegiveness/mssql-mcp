@@ -217,17 +217,8 @@ public sealed class FileLoggerProvider : ILoggerProvider
         };
     }
 
-    private sealed class FileLogger : ILogger
+    private sealed class FileLogger(FileLoggerProvider owner, string categoryName) : ILogger
     {
-        private readonly FileLoggerProvider _owner;
-        private readonly string _categoryName;
-
-        public FileLogger(FileLoggerProvider owner, string categoryName)
-        {
-            _owner = owner;
-            _categoryName = categoryName;
-        }
-
         IDisposable ILogger.BeginScope<TState>(TState state) => NullScope.Instance;
 
         bool ILogger.IsEnabled(LogLevel logLevel) => true;
@@ -240,7 +231,7 @@ public sealed class FileLoggerProvider : ILoggerProvider
             Func<TState, Exception?, string> formatter)
         {
             string message = formatter(state, exception);
-            _owner.Write(logLevel, _categoryName, message, exception);
+            owner.Write(logLevel, categoryName, message, exception);
         }
     }
 

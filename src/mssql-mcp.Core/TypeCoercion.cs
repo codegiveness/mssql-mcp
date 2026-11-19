@@ -35,72 +35,51 @@ public static class TypeCoercion
             return null;
         }
 
-        switch (value)
+        return value switch
         {
             // bigint → string (avoids 2^53 precision loss in JSON/JS).
-            case SqlInt64 sqlInt64:
-                return sqlInt64.Value.ToString(CultureInfo.InvariantCulture);
+            SqlInt64 sqlInt64 => sqlInt64.Value.ToString(CultureInfo.InvariantCulture),
 
             // decimal/numeric/money/smallmoney → string (preserves precision).
-            case SqlDecimal sqlDecimal:
-                // SqlDecimal supports 38 digits; converting through decimal overflows above 29.
-                return sqlDecimal.ToString();
-            case SqlMoney sqlMoney:
-                return sqlMoney.Value.ToString(CultureInfo.InvariantCulture);
+            // SqlDecimal supports 38 digits; converting through decimal overflows above 29.
+            SqlDecimal sqlDecimal => sqlDecimal.ToString(),
+            SqlMoney sqlMoney => sqlMoney.Value.ToString(CultureInfo.InvariantCulture),
 
             // int/smallint/tinyint/bit → JSON number.
-            case SqlInt32 sqlInt32:
-                return sqlInt32.Value;
-            case SqlInt16 sqlInt16:
-                return (long)sqlInt16.Value;
-            case SqlByte sqlByte:
-                return (long)sqlByte.Value;
-            case SqlBoolean sqlBoolean:
-                return sqlBoolean.Value ? 1L : 0L;
+            SqlInt32 sqlInt32 => sqlInt32.Value,
+            SqlInt16 sqlInt16 => (long)sqlInt16.Value,
+            SqlByte sqlByte => (long)sqlByte.Value,
+            SqlBoolean sqlBoolean => sqlBoolean.Value ? 1L : 0L,
 
             // real/float → JSON number.
-            case SqlSingle sqlSingle:
-                return (double)sqlSingle.Value;
-            case SqlDouble sqlDouble:
-                return sqlDouble.Value;
+            SqlSingle sqlSingle => (double)sqlSingle.Value,
+            SqlDouble sqlDouble => sqlDouble.Value,
 
             // date/datetime/datetime2/smalldatetime/datetimeoffset/time → ISO 8601 string.
             // SqlDateTime covers datetime/smalldatetime. date/datetime2 come back as DateTime,
             // datetimeoffset as DateTimeOffset, time as TimeSpan — handle all explicitly.
-            case SqlDateTime sqlDateTime:
-                return sqlDateTime.Value.ToString("o", CultureInfo.InvariantCulture);
-            case DateTime dateTime:
-                return dateTime.ToString("o", CultureInfo.InvariantCulture);
-            case DateTimeOffset dateTimeOffset:
-                return dateTimeOffset.ToString("o", CultureInfo.InvariantCulture);
-            case TimeSpan timeSpan:
-                return timeSpan.ToString("c", CultureInfo.InvariantCulture);
+            SqlDateTime sqlDateTime => sqlDateTime.Value.ToString("o", CultureInfo.InvariantCulture),
+            DateTime dateTime => dateTime.ToString("o", CultureInfo.InvariantCulture),
+            DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("o", CultureInfo.InvariantCulture),
+            TimeSpan timeSpan => timeSpan.ToString("c", CultureInfo.InvariantCulture),
 
             // uniqueidentifier → canonical string.
-            case SqlGuid sqlGuid:
-                return sqlGuid.Value.ToString("D", CultureInfo.InvariantCulture);
+            SqlGuid sqlGuid => sqlGuid.Value.ToString("D", CultureInfo.InvariantCulture),
 
             // binary/varbinary/image → base64 string.
-            case SqlBinary sqlBinary:
-                return Convert.ToBase64String(sqlBinary.Value, Base64FormattingOptions.None);
+            SqlBinary sqlBinary => Convert.ToBase64String(sqlBinary.Value, Base64FormattingOptions.None),
 
             // char/varchar/nchar/nvarchar/text/ntext → string.
-            case SqlString sqlString:
-                return sqlString.Value;
+            SqlString sqlString => sqlString.Value,
 
             // SqlXml (returned as SqlXml for xml columns).
-            case SqlXml sqlXml:
-                return sqlXml.Value;
+            SqlXml sqlXml => sqlXml.Value,
 
             // Fallback: Sql* types not in the explicit list (geography/geometry/hierarchyid come back as objects).
             // Use .ToString() per ADR-0009.
-            default:
-                return value switch
-                {
-                    IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
-                    _ => value.ToString(),
-                };
-        }
+            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
+            _ => value.ToString(),
+        };
     }
 
     /// <summary>
@@ -119,7 +98,7 @@ public static class TypeCoercion
     {
         reader.GetProviderSpecificValues(values);
 
-        Dictionary<string, object?> row = new(capacity: columnNames.Length);
+        Dictionary<string, object?> row = [with(capacity: columnNames.Length)];
         for (int i = 0; i < columnNames.Length; i++)
         {
             row[columnNames[i]] = Coerce(values[i]);

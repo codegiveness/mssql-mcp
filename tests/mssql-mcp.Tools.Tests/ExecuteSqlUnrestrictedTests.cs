@@ -166,10 +166,10 @@ public class ExecuteSqlUnrestrictedTests
     public async Task Unrestricted_Select_ReturnsRowsNotStatus()
     {
         ISqlExecutor executor = Substitute.For<ISqlExecutor>();
-        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(new List<Dictionary<string, object?>>
-        {
+        executor.ExecuteQueryAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>()).Returns(new SqlQueryResult(
+        [
             new() { ["x"] = 42 },
-        }, false));
+        ], false));
 
         SqlTools tools = CreateTools(executor);
         CallToolResult result = await tools.ExecuteSql("SELECT 42 AS x", CancellationToken.None);

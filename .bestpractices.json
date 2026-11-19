@@ -4,7 +4,7 @@
   "homepage_url": "https://github.com/codegiveness/mssql-mcp",
   "repo_url": "https://github.com/codegiveness/mssql-mcp",
   "license": "MIT",
-  "implementation_languages": "C#, JavaScript, Python, Shell, Dockerfile, TSQL",
+  "implementation_languages": "C#, JavaScript, Shell, Dockerfile, TSQL",
   "description_good_status": "Met",
   "description_good_justification": "README.md:1-3 (project name, tagline, and summary of what mssql-mcp does). Evidence: https://github.com/codegiveness/mssql-mcp/blob/main/docs/security-quality-follow-up.md",
   "interact_status": "Met",

@@ -18,8 +18,7 @@ internal sealed class BoundedPlanWriter(long maxBytes, CancellationToken ct) : T
 
     public override void Write(char value)
     {
-        Span<char> character = stackalloc char[1];
-        character[0] = value;
+        Span<char> character = [value];
         Write(character);
     }
 

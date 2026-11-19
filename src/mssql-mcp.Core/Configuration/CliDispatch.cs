@@ -32,13 +32,14 @@ public static class CliDispatch
     // Value-taking flags: when in "--flag value" (space-separated) form, the next token
     // is the value and must not be mistaken for a flag. In "--flag=value" form the value
     // is embedded and no extra token is consumed.
-    private static readonly HashSet<string> ValueFlags = new(StringComparer.Ordinal)
-    {
+    private static readonly HashSet<string> ValueFlags =
+    [
+        with(StringComparer.Ordinal),
         MssqlMcpOptions.CliConnectionString,
         MssqlMcpOptions.CliAccessMode,
         MssqlMcpOptions.CliQueryTimeout,
         MssqlMcpOptions.CliLogLevel,
-    };
+    ];
 
     /// <summary>
     /// Inspects <paramref name="args"/> and returns the dispatch decision.

@@ -5,7 +5,6 @@ using ModelContextProtocol.Protocol;
 using mssql_mcp.Core;
 using mssql_mcp.Core.Configuration;
 using mssql_mcp.Core.Guard;
-using mssql_mcp.Core.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 
@@ -71,7 +70,7 @@ public class PocLeakTests2
 
         Assert.False(result.Accepted);
         Assert.NotNull(result.Rejection);
-        Assert.Equal("four_part_name", result.Rejection!.Rule);
+        Assert.Equal("four_part_name", result.Rejection.Rule);
     }
 
     /// <summary>

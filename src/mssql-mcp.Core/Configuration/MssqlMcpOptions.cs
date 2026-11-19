@@ -103,11 +103,9 @@ public sealed class MssqlMcpOptions
         ArgumentNullException.ThrowIfNull(args);
         ArgumentNullException.ThrowIfNull(env);
 
-        var options = new MssqlMcpOptions();
-
         // --validate is a boolean switch (no value). CLI-only — no env var, since validate
         // is a one-shot operator action, not runtime config (ADR-0015).
-        options.Validate = HasCliFlag(args, CliValidate);
+        var options = new MssqlMcpOptions { Validate = HasCliFlag(args, CliValidate) };
 
         // Connection string: env wins over CLI (secrets live in env, not argv) per ADR-0015.
         string? cliConnStr = GetCliValue(args, CliConnectionString);
