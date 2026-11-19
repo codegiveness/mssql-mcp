@@ -152,11 +152,11 @@ internal static partial class RepositoryChecks
                 if (!Truthy(server["args"]) && !Truthy(server["env"])) Fail($"server \"{name}\" needs \"args\" or \"env\"");
             }
         }
-        foreach (var url in BadgeImage.Matches(readme).Select(badge => badge.Groups[1].Value))
-        {
-            if (!url.StartsWith("http://", StringComparison.Ordinal) && !url.StartsWith("https://", StringComparison.Ordinal))
-                errors.Add($"FAIL - README badge image URL is malformed: {url}");
-        }
+        var malformedBadgeUrls = BadgeImage.Matches(readme)
+            .Select(badge => badge.Groups[1].Value)
+            .Where(url => !url.StartsWith("http://", StringComparison.Ordinal) && !url.StartsWith("https://", StringComparison.Ordinal));
+        foreach (var url in malformedBadgeUrls)
+            errors.Add($"FAIL - README badge image URL is malformed: {url}");
         return new ReadmeLint(blocks.Count, errors);
     }
 
