@@ -83,7 +83,7 @@ public static class SqlNestingLimit
         return (maxDepth, cost);
     }
 
-    // Integer numerator keeps the depth-32 peak at exactly 2^10.
+    // Multiplying before dividing keeps the depth-32 peak at exactly 2^10.
     private static double PeakCost(int peak) =>
-        peak <= FreeDepth ? 0 : Math.Pow(2, (peak - FreeDepth) * 5 / 12.0);
+        peak <= FreeDepth ? 0 : Math.Pow(2, (peak - FreeDepth) * 5.0 / 12.0);
 }
