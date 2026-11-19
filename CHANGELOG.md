@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1](https://github.com/codegiveness/mssql-mcp/compare/v0.6.0...v0.6.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* move to .NET 11, ship self-contained Windows binary, refresh dependencies ([#194](https://github.com/codegiveness/mssql-mcp/issues/194)) ([91fd6c8](https://github.com/codegiveness/mssql-mcp/commit/91fd6c82c55d49a3e08c3a4c3fd20477b9b66f12))
+* **security:** resolve glob/minimatch advisories and CodeQL quality alerts ([#199](https://github.com/codegiveness/mssql-mcp/issues/199)) ([f0ebe8d](https://github.com/codegiveness/mssql-mcp/commit/f0ebe8df275065a38816961f55b01ebc77baea05))
+
 ## [0.6.0](https://github.com/codegiveness/mssql-mcp/compare/v0.5.7...v0.6.0) (2026-10-22)
 
 
