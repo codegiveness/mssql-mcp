@@ -18,7 +18,7 @@ const REPO = 'codegiveness/mssql-mcp';
 const NO_DOWNLOAD_ENV = 'MSSQL_MCP_NO_DOWNLOAD';
 const CACHE_ROOT = path.join(os.homedir(), '.mssql-mcp', 'bin');
 
-// (platform, arch) -> RID. win-x64 is framework-dependent per ADR-0002.
+// (platform, arch) -> RID. All RIDs ship self-contained binaries (ADR-0002).
 function ridFor(platform, arch) {
   if (platform === 'linux' && arch === 'x64') return 'linux-x64';
   if (platform === 'linux' && arch === 'arm64') return 'linux-arm64';
@@ -208,13 +208,6 @@ async function main() {
 
   // Exec the binary, forwarding stdio.
   const result = spawnSync(binaryPath, process.argv.slice(2), { stdio: 'inherit' });
-
-  // Windows framework-dependent binary without .NET 10 runtime fails to spawn.
-  // Detect and provide actionable guidance.
-  if (result.error && process.platform === 'win32') {
-    failWindowsDotNetMissing(result.error);
-    return; // unreachable
-  }
 
   if (result.error) {
     console.error('mssql-mcp: failed to launch binary: ' + result.error.message);
@@ -414,19 +407,6 @@ function failExtractionFailed(rid, archiveUrl) {
   console.error('  ' + archiveUrl);
   console.error('');
   console.error('Or install the .NET tool:');
-  console.error('  dotnet tool install -g codegiveness.mssql-mcp');
-  process.exit(1);
-}
-
-function failWindowsDotNetMissing(spawnError) {
-  console.error('mssql-mcp: failed to launch the Windows binary.');
-  console.error('  The Windows build is framework-dependent and requires the .NET 10 runtime.');
-  console.error('  error: ' + spawnError.message);
-  console.error('');
-  console.error('Download the .NET 10 runtime:');
-  console.error('  https://dotnet.microsoft.com/download');
-  console.error('');
-  console.error('Or install the .NET tool (includes the runtime):');
   console.error('  dotnet tool install -g codegiveness.mssql-mcp');
   process.exit(1);
 }

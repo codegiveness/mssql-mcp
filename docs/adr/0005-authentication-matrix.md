@@ -37,3 +37,7 @@ the [distribution decision](0002-distribution-strategy.md#entra-dependency-remov
 - Windows: SQL password and Windows Integrated remain supported via `dotnet tool install` or framework-dependent execution using SqlClient's managed networking implementation. Native SNI is excluded from published assets.
 - Agent never sees credentials — connection string is a server config concern, not a tool input.
 - If creds rotate or DB moves, restart the server (per ADR-0004).
+
+## Amendment 2026-11-19: Windows self-contained
+
+The `win-x64` npm/GitHub Release binary is now self-contained, single-file and untrimmed (ADR-0002), so Windows Integrated (`Integrated Security=SSPI`) works from it without an installed .NET runtime, as well as via `dotnet tool install` (which requires the .NET 11 runtime). Managed SNI remains selected and native SNI remains excluded. SqlClient is now 7.1.2. Earlier "framework-dependent execution" wording above is historical.

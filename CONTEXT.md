@@ -1,6 +1,6 @@
 # mssql-mcp
 
-A Model Context Protocol (MCP) server for Microsoft SQL Server, built in C#/.NET 10. Lets AI agents (Claude Desktop, Cursor, etc.) safely query and interact with SQL Server databases through a controlled tool surface.
+A Model Context Protocol (MCP) server for Microsoft SQL Server, built in C#/.NET 11. Lets AI agents (Claude Desktop, Cursor, etc.) safely query and interact with SQL Server databases through a controlled tool surface.
 
 ## Language
 

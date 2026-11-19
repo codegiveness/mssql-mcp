@@ -103,18 +103,21 @@ azure-sql-edge-data/
 .opencode.jsonc
 opencode.json
 opencode.jsonc
+# omp project directory: maintainer-local workflow (.omp/AGENTS.md) and MCP
+# client config that can hold connection strings. Never commit.
+.omp/
 
 # Git worktrees (local-only isolated checkouts created by the
 # using-git-worktrees skill). Never commit worktree contents.
 .worktrees/
 
-# Other AI coding assistants (defensive — none are used in this repo today,
-# but if a contributor opens it with one, their private state stays private).
-# Per-assistant instruction files (AGENTS.md, CLAUDE.md, .cursorrules) are
-# treated as personal config, not project source.
-AGENTS.md
+# Other AI coding assistants' private state. The shared instruction files
+# AGENTS.md (all agents) and CLAUDE.md (Claude Code) are project source and
+# are tracked; personal or machine-specific instructions go in .omp/AGENTS.md
+# or the assistant's own ignored directory below.
 .claude/
-CLAUDE.md
+CLAUDE.local.md
+.mcp.json
 .cursor/
 .cursorrules
 .aider*

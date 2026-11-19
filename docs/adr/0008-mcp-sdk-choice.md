@@ -20,3 +20,7 @@ Use the official C# MCP SDK (`ModelContextProtocol` NuGet package v1.4.1, repo `
 ## 2026-09-04 amendment
 
 The pinned SDK is now `ModelContextProtocol` 2.2.0. The original rejection applied to the 2.0 preview; 2.2.0 is stable, retains the stdio server APIs used here, and passed the full unit, integration, and MCP Inspector verification matrix.
+
+## 2026-11-19 amendment
+
+The repository moved to .NET 11 and the pinned SDK is now `ModelContextProtocol` 2.4.0, with `Microsoft.Extensions.Hosting` 11.0.0. The .NET 10 statements above describe the original decision. The stdio server APIs used here are unchanged.

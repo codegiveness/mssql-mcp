@@ -258,9 +258,9 @@ public sealed class RepositoryChecksTests
     [InlineData("{}")]
     [InlineData("{\"dependencies\":[]}")]
     [InlineData("{\"dependencies\":{}}")]
-    [InlineData("{\"dependencies\":{\"net10.0\":null}}")]
-    [InlineData("{\"dependencies\":{\"net10.0\":{}}}")]
-    [InlineData("{\"dependencies\":{\"net10.0\":\"invalid\"}}")]
+    [InlineData("{\"dependencies\":{\"net11.0\":null}}")]
+    [InlineData("{\"dependencies\":{\"net11.0\":{}}}")]
+    [InlineData("{\"dependencies\":{\"net11.0\":\"invalid\"}}")]
     [InlineData("{invalid")]
     public async Task InvalidDependencyInventoriesFailClosed(string inventory)
     {
@@ -281,13 +281,13 @@ public sealed class RepositoryChecksTests
         {
             ["dependencies"] = new JsonObject
             {
-                ["net10.0"] = new JsonObject { ["Microsoft.Data.SqlClient"] = new JsonObject { ["resolved"] = "7.1.1" } },
-                ["net10.0/linux-x64"] = new JsonObject { ["Microsoft.Identity.Client.NativeInterop"] = JsonNode.Parse(broker) }
+                ["net11.0"] = new JsonObject { ["Microsoft.Data.SqlClient"] = new JsonObject { ["resolved"] = "7.1.2" } },
+                ["net11.0/linux-x64"] = new JsonObject { ["Microsoft.Identity.Client.NativeInterop"] = JsonNode.Parse(broker) }
             }
         };
         repo.WriteJson("packages.lock.json", lockfile);
         Assert.Equal(1, await RepositoryChecks.RunAsync("check-redistribution", repo.Root, ["packages.lock.json"]));
-        lockfile["dependencies"]!.AsObject().Remove("net10.0/linux-x64");
+        lockfile["dependencies"]!.AsObject().Remove("net11.0/linux-x64");
         repo.WriteJson("packages.lock.json", lockfile);
         Assert.Equal(0, await RepositoryChecks.RunAsync("check-redistribution", repo.Root, ["packages.lock.json"]));
     }

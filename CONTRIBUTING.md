@@ -6,7 +6,7 @@ Thanks for your interest in contributing. This document covers the development w
 
 ### Prerequisites
 
-- [.NET SDK 10.0.402](https://dotnet.microsoft.com/download/dotnet/10.0), selected by `global.json` (stable patch roll-forward, no previews)
+- [.NET SDK 11.0.100](https://dotnet.microsoft.com/download/dotnet/11.0), selected by `global.json` (stable patch roll-forward, no previews)
 - Git
 - Node 24 LTS or a compatible current release — locked Inspector/coverage/release tooling
 - (Optional) Docker — for integration tests against SQL Server
@@ -88,7 +88,7 @@ Run these checks before pushing or opening a PR. If any check fails, the push is
 
 ### C# conventions
 
-- C# 14 / .NET 10 target
+- C# 15 / .NET 11 target
 - `var` only when the type is obvious from the right-hand side; otherwise use explicit types
 - No `!` null-forgiving operator except at trust boundaries (deserialization, CLI parsing)
 - No suppressions of nullable warnings (`#pragma warning disable CS8602`, `!`, etc.)
