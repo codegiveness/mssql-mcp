@@ -26,8 +26,8 @@ public static class StatementClassifier
         TSqlFragment? fragment;
         try
         {
-            // Over-deep nesting can take the parser minutes; treat it as unclassifiable.
-            if (SqlNestingLimit.MeasureDepth(sql) > SqlNestingLimit.MaxParenthesisDepth)
+            // Deep nesting can take the parser minutes; treat it as unclassifiable.
+            if (SqlNestingLimit.FindViolation(sql) is not null)
             {
                 return [];
             }

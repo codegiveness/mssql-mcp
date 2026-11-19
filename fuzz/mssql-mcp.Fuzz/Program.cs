@@ -36,13 +36,13 @@ internal static class Program
     private static void Exercise(ReadOnlySpan<byte> input)
     {
         string sql = Encoding.UTF8.GetString(input);
-        // The Guard rejects over-deep nesting before parsing because the parser's cost explodes;
+        // The Guard rejects deep nesting before parsing because the parser's cost explodes;
         // parsing such input directly here would only re-find that known limit as a timeout.
-        if (SqlNestingLimit.MeasureDepth(sql) > SqlNestingLimit.MaxParenthesisDepth)
+        if (SqlNestingLimit.FindViolation(sql) is not null)
         {
             if (Guard.ValidateStrict(sql).Accepted)
             {
-                throw new InvalidOperationException("Guard accepted SQL beyond the nesting limit.");
+                throw new InvalidOperationException("Guard accepted SQL beyond the nesting limits.");
             }
             return;
         }
